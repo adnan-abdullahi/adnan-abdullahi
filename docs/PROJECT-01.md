@@ -43,30 +43,66 @@ The project progresses through:
 1. Product Constitution
 2. Product Experience & Structure Discovery
 3. UX/UI Materialization and Prototype Validation
-4. Product Specification
-5. Implementation Planning
-6. Engineering Implementation
-7. Verification
-8. Evaluation
-9. Reflection and Growth
+4. Design Foundations in Penpot
+5. Portfolio Screens
+6. Prototype
+7. Validation
+8. Engineering Implementation
+9. Evaluation
+10. Reflection and Growth
 
 The process is iterative rather than strictly linear.
 
 Evidence discovered during later work may require earlier decisions to be revisited.
 
+### Stage 04 Documentation Note
+
+Stage 04 — Design Foundations in Penpot was completed as part of the project's design process.
+
+The stage established and validated the foundational design decisions required before portfolio screen reconstruction, including:
+
+- Color
+- Typography
+- Spacing and layout
+- Responsive behavior
+- Accessibility foundations
+- Interaction and state foundations
+- Screen-readiness criteria
+
+No standalone `STAGE-04-*.md` artifact was created in the repository during Stage 04.
+
+This is a documentation-history note, not an indication that Stage 04 was skipped.
+
+The repository therefore preserves the actual sequence of the engineering journey rather than creating a retrospective artifact solely to fill the numbering.
+
 ---
 
 ## Current Position
 
-The project has completed the initial Product Constitution and the conceptual UX/UI discovery work of Stage 2.
+The project has completed:
 
-The next activity is:
+- Product Constitution
+- Product Experience & Structure Discovery
+- UX/UI Materialization and Prototype Validation
+- Design Foundations in Penpot
 
-**Stage 2I — UX/UI Materialization in Penpot**
+The project is currently at:
 
-The purpose of this activity is to take the UX/UI decisions already developed during Stage 2 and materialize them as an actual interface and interactive prototype.
+**Stage 05 — Portfolio Screens**
 
-The resulting design will be evaluated to determine whether the UX/UI is sufficiently sound or requires revision before the project proceeds to formal product specification.
+The current activity is:
+
+**Portfolio Orientation Screen Reconstruction**
+
+The purpose of this activity is to reconstruct the existing portfolio orientation screen using the validated design foundations and the evidence hierarchy established through the earlier stages.
+
+The reconstruction will preserve the meaningful product intent already discovered while rebuilding the screen structure, responsive behavior, accessibility readiness, visual hierarchy, and evidence-oriented presentation.
+
+The next formal artifact is the:
+
+**Stage 05 — Portfolio Orientation Screen Reconstruction Specification**
+
+The specification will be reviewed before controlled implementation in Penpot.
 
 ---
 
@@ -135,4 +171,5 @@ The repository should preserve sufficient history to understand how the project 
 **GitHub repository:** Connected  
 **Local working directory:** Established  
 **Project structure:** Established  
-**Stage 2I:** Ready to begin
+**Stage 04:** Completed — Design Foundations in Penpot  
+**Stage 05:** In progress — Portfolio Screens / Orientation Screen Reconstruction
