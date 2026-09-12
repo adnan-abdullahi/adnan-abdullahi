@@ -393,7 +393,52 @@ The cycle continues until the design is sufficiently validated for progression t
 
 ---
 
-## 16. Evidence to Capture
+## 16. Implementation Checkpoint — Portfolio Orientation
+
+This checkpoint records the verified Penpot progress for the Portfolio Orientation screen. It does not claim completion of the entire portfolio or of every Stage 3 activity.
+
+### Pass 1 — Visual Foundation
+
+**Status:** PASS
+
+Verified in Penpot:
+
+- The orientation board is `1440 × 840`.
+- The approved IBM Plex Sans typography system and required hierarchy are present.
+- The primary action background, primary and secondary actions, engineering identity, proposition, record statement, and Engineering Record evidence preview are present.
+- No placeholder image, legacy gray header, or decorative utility rectangle was introduced or retained.
+- The proposition and record statement remain separate content elements.
+
+### Pass 2 — Semantic Structure
+
+**Status:** PASS
+
+Exactly four semantic groups were created inside the existing `1280 × 800` content wrapper:
+
+- `Header`: Header Identity, Engineering Record, Approach, About, Contact
+- `Hero`: Name, Role
+- `Actions`: Primary Action Background, Primary Action, Secondary Action
+- `Evidence`: Evidence Heading, Evidence Description
+
+The Container, Header, Hero, Engineering Proposition, Engineering Record Statement, Actions, and Evidence remain direct children of the existing wrapper. Existing content, geometry, typography, text, fills, strokes, and CTA relationships were preserved. No objects were deleted or duplicated.
+
+### Pass 2A — Architecture Assessment
+
+**Status:** PASS / KEEP CURRENT STRUCTURE
+
+This was a read-only architecture assessment; no Penpot mutation was performed during Pass 2A.
+
+The board, wrapper, and Container remain stable. The Container remains a visual boundary/background rectangle. Header, Hero, Actions, and Evidence are semantically clear groups, but no auto-layout, flex layout, frame conversion, component, variant, or new design token was introduced. The primary action is the strongest future reusable interaction candidate, while further componentization and layout behavior remain intentionally deferred.
+
+The architectural decision was:
+
+> We should not optimize the Penpot structure before we have enough evidence from the actual product requirements to know what needs to be reusable or responsive.
+
+This checkpoint records implementation and verification evidence only. It does not represent the entire portfolio as complete.
+
+---
+
+## 17. Evidence to Capture
 
 Stage 3 should produce evidence of:
 
@@ -414,7 +459,7 @@ The objective is to preserve meaningful engineering evidence.
 
 ---
 
-## 17. Design Decision Record
+## 18. Design Decision Record
 
 Important design decisions should record, where appropriate:
 
@@ -450,7 +495,7 @@ This structure keeps design work connected to engineering reasoning.
 
 ---
 
-## 18. Relationship to Product Specification
+## 19. Relationship to Product Specification
 
 Stage 3 does not finalize implementation requirements.
 
@@ -472,7 +517,7 @@ The Product Specification must reflect what was learned during Stage 3 rather th
 
 ---
 
-## 19. Exit Criteria
+## 20. Exit Criteria
 
 Stage 3 may be considered complete when:
 
@@ -494,20 +539,20 @@ It means the experience is sufficiently understood and validated to support the 
 
 ---
 
-## 20. Stage 3 Foundational Principle
+## 21. Stage 3 Foundational Principle
 
 > **Materialize the experience so that assumptions can be experienced, questioned, tested, revised, and validated before implementation.**
 
 ---
 
-## 21. Initial Status
+## 22. Current Status
 
-**Stage 3 status:** Initiating
+**Stage 3 status:** Portfolio Orientation materialized and structurally verified; broader Stage 3 validation remains in progress
 
-**Penpot status:** Not yet materialized
+**Penpot status:** Portfolio Orientation materialized in Penpot; the verified implementation checkpoint is recorded above
 
-**Validation status:** Not yet performed
+**Validation status:** Pass 1, Pass 2, and the read-only Pass 2A architecture assessment verified for Portfolio Orientation
 
-**Implementation status:** Not started
+**Implementation status:** Portfolio Orientation implementation checkpoint complete; broader portfolio implementation not complete
 
-**Next immediate action:** Establish the Stage 3 artifact in Git, then begin Penpot materialization from the validated Stage 2 experience model.
+**Next immediate action:** Continue only with the remaining Stage 3 validation work supported by evidence from the materialized portfolio experience.
