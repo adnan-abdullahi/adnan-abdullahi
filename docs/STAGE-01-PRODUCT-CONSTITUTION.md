@@ -2,7 +2,7 @@
 
 # PRODUCT CONSTITUTION
 
-**Version:** 1.0 — Founding Edition  
+**Version:** 1.1 — Foundational Clarification  
 **Project:** Professional Engineering Portfolio  
 **Project Number:** 01  
 **Status:** Authoritative
@@ -45,17 +45,20 @@ Its purpose is to allow people to:
 
 The engineer is understood as a responsible problem-solver who works within real human, technical, environmental, and organizational constraints.
 
-Engineering is not defined only by the ability to produce technology.
+Engineering begins with a problem or need that requires understanding, particularly where people are affected by it. The engineer should not assume that personal interpretation alone is sufficient to understand such a problem.
+
+Where a problem affects identifiable people, their experience and perspective should be considered as part of problem understanding when reasonably possible. Their experience can reveal conditions, constraints, effects, and root causes that may not be visible from the engineer's perspective alone.
 
 An engineer must be able to:
 
 - encounter uncertainty;
 - understand what is actually at hand;
 - distinguish what is known from what is assumed or unknown;
-- investigate;
+- investigate the problem before making significant solution decisions;
+- consider the experience of people affected by the problem where relevant and reasonably possible;
 - make decisions under uncertainty;
 - act responsibly;
-- evaluate results;
+- evaluate results against the problem being addressed;
 - identify what was missed;
 - learn;
 - adapt;
@@ -71,6 +74,10 @@ The project follows the fundamental cycle:
 
 > **Understand → Act Responsibly Under Uncertainty → Observe & Evaluate → Reflect & Adapt → Repeat**
 
+The cycle is understood as beginning with the problem and its human context, followed by sufficient investigation to establish an informed basis for significant solution decisions.
+
+Investigation should precede significant solution decisions because an appropriate solution depends on an adequate understanding of the problem, its context, constraints, and causes. Moving directly to a solution without sufficient investigation risks solving an assumed problem rather than the actual problem.
+
 The process is not assumed to be perfectly linear.
 
 New evidence may invalidate an earlier assumption.
@@ -81,6 +88,8 @@ An implemented solution may require revision.
 
 A decision may be superseded.
 
+If a solution does not meaningfully address the actual problem, the appropriate response may be to return to problem investigation, including reconsideration of what was misunderstood or what root cause was missed.
+
 The portfolio should preserve meaningful evidence of these realities rather than presenting engineering as a falsely perfect sequence.
 
 ---
@@ -90,6 +99,8 @@ The portfolio should preserve meaningful evidence of these realities rather than
 The portfolio prioritizes evidence over unsupported claims.
 
 Claims about capability should be connected to meaningful evidence wherever practical.
+
+Evidence should be selected and presented in a manner relevant to the claim, decision, outcome, or conclusion it supports. The portfolio is not intended to turn every activity or artifact into evidence merely for the appearance of process.
 
 Evidence may include:
 
@@ -171,10 +182,13 @@ The portfolio therefore considers not only whether something can be built, but a
 
 - who it serves;
 - what problem it addresses;
+- whether the problem has been adequately understood;
 - what consequences it may produce;
 - whether it is understandable and usable;
 - whether people with different abilities can access it;
 - and whether the technology is being used responsibly.
+
+Where a solution addresses a problem affecting people, meaningful evaluation should, where reasonably possible, consider whether the solution improves the condition being addressed rather than relying only on technical implementation.
 
 Accessibility is treated as part of engineering quality rather than decorative compliance.
 
@@ -255,6 +269,8 @@ The portfolio should provide credible evidence of:
 - reflection;
 - adaptation;
 - and growth.
+
+Where a project addresses a problem affecting people, the engineering record should, where appropriate, make clear how the problem was investigated, how relevant human experience informed understanding, and how the resulting solution was evaluated against the actual problem.
 
 These qualities should be demonstrated through actual work wherever possible rather than through descriptive claims alone.
 
@@ -366,6 +382,10 @@ A successful portfolio demonstrates:
 - usable and accessible experience;
 - and sufficient depth for serious evaluation.
 
+For engineering solutions represented within the portfolio, technical implementation alone is not sufficient evidence of success. Where the purpose of a solution is to address a real human problem, success should be judged primarily by whether the solution meaningfully addresses that actual problem within its relevant constraints. Technology is a means to that end, not the measure of success in itself.
+
+The portfolio's own product success remains defined by its ability to provide credible professional evaluation; the success of an individual engineering solution is judged by the problem it was intended to address.
+
 Success is not defined by the number of pages, technologies, animations, projects, or features.
 
 ---
@@ -400,6 +420,8 @@ The project is intentionally iterative.
 
 When evidence reveals that an assumption, design, requirement, implementation, or decision is inadequate, the appropriate response is to revisit the relevant stage.
 
+When evidence indicates that the solution does not address the actual problem, revisiting the problem investigation and examining what was misunderstood or what root cause was missed is an appropriate part of that iteration.
+
 Going backward is not considered failure.
 
 It is part of engineering.
@@ -433,8 +455,10 @@ The product must therefore embody:
 
 This document establishes the foundational direction of Project 01.
 
+This version incorporates the clarified problem-first, people-informed, investigation-before-decision, actual-problem success, reality-based verification, and reinvestigation principles developed during the constitutional reconciliation of the project.
+
 Later stages may refine how the Constitution is realized, but they must not casually contradict its fundamental principles.
 
 Where later evidence reveals a genuine conflict or limitation, the conflict must be explicitly identified, evaluated, and resolved rather than silently ignored.
 
-**Stage 1 — Product Constitution: ESTABLISHED**
+**Stage 1 — Product Constitution: ESTABLISHED AND LOCKED**
