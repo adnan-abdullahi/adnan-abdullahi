@@ -94,17 +94,19 @@ The project is currently at:
 
 The current activity is:
 
-**Portfolio Orientation Screen Reconstruction**
+**Portfolio Orientation**
 
-The purpose of this activity is to reconstruct the existing portfolio orientation screen using the validated design foundations and the evidence hierarchy established through the earlier stages.
+Stage 05 is governed by the consolidated engineering record:
 
-The reconstruction will preserve the meaningful product intent already discovered while rebuilding the screen structure, responsive behavior, accessibility readiness, visual hierarchy, and evidence-oriented presentation.
+**`docs/STAGE-05-PORTFOLIO-ORIENTATION.md`**
 
-The next formal artifact is the:
+This artifact unifies the Stage 05 specification, structural reasoning, and structural reconciliation into one coherent record while preserving the history of how the current direction was reached.
 
-**Stage 05 — Portfolio Orientation Screen Reconstruction Specification**
+The current structural status is:
 
-The specification will be reviewed before controlled implementation in Penpot.
+**Structurally Accepted — No Material Reconstruction Required**
+
+The current direction is to preserve the existing Portfolio Orientation structure and address only concrete gaps when justified by evidence. Historical reconstruction decisions remain documented as part of the engineering record rather than being treated as current defects after reconciliation.
 
 ---
 
@@ -174,4 +176,4 @@ The repository should preserve sufficient history to understand how the project 
 **Local working directory:** Established  
 **Project structure:** Established  
 **Stage 04:** Accepted — Design Foundations in Penpot  
-**Stage 05:** In progress — Portfolio Screens / Orientation Screen Reconstruction
+**Stage 05:** In progress — Portfolio Screens / Portfolio Orientation
