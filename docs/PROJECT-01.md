@@ -79,6 +79,31 @@ This checkpoint records the engineering evidence and decision path rather than m
 
 ---
 
+## Stage 05 Closure Note
+
+Stage 05 — Portfolio Orientation has been completed and closed.
+
+The consolidated Stage 05 engineering record remains the governing artifact:
+
+**`docs/STAGE-05-PORTFOLIO-ORIENTATION.md`**
+
+The stage established and verified the Portfolio Orientation structure against the approved information hierarchy and design foundations.
+
+The final Stage 05 reconciliation established:
+
+- **Structure:** Accepted — no material reconstruction required.
+- **Color governance:** The intentional manual white used by the Primary Action text was retained; the Portfolio Orientation board background was bound to the existing `Global / bg-primary` token and verified at the same resolved value of `#FFFFFF`.
+- **Spacing:** Inspected against the approved `4 / 8 / 12 / 16 / 24 / 32 / 48 / 64px` foundation and accepted as-is. No material spacing defect or reconstruction requirement was established.
+- **Interactions:** Deliberately deferred. The existing actions remain semantically defined, but their actual destinations belong to subsequent portfolio information architecture and destination work. No speculative interaction was introduced.
+
+The resulting Stage 05 state is:
+
+**Accepted — Portfolio Orientation complete.**
+
+Historical reconstruction decisions remain preserved in the Stage 05 engineering record and are not treated as current defects after reconciliation.
+
+---
+
 ## Current Position
 
 The project has completed:
@@ -87,26 +112,17 @@ The project has completed:
 - Product Experience & Structure Discovery
 - UX/UI Materialization and Prototype Validation
 - Design Foundations in Penpot
+- Stage 05 — Portfolio Screens / Portfolio Orientation
 
 The project is currently at:
 
-**Stage 05 — Portfolio Screens**
+**Stage 06 — Prototype**
 
 The current activity is:
 
-**Portfolio Orientation**
+**Prototype**
 
-Stage 05 is governed by the consolidated engineering record:
-
-**`docs/STAGE-05-PORTFOLIO-ORIENTATION.md`**
-
-This artifact unifies the Stage 05 specification, structural reasoning, and structural reconciliation into one coherent record while preserving the history of how the current direction was reached.
-
-The current structural status is:
-
-**Structurally Accepted — No Material Reconstruction Required**
-
-The current direction is to preserve the existing Portfolio Orientation structure and address only concrete gaps when justified by evidence. Historical reconstruction decisions remain documented as part of the engineering record rather than being treated as current defects after reconciliation.
+Stage 05 is closed. Future work should proceed from the accepted Portfolio Orientation state rather than reopening its structure without new evidence.
 
 ---
 
@@ -176,4 +192,5 @@ The repository should preserve sufficient history to understand how the project 
 **Local working directory:** Established  
 **Project structure:** Established  
 **Stage 04:** Accepted — Design Foundations in Penpot  
-**Stage 05:** In progress — Portfolio Screens / Portfolio Orientation
+**Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
+**Stage 06:** Current — Prototype
