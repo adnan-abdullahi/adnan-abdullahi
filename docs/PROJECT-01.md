@@ -69,11 +69,13 @@ The stage established and validated the foundational design decisions required b
 - Interaction and state foundations
 - Screen-readiness criteria
 
-No standalone `STAGE-04-*.md` artifact was created in the repository during Stage 04.
+The formal acceptance checkpoint is recorded in:
 
-This is a documentation-history note, not an indication that Stage 04 was skipped.
+**`docs/STAGE-04-DESIGN-FOUNDATIONS-ACCEPTANCE-CHECKPOINT.md`**
 
-The repository therefore preserves the actual sequence of the engineering journey rather than creating a retrospective artifact solely to fill the numbering.
+The acceptance process included implementation, read-only verification, targeted reconciliation of an apparent inspection discrepancy, and final acceptance.
+
+This checkpoint records the engineering evidence and decision path rather than merely marking the stage as complete.
 
 ---
 
@@ -171,5 +173,5 @@ The repository should preserve sufficient history to understand how the project 
 **GitHub repository:** Connected  
 **Local working directory:** Established  
 **Project structure:** Established  
-**Stage 04:** Completed — Design Foundations in Penpot  
+**Stage 04:** Accepted — Design Foundations in Penpot  
 **Stage 05:** In progress — Portfolio Screens / Orientation Screen Reconstruction
