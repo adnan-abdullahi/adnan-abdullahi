@@ -10,6 +10,18 @@
 
 ---
 
+## Project Authority
+
+`PROJECT-01.md` is the authoritative project-level record for the current state of Project 01.
+
+This authority applies to project-level lifecycle position, current stage, overall project status, and the high-level distinction between completed, active, deferred, and unresolved work.
+
+Stage-specific records remain the detailed records for the history, reasoning, decisions, evidence, and acceptance of their respective stages.
+
+A current project state does not, by itself, constitute authorization to execute every activity within that stage.
+
+---
+
 ## Project Definition
 
 This repository contains the engineering work for Project 01: the development of a professional engineering portfolio.
@@ -33,6 +45,44 @@ The project follows the principle:
 Technology is treated as an instrument that assists engineering work.
 
 Human understanding, judgment, responsibility, and verification remain central.
+
+---
+
+## Engineering Record Controls
+
+Project 01 preserves the distinction between historical engineering development and the current project state.
+
+Where historical information could reasonably be mistaken for current guidance, a lightweight disposition may be used to identify its status, such as:
+
+- Current
+- Historical
+- Superseded
+- Deferred
+- Rejected
+- Unresolved
+
+These dispositions are used where they materially improve clarity and are not required as metadata for every record.
+
+Active and future stages establish a lightweight boundary before meaningful execution or delegation. The boundary identifies:
+
+- Purpose
+- Scope
+- Non-Scope
+- Expected Outcome
+- Acceptance
+- Authorization
+
+Historical stages are not retroactively reconstructed solely to satisfy this structure. They are updated only where ambiguity materially affects current work.
+
+For material engineering decisions, the record should distinguish, where relevant:
+
+**Proposal → Human Decision → Authorization → Execution → Verification**
+
+The repository does not treat an agent proposal as a human decision or authorization.
+
+Material engineering claims should be supported by evidence appropriate to the claim. Where relevant, the record should distinguish observation, interpretation, proposal, decision, authorization, implementation, verification, and acceptance.
+
+External artifacts remain attributable to their respective tools and sources. Penpot remains the visual design workspace/source, while this repository remains the engineering record. External artifacts should be traceable to relevant engineering decisions, and selected visual evidence may be preserved in the repository when it materially improves independent inspectability.
 
 ---
 
@@ -172,6 +222,8 @@ Engineering decisions should, where appropriate, preserve:
 - reflection
 
 Incomplete, failed, uncertain, or superseded work may be represented when it provides meaningful evidence of engineering practice.
+
+Evidence should be appropriate to the claim being made; implementation, observation, or external artifact presence is not by itself equivalent to verification or acceptance.
 
 ---
 
