@@ -246,3 +246,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 04:** Accepted — Design Foundations in Penpot  
 **Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
 **Stage 06:** Current — Prototype
+
+The Stage 06 execution boundary and authorization are established in:
+
+**`docs/STAGE-06-PROTOTYPE.md`**
