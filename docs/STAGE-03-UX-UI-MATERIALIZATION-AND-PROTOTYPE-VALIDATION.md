@@ -2,14 +2,24 @@
 
 **Project:** Project 01 — Professional Engineering Portfolio  
 **Stage:** 3 of 9  
-**Status:** Initiating  
+**Status:** Historical — Stage 3 subsequently completed; see current project state in `docs/PROJECT-01.md`  
 **Primary Instrument:** Penpot  
 **Preceding Stage:** Stage 2 — Product Experience & Structure Discovery  
-**Following Stage:** Stage 4 — Product Specification
+**Following Stage:** Stage 4 — Design Foundations in Penpot *(historical wording in this record previously identified Stage 4 as Product Specification; that model was subsequently superseded)*
 
 ---
 
-## 1. Stage Purpose
+## 0. Record Disposition
+
+This record preserves the historical Stage 3 specification, implementation checkpoints, validation reasoning, and evidence as they developed.
+
+The original `Status: Initiating` and references to Stage 4 as **Product Specification** are historical and are not current project guidance.
+
+At project level, Stage 3 is completed. The current project position is governed by `docs/PROJECT-01.md`.
+
+This record is not retroactively rewritten to imply a Stage 3 acceptance event that is not explicitly recorded here. Its historical evidence remains preserved.
+
+---
 
 Stage 3 exists to materialize the UX/UI structure established during Stage 2 into an actual interactive interface and to determine whether that design works when experienced as a real product.
 
