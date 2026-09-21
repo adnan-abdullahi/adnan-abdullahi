@@ -1,7 +1,7 @@
 # STAGE 3 — UX/UI MATERIALIZATION & PROTOTYPE VALIDATION
 
 **Project:** Project 01 — Professional Engineering Portfolio  
-**Stage:** 3 of 9  
+**Stage:** 3 of 10  
 **Status:** Historical — Stage 3 subsequently completed; see current project state in `docs/PROJECT-01.md`  
 **Primary Instrument:** Penpot  
 **Preceding Stage:** Stage 2 — Product Experience & Structure Discovery  
@@ -557,7 +557,7 @@ It means the experience is sufficiently understood and validated to support the 
 
 ## 22. Current Status
 
-**Stage 3 status:** Portfolio Orientation materialized and structurally verified; broader Stage 3 validation remains in progress
+**Stage 3 status:** Historical — Portfolio Orientation was materialized and structurally verified; the current project state is governed by `docs/PROJECT-01.md`
 
 **Penpot status:** Portfolio Orientation materialized in Penpot; the verified implementation checkpoint is recorded above
 
@@ -565,4 +565,4 @@ It means the experience is sufficiently understood and validated to support the 
 
 **Implementation status:** Portfolio Orientation implementation checkpoint complete; broader portfolio implementation not complete
 
-**Next immediate action:** Continue only with the remaining Stage 3 validation work supported by evidence from the materialized portfolio experience.
+**Next immediate action:** No current Stage 3 action is established by this historical record; subsequent work is governed by the current project state recorded in `docs/PROJECT-01.md`.
