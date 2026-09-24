@@ -164,15 +164,25 @@ The project has completed:
 - Design Foundations in Penpot
 - Stage 05 — Portfolio Screens / Portfolio Orientation
 
-The project is currently at:
+The project has completed through:
 
 **Stage 06 — Prototype**
 
-The current activity is:
+Stage 06 is accepted and closed.
 
-**Prototype**
+The Stage 06 evidence record is:
 
-Stage 05 is closed. Future work should proceed from the accepted Portfolio Orientation state rather than reopening its structure without new evidence.
+**`journal/P1-STAGE06-PROTOTYPE-EVIDENCE.md`**
+
+The evidence record documents the materialized prototype topology, interaction verification, problems encountered, revisions, boundary verification, unresolved matters, and provenance limitation.
+
+The project is now at:
+
+**Stage 07 — Validation**
+
+Stage 07 has not yet been executed. Its work remains subject to its own approved boundary and authorization.
+
+Stage 05 remains closed. Future work should proceed from the accepted Portfolio Orientation state rather than reopening its structure without new evidence.
 
 ---
 
@@ -245,7 +255,8 @@ The repository should preserve sufficient history to understand how the project 
 **Project structure:** Established  
 **Stage 04:** Accepted — Design Foundations in Penpot  
 **Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
-**Stage 06:** Current — Prototype
+**Stage 06:** Accepted and Closed — Prototype  
+**Stage 07:** Current — Validation
 
 The Stage 06 execution boundary and authorization are established in:
 
