@@ -180,7 +180,13 @@ The project is now at:
 
 **Stage 07 — Validation**
 
-Stage 07 has not yet been executed. Its work remains subject to its own approved boundary and authorization.
+Stage 07 is active and authorized within its approved boundary.
+
+The governing Stage 07 record is:
+
+**`docs/STAGE-07-VALIDATION.md`**
+
+Validation is now underway. Stage 07 acceptance has not yet been established.
 
 Stage 05 remains closed. Future work should proceed from the accepted Portfolio Orientation state rather than reopening its structure without new evidence.
 
@@ -256,7 +262,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 04:** Accepted — Design Foundations in Penpot  
 **Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
 **Stage 06:** Accepted and Closed — Prototype  
-**Stage 07:** Current — Validation
+**Stage 07:** Active — Validation
 
 The Stage 06 execution boundary and authorization are established in:
 
