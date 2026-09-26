@@ -7,7 +7,7 @@
 - **Evaluator:** Project owner / engineer
 - **Status:** Consolidated evidence record
 - **Scope:** Human evaluation of the accepted Stage 06 prototype
-- **Stage 07 acceptance:** Not yet established
+- **Stage 07 acceptance:** Accepted / Closed
 
 ## 1. Overall UI
 
@@ -143,4 +143,38 @@ The findings are evidence for determining what should happen next. Any response 
 
 > **Content and evidence materialization needed to support the existing structure and portray the actual engineering journey as a coherent system.**
 
-**Stage 07 status:** Active — validation findings established, acceptance pending.
+**Stage 07 status:** Accepted / Closed.
+
+## 14. Final Validation and Acceptance
+
+Following the initial human evaluation, the identified content and evidence gap was addressed within the accepted prototype structure.
+
+The approved engineering content was materialized across:
+
+- Project 01
+- Engineering Approach
+- Engineering Record
+- Deep Engineering
+
+The Design Foundations investigation was represented at the deeper inspection level without introducing unsupported claims, metrics, users, outcomes, or production implementation.
+
+The established Experience Map was materialized on **Page 01 — Experience Map**, representing the visitor traversal and return relationships established for the portfolio experience.
+
+**Page 05 — Validation** was populated with the five prototype boards as the validation reference, while **Page 04 — Prototype** remained the authoritative traversable prototype.
+
+The resulting experience was then inspected by the project owner. The final inspection found the experience understandable and working as intended, including:
+
+- Project 01 understandability;
+- progressive depth;
+- navigation and return paths;
+- Engineering Approach / Engineering Record distinction;
+- Deep Engineering as the deeper inspection level;
+- the materialized engineering content;
+- the Experience Map;
+- the Validation reference.
+
+The remaining gap identified in the initial evaluation was therefore sufficiently addressed for this stage to proceed.
+
+**Final human decision: Stage 07 — Validation accepted and closed.**
+
+This acceptance establishes sufficient clarity to proceed to Stage 08 — Engineering Implementation. It does not claim production implementation, deployment outcomes, real-world user metrics, or other outcomes not yet established.
