@@ -176,17 +176,25 @@ The Stage 06 evidence record is:
 
 The evidence record documents the materialized prototype topology, interaction verification, problems encountered, revisions, boundary verification, unresolved matters, and provenance limitation.
 
-The project is now at:
+The project has completed Stage 07 — Validation.
 
-**Stage 07 — Validation**
-
-Stage 07 is active and authorized within its approved boundary.
+Stage 07 was validated through human inspection, evidence materialization, final prototype verification, and human acceptance.
 
 The governing Stage 07 record is:
 
 **`docs/STAGE-07-VALIDATION.md`**
 
-Validation is now underway. Stage 07 acceptance has not yet been established.
+The Stage 07 human evaluation record is:
+
+**`journal/P1-STAGE07-HUMAN-UI-EVALUATION.md`**
+
+The final validated state established that the portfolio experience is sufficiently clear to proceed toward implementation. The established Experience Map has been materialized on Page 01 — Experience Map, the approved engineering evidence has been materialized across the Project 01 experience, and Page 05 — Validation contains the prototype reference used during validation.
+
+**Stage 07 — Validation: Accepted and Closed.**
+
+The project is now ready to proceed to:
+
+**Stage 08 — Engineering Implementation**
 
 Stage 05 remains closed. Future work should proceed from the accepted Portfolio Orientation state rather than reopening its structure without new evidence.
 
@@ -262,7 +270,8 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 04:** Accepted — Design Foundations in Penpot  
 **Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
 **Stage 06:** Accepted and Closed — Prototype  
-**Stage 07:** Active — Validation
+**Stage 07:** Accepted and Closed — Validation
+**Stage 08:** Next — Engineering Implementation
 
 The Stage 06 execution boundary and authorization are established in:
 
