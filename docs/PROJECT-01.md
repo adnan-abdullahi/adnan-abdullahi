@@ -270,9 +270,16 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 04:** Accepted — Design Foundations in Penpot  
 **Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
 **Stage 06:** Accepted and Closed — Prototype  
-**Stage 07:** Accepted and Closed — Validation
-**Stage 08:** Next — Engineering Implementation
+**Stage 07:** Accepted and Closed — Validation  
+**Stage 08:** Active — Engineering Implementation
 
-The Stage 06 execution boundary and authorization are established in:
+The Stage 08 governing boundary and implementation verification framework are established in:
 
-**`docs/STAGE-06-PROTOTYPE.md`**
+**`docs/STAGE-08-ENGINEERING-IMPLEMENTATION.md`**
+
+The Stage 08 working roadmap, session record, technical decisions, verification record, discrepancy record, evidence index, and remaining uncertainty are maintained in:
+
+**`journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md`**
+
+Stage 08 is now the active project stage.
+
