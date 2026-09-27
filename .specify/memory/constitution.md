@@ -1,50 +1,96 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Project 01 Engineering Constitution
 
-## Core Principles
+## 1. Human Judgment and Responsibility
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+Engineering decisions remain under human judgment and responsibility. AI, tools, automation, and Spec Kit assist engineering work but do not become authorities. No consequential change is authorized merely because a tool proposes it.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+## 2. Evidence Before Assertion
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Claims must be grounded in available evidence. Engineering work must distinguish observed facts, interpretations, hypotheses, assumptions, proposed solutions, verified conclusions, and unresolved uncertainty. Unsupported outcomes, expertise, capabilities, or evidence must not be presented as established fact.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+## 3. Understand Before Implement
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Implementation follows sufficient understanding of the problem, requirements, constraints, and intended experience. Engineering progresses through:
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Understanding → Specification → Planning → Implementation → Verification
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## 4. Traceability
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Engineering decisions must remain traceable to established requirements and evidence.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+The practical traceability chain is:
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+Requirement → Specification → Plan → Task → Implementation → Verification → Evidence
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+## 5. Verification Is Distinct From Implementation
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Implemented work must not be assumed correct merely because it has been implemented.
+
+Verification must consider, as applicable:
+
+- functionality
+- experience and behavior
+- visual and design fidelity
+- responsive behavior
+- accessibility
+- performance
+- security
+- compatibility and interoperability
+- content and evidence integrity
+- build and deployment
+
+## 6. Investigate Discrepancies Before Changing the Product
+
+When verification appears to contradict the implementation, do not immediately modify the product.
+
+Use:
+
+Observation → Interpretation → Investigation → Finding → Proposed Response → Human Decision → Authorization → Change → Verification
+
+An apparent verification failure is not itself proof that the product is wrong.
+
+## 7. Controlled Scope
+
+Engineering work must remain within the authorized Stage 08 boundary.
+
+Do not introduce:
+
+- silent new requirements
+- speculative features
+- unsupported architecture
+- unnecessary technology
+- redesign of accepted experience
+- changes to accepted foundations without authorization
+- premature backend work
+- unrelated improvements
+- unrestricted scope expansion
+
+A material boundary change requires explicit human authorization.
+
+## 8. Preserve Established Decisions
+
+Earlier accepted Project 01 decisions are constraints and evidence.
+
+Completed stages must not be casually reopened. Reconsideration requires legitimate new evidence, explicit investigation, and human authorization.
+
+## 9. Responsible and Human-Centered Engineering
+
+Engineering must preserve the intended human benefit of Project 01.
+
+The implementation should support:
+
+- accessibility
+- understandable interaction
+- responsible technology use
+- the visitor's ability to inspect evidence
+- the visitor's ability to form their own informed judgment
+
+## 10. Uncertainty Must Remain Visible
+
+Unresolved questions must not be concealed.
+
+Engineering should preserve uncertainty where it exists and avoid manufacturing certainty.
+
+The governing progression remains:
+
+Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity
