@@ -1,0 +1,257 @@
+/**
+ * Responsive Layout Primitives & Reset Styles
+ * Governed by:
+ * - specs/001-project-01-portfolio-experience/tasks.md (T006)
+ * - research.md (Section 4: Responsive Implementation Approach)
+ * - FR-018 & FR-020 (V4 Responsive Verification)
+ *
+ * Breakpoints:
+ * - Mobile:  < 768px
+ * - Tablet:  768px - 1024px
+ * - Desktop: > 1024px (Baseline 1440px)
+ */
+
+/* ==========================================================================
+   1. MODERN CSS RESET & BOX MODEL
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ==========================================================================
+   2. ACCESSIBILITY & FOCUS INDICATORS (WCAG 2.1 AA)
+   ========================================================================== */
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--space-4);
+  background: var(--color-interactive-primary);
+  color: var(--primitive-white);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  z-index: 1000;
+  font-weight: var(--font-weight-semibold);
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ==========================================================================
+   3. RESPONSIVE CONTAINER & SHELL PRIMITIVES
+   ========================================================================== */
+
+/* Main application layout shell */
+.experience-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+/* Primary centered container with 1440px desktop baseline */
+.container {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+/* Content column with reading width */
+.content-column {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ==========================================================================
+   4. GRID & FLEX PRIMITIVES
+   ========================================================================== */
+
+/* Two-column responsive split (Desktop 2-col, Mobile 1-col) */
+.grid-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .grid-split {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+/* Dimensional branching cards grid */
+.grid-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .grid-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+/* Lateral layout with return rail */
+.layout-with-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .layout-with-rail {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--space-12);
+    align-items: start;
+  }
+}
+
+/* Return rail container */
+.lateral-rail {
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .lateral-rail {
+    position: sticky;
+    top: var(--space-8);
+  }
+}
+
+/* ==========================================================================
+   5. VIEWPORT BREAKPOINT ADJUSTMENTS
+   ========================================================================== */
+
+/* Mobile Viewport (< 768px) */
+@media (max-width: 767px) {
+  .container {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  /* Show mobile-specific navigation, hide desktop lateral elements */
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block !important;
+  }
+}
+
+/* Tablet Viewport (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Desktop Viewport (> 1024px) */
+@media (min-width: 1025px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   6. MOTION & TRANSITIONS (PREFERS-REDUCED-MOTION)
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

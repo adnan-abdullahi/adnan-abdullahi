@@ -1,0 +1,118 @@
+/**
+ * Stage 04 Semantic Design Tokens & Foundations
+ * Governed by:
+ * - docs/STAGE-04-DESIGN-FOUNDATIONS-ACCEPTANCE-CHECKPOINT.md
+ * - specs/001-project-01-portfolio-experience/tasks.md (T004)
+ * - FR-018 (Visual Foundations Fidelity)
+ */
+
+:root {
+  /* ==========================================================================
+     1. COLOR PRIMITIVES (Approved Stage 04 & Prototype Foundations)
+     ========================================================================== */
+
+  /* Dark Theme Palette (Authoritative Prototype Foundation) */
+  --primitive-dark-900: #0D0D0D;  /* Root Canvas Background */
+  --primitive-dark-800: #141419;  /* Secondary / Elevated Surface */
+  --primitive-dark-700: #1A1A2E;  /* Card / Panel Surface */
+  --primitive-dark-600: #232338;  /* Card Border / Divider */
+
+  /* Brand & Accent Primitives */
+  --primitive-blue-500: #4A90D9;  /* Primary Action / Interactive Blue */
+  --primitive-blue-700: #245B8F;  /* Deep Brand Blue (Stage 04 Direction C) */
+  --primitive-blue-900: #183F63;  /* Stage 04 Direction C Primary */
+  --primitive-teal-400: #6C8EBF;  /* Secondary Accent Teal / Dimension Indicator */
+  --primitive-purple-400: #8B6FD4; /* Deep Engineering / Inspection Accent */
+  --primitive-green-500: #3A5F3A;  /* Muted Green / Verified Status Indicator */
+
+  /* Neutral & Text Primitives */
+  --primitive-white: #FFFFFF;
+  --primitive-gray-100: #F6F7F8;
+  --primitive-gray-200: #E0E8F5;  /* High-contrast secondary text on dark */
+  --primitive-gray-300: #D9DEE3;
+  --primitive-gray-400: #A0AAB5;  /* Muted / Caption text on dark */
+  --primitive-gray-600: #52606D;
+  --primitive-gray-900: #18212B;
+
+  /* State & Status Primitives */
+  --primitive-amber-400: #D9822B; /* Visible Uncertainty / Unresolved Accent */
+  --primitive-red-400: #D94A4A;   /* Discrepancy / Error Indicator */
+
+  /* ==========================================================================
+     2. SEMANTIC COLOR TOKENS (Application Default: High-Contrast Dark Theme)
+     ========================================================================== */
+
+  /* Surfaces & Backgrounds */
+  --color-bg-canvas: var(--primitive-dark-900);
+  --color-bg-surface: var(--primitive-dark-800);
+  --color-surface-card: var(--primitive-dark-700);
+  --color-surface-card-hover: #21213B;
+  --color-surface-overlay: rgba(13, 13, 13, 0.85);
+
+  /* Text & Typography */
+  --color-text-primary: var(--primitive-white);
+  --color-text-secondary: var(--primitive-gray-200);
+  --color-text-muted: var(--primitive-gray-400);
+  --color-text-inverse: var(--primitive-gray-900);
+
+  /* Interactive Elements */
+  --color-interactive-primary: var(--primitive-blue-500);
+  --color-interactive-hover: #5BA0E9;
+  --color-interactive-active: #3A7CC5;
+  --color-interactive-focus: var(--primitive-blue-500);
+
+  /* Borders & Dividers */
+  --color-border-subtle: var(--primitive-dark-600);
+  --color-border-default: #2E2E48;
+  --color-border-strong: #3F3F60;
+  --color-border-focus: var(--primitive-blue-500);
+
+  /* Domain & Depth Badges */
+  --color-depth-entry: var(--primitive-gray-400);
+  --color-depth-project: var(--primitive-blue-500);
+  --color-depth-dimension: var(--primitive-teal-400);
+  --color-depth-deeper: var(--primitive-purple-400);
+
+  /* Verification & Evidence Status */
+  --color-status-verified: var(--primitive-green-500);
+  --color-status-verified-text: #78D978;
+  --color-status-uncertain: var(--primitive-amber-400);
+  --color-status-uncertain-text: #FFB366;
+  --color-status-discrepancy: var(--primitive-red-400);
+
+  /* Focus Indicator (WCAG 2.1 AA Compliant Focus Rings) */
+  --focus-ring-color: var(--primitive-blue-500);
+  --focus-ring-offset: 2px;
+  --focus-ring-width: 2px;
+  --focus-ring: var(--focus-ring-width) solid var(--focus-ring-color);
+
+  /* ==========================================================================
+     3. SPACING SCALE (Approved Stage 04 Foundation: 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64px)
+     ========================================================================== */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+
+  /* ==========================================================================
+     4. RADII & ELEVATION
+     ========================================================================== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  /* ==========================================================================
+     5. TRANSITIONS & TIMING
+     ========================================================================== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}

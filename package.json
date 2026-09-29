@@ -1,0 +1,17 @@
+{
+  "name": "adnan-abdullahi-root",
+  "private": true,
+  "workspaces": [
+    "app"
+  ],
+  "scripts": {
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "preview": "npm --prefix app run preview",
+    "test:unit": "npm --prefix app run test:unit",
+    "test:unit:watch": "npm --prefix app run test:unit:watch",
+    "test:e2e": "playwright test",
+    "test:responsive": "playwright test --project=mobile --project=tablet --project=desktop",
+    "test:a11y": "playwright test tests/a11y"
+  }
+}
