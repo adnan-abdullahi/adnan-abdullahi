@@ -141,3 +141,15 @@ export interface EvidenceCardProps {
 - `outcome` MUST be presented as observed verification data, NEVER as an ungrounded or speculative capability claim.
 - If `uncertainty` is present, it MUST be rendered visibly with an explicit "Unresolved Question" or "Visible Uncertainty" badge, NEVER hidden or omitted.
 - The 9-stage relationship chain MUST be visually represented in sequential logical order.
+
+## 6. Human Source-of-Truth Reconciliation — 2026-09-30
+
+The following decisions were explicitly authorized after a read-only reconciliation of Stage 04–08 evidence and the Penpot prototype:
+
+- **Visual foundation:** Direction C light is authoritative.
+- **Desktop header:** use the Penpot-style professional identity header with **Adnan Abdullahi**; do not restore generic portfolio tabs rejected in Stage 05.
+- **Orientation:** use the open, left-aligned Penpot composition without the T019-added pill badges, CTA card, or dashed evidence container.
+- **Project 01:** use the Penpot two-column composition with the narrative/action area on the left and Approach/Record dimension summaries on the right.
+- **Orientation primary CTA:** **Explore the Engineering Record**.
+
+These are product/design decisions made by the human project authority. They supersede conflicting derived or implementation-only decisions in the Stage 08 planning artifacts. The five decisions must be treated as governing inputs for implementation correction; they are not themselves evidence that the corrected implementation has been verified.

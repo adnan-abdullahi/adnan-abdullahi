@@ -181,3 +181,15 @@ The primary architectural and technical decisions are now resolved. The remainin
 1. **Router package choice**: Lightweight custom hash listener vs. `vue-router` in hash mode (`createWebHashHistory`).
 2. **Component style scoping**: Scoped `<style scoped>` within Vue Single-File Components vs. modular CSS files.
 3. **CI workflow definition**: Concrete GitHub Actions YAML configuration specifying Node version, test execution, static build step, and release-tag trigger condition.
+
+## Human Reconciliation Applied — 2026-09-30
+
+Before implementation correction, the following human decisions supersede conflicting Stage 08 planning assumptions:
+
+- Direction C light visual foundation is authoritative.
+- Desktop identity header follows the Penpot composition centered on **Adnan Abdullahi**, adapted to the accepted information architecture.
+- Orientation uses the open, left-aligned Penpot composition and does not retain unauthorized T019 card/badge treatments.
+- Project 01 uses the Penpot two-column composition.
+- Orientation primary CTA is **Explore the Engineering Record**.
+
+The existing routing, TypeScript/Vite architecture, evidence models, and verification framework remain technical decisions unless directly affected by these product/design decisions. Implementation must be corrected and then re-verified; this documentation update does not imply verification.

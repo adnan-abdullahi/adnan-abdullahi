@@ -274,3 +274,19 @@ Stage 08 may be considered for closure when sufficient evidence establishes that
 14. Remaining limitations and uncertainties have been documented.
 15. Sufficient engineering evidence exists for Stage 09 Evaluation.
 16. Human acceptance of Stage 08 has been explicitly established.
+
+## 12. Human Source-of-Truth Reconciliation — 2026-09-30
+
+A read-only reconciliation established the governing decisions for the current implementation correction.
+
+**Human-authorized decisions:**
+
+1. Direction C light remains the accepted visual foundation.
+2. The desktop header adopts the Penpot-style professional identity header centered on **Adnan Abdullahi**, while retaining the accepted information architecture and the Stage 05 rejection of generic portfolio tabs.
+3. Portfolio Orientation returns to the open, left-aligned Penpot composition without the unauthorized T019 pill badges, CTA card, or dashed evidence container.
+4. Project 01 returns to the Penpot two-column composition.
+5. The Orientation primary CTA is **Explore the Engineering Record**.
+
+The reconciliation also established that the Stage 08 dark palette was introduced without established human acceptance and that the T019/T020 visual treatments were implementation choices. These historical findings remain part of the engineering record.
+
+Implementation correction is authorized only against the five decisions above. After correction, the affected experience must undergo V1–V5 and V9 verification as applicable. No claim of verification is made by this documentation update.

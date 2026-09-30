@@ -134,6 +134,37 @@ What is the next action that has been authorized?
 
 This section will grow throughout Stage 08.
 
+### Session S02 — Source-of-Truth Reconciliation
+
+**Objective:**  
+Resolve material conflicts discovered between the accepted Stage 04–07 experience, Penpot prototype, Stage 08 planning artifacts, and the T016–T020 implementation before further implementation changes.
+
+**Work Performed:**  
+A read-only reconciliation was completed. No source code, tests, Penpot artifacts, or configuration were modified during the investigation.
+
+**Evidence:**  
+Stage 08 Source-of-Truth Reconciliation report and the documented Stage 04–07 acceptance history.
+
+**Verification:**  
+The conflicting decisions were classified as explicitly accepted, explicitly revised, derived/proposed, implementation-only, or unresolved. The remaining material conflicts were presented to the human project authority.
+
+**Findings:**  
+The Stage 08 dark visual foundation lacked established human acceptance. The contextual application shell was a derived Stage 08 contract that had not been reconciled with the Penpot header. T019/T020 introduced visual/layout choices without prior acceptance.
+
+**Decisions:**  
+The human project authority explicitly authorized:
+1. Direction C light visual foundation.
+2. Penpot-style "Adnan Abdullahi" identity header.
+3. Open, left-aligned Penpot Orientation composition.
+4. Penpot two-column Project 01 composition.
+5. Orientation CTA: "Explore the Engineering Record".
+
+**Remaining Uncertainty:**  
+The corrected implementation has not yet been implemented or re-verified.
+
+**Next Authorized Step:**  
+Implement only the five human-authorized corrections, then verify the affected experience before any further scope expansion.
+
 ### Session S01
 
 **Objective:**  

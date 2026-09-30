@@ -221,14 +221,14 @@ Each evaluation identifies the requirements satisfied, governing constraints, fa
 ### Relevant Constraints
 
 - Accessibility claims must be verified; no unsupported conformance claims permitted.
-- High visual contrast must be preserved across dark theme backgrounds (`#0D0D0D`).
+- The accepted visual foundation is Stage 04 Direction C: light canvas `#FFFFFF`, primary text `#18212B`, secondary text `#52606D`, primary interactive blue `#245B8F`, accent surface `#E3EEF7`, and border `#D9DEE3`.
 - All interactive controls (buttons, navigation links, return rails) must be keyboard accessible and screen-reader navigable.
 
 ### Facts vs. Assumptions
 
 - **Established Facts**:
   - Native semantic HTML elements (`<main>`, `<nav>`, `<article>`, `<section>`, `<button>`, `<a>`, `<h1-h6>`) provide robust accessibility semantics by default.
-  - High contrast text (`#FFFFFF`, `#E0E8F5` on `#0D0D0D` / `#1A1A2E`) meets WCAG 2.1 AA/AAA contrast standards (>7:1).
+  - The accepted light foundation must be evaluated for accessibility using the actual rendered typography, sizes, and semantic colors; no conformance claim is implied by the palette alone.
 - **Assumptions**:
   - Focus management on route transitions is necessary in SPAs to prevent keyboard and screen reader focus from getting lost.
 
@@ -309,3 +309,19 @@ Each evaluation identifies the requirements satisfied, governing constraints, fa
 | **4. Responsive Approach**       | Native CSS Grid/Flexbox + Custom Properties | FR-018, V4             | Proposed for Human Review |
 | **5. Accessibility Approach**    | Semantic HTML5 + Focus Management + WCAG AA | FR-013, V5             | Proposed for Human Review |
 | **6. Deployment Mechanism**      | GitHub Pages via GitHub Actions             | FR-001, V10            | Proposed for Human Review |
+
+## 7. Human Source-of-Truth Reconciliation — 2026-09-30
+
+A read-only Stage 08 reconciliation investigated the divergence between the accepted Stage 04–07 experience, the Penpot prototype, the Stage 08 specification/planning artifacts, and the T016–T020 implementation.
+
+The human project authority explicitly resolved the identified conflicts as follows:
+
+1. **Visual foundation:** Direction C light remains authoritative: `#FFFFFF`, `#18212B`, `#52606D`, `#245B8F`, `#E3EEF7`, `#D9DEE3`.
+2. **Header:** adopt the Penpot-style professional identity header centered on **Adnan Abdullahi**, while preserving the accepted information architecture and without restoring rejected generic portfolio tabs.
+3. **Orientation composition:** restore the open, left-aligned Penpot composition; do not retain unauthorized pill badges, CTA card container, or dashed evidence container.
+4. **Project 01 composition:** restore the Penpot two-column composition: approximately 760px narrative/action area and 340px dimension-summary area.
+5. **Orientation primary CTA:** use **Explore the Engineering Record**.
+
+The Stage 08 dark palette and the T019/T020 visual deviations are therefore superseded as governing product decisions. Historical references remain evidence of how the implementation drift occurred and must not be rewritten as though they never existed.
+
+These decisions govern the subsequent implementation correction. They do not themselves constitute implementation verification.
