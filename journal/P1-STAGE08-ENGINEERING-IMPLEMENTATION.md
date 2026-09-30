@@ -211,31 +211,47 @@ The corrected implementation has not yet been implemented or re-verified.
 **Next Authorized Step:**  
 Implement only the five human-authorized corrections, then verify the affected experience before any further scope expansion.
 
-### Session S01
+### Session S01 — Phase 4: Engineering Approach (T021–T025)
 
 **Objective:**  
-_To be recorded._
+Implement Stage 08 — Phase 4: Engineering Approach dimension experience according to authoritative repository specifications and Penpot prototype inspection (Page 04 Prototype, Board 03).
 
 **Work Performed:**  
-_To be recorded._
+1. Inspected Penpot MCP connection on Page `04 — Prototype`, Board `03 — Engineering Approach`, extracting verbatim copy, typography hierarchy, colors, and layout metrics.
+2. Created `app/src/content/approach.ts` (T023) containing the exact approved governing philosophy, intro narrative, technology principle, and action destinations.
+3. Created reusable component `app/src/components/DimensionCard.vue` (T024) supporting title, summary, and action link with Vue scoped styling consuming semantic tokens.
+4. Created `app/src/views/ApproachView.vue` (T025) rendering the approved Engineering Approach view, integrating with the shell, and matching Penpot hierarchy and action controls.
+5. Updated `app/src/router/index.ts` to dynamically load `ApproachView.vue` on `/approach`.
+6. Resolved contrast deficit in `ReturnRail.vue` sublabel (`.return-rail-sublabel` updated from `--color-text-tertiary` to `--color-text-secondary`) to ensure WCAG 2.1 AA compliance (contrast 6.0:1 on canvas).
+7. Created Vitest unit tests in `tests/unit/approach.test.ts` (T021).
+8. Created Playwright E2E tests in `tests/e2e/us2-approach.spec.ts` (T022).
+9. Updated a11y tests in `tests/a11y/foundation.spec.ts` and foundation spec title assertion.
 
 **Evidence:**  
-_To be recorded._
+- Code: `app/src/content/approach.ts`, `app/src/components/DimensionCard.vue`, `app/src/views/ApproachView.vue`, `app/src/router/index.ts`.
+- Tests: `tests/unit/approach.test.ts`, `tests/e2e/us2-approach.spec.ts`, `tests/a11y/foundation.spec.ts`.
+- Screenshots: `browser_approach_1440.png`, `browser_approach_375.png`.
 
 **Verification:**  
-_To be recorded._
+- Vitest: 3 test suites, 24 unit tests passed cleanly (`tests/unit/approach.test.ts`: 12/12).
+- Playwright E2E: 27/27 tests passed across Desktop (1440px), Tablet (768px), and Mobile (375px).
+- Axe accessibility: 6/6 tests passed with 0 violations across all 3 viewports.
+- TypeScript & build: `vue-tsc -b && vite build` succeeded in 2.76s with 0 errors.
 
 **Findings:**  
-_To be recorded._
+- Approach/Record distinction preserved: Approach focuses strictly on methodology, inquiry, and governing philosophy.
+- The governing philosophy is verbatim: `Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity`.
+- Return rail and view buttons provide predictable lateral traversal to `#/project-01` and forward traversal to `#/deep-engineering`.
 
 **Decisions:**  
-_To be recorded._
+- Aligned `ApproachView.vue` layout and spacing (44px 80px 64px 80px padding at desktop) with `Project01View.vue` and Penpot Board 03 for visual continuity.
+- Used `--color-text-secondary` for return-rail sublabel to guarantee WCAG 2.1 AA compliance.
 
 **Remaining Uncertainty:**  
-_To be recorded._
+- Awaiting human inspection and formal acceptance before Phase 5.
 
 **Next Authorized Step:**  
-_To be recorded._
+- Present Phase 4 verification evidence for human inspection and authorization.
 
 ## 5. Technical Decisions
 
@@ -249,16 +265,16 @@ New consequential technical decisions should be recorded here rather than disapp
 
 | Category | Verification activity | Result | Evidence | Remaining uncertainty |
 |---|---|---|---|---|
-| Functional (V1) | Route synchronization & bidirectional navigation (Orientation ↔ Project 01) | PASS | `tests/unit/orientation-project01.test.ts` (8 tests), `tests/e2e/us1-orientation-project01.spec.ts` (6 tests) | None for Phase 3 |
-| Experience / Behavioral (V1) | Primary CTA click traversal & return rail traversal | PASS | `tests/e2e/us1-orientation-project01.spec.ts` | Dimension views pending Phase 4 |
-| Visual / Design Fidelity (V2) | Direction C Light palette, open Orientation composition, two-column Project 01 | PASS | Playwright full-page screenshots (`browser_orientation_reconciled_1440.png`, `browser_project01_reconciled_1440.png`) verified against Penpot Page 04 Boards 1 & 2 | Human final visual sign-off |
-| Responsive (V4) | Multi-device baseline verification across Desktop (1440px), Tablet (768px), Mobile (375px) | PASS | Playwright test suites (all 6 E2E tests and 3 a11y tests passed across desktop, tablet, and mobile projects) | None |
-| Accessibility (V5) | Axe automated accessibility scan on all viewports without any selector exclusions | PASS | `tests/a11y/foundation.spec.ts` (0 violations across desktop, tablet, mobile); Direction C Light contrast verified (7.02:1 for interactive primary on canvas) | Manual assistive technology review |
-| Performance | Production bundling & build efficiency | PASS | `npm run build` completed in ~7-11s, zero bundle chunk warnings | Production network throttling |
+| Functional (V1) | Route synchronization & bidirectional navigation (Orientation ↔ Project 01 ↔ Approach → Deep Engineering) | PASS | `tests/unit/orientation-project01.test.ts`, `tests/unit/approach.test.ts` (24 unit tests), `tests/e2e/us1-orientation-project01.spec.ts`, `tests/e2e/us2-approach.spec.ts` (27 E2E tests) | Record view pending Phase 5 |
+| Experience / Behavioral (V1) | Primary CTA click traversal, dimension branching, return rail traversal & forward to deep engineering | PASS | `tests/e2e/us1-orientation-project01.spec.ts`, `tests/e2e/us2-approach.spec.ts` | Engineering Record pending Phase 5 |
+| Visual / Design Fidelity (V2) | Direction C Light palette, open Orientation composition, two-column Project 01, Penpot-faithful Engineering Approach | PASS | Playwright full-page screenshots (`browser_orientation_reconciled_1440.png`, `browser_project01_reconciled_1440.png`, `browser_approach_1440.png`, `browser_approach_375.png`) verified against Penpot Page 04 Boards 1, 2, & 3 | Human final visual sign-off |
+| Responsive (V4) | Multi-device baseline verification across Desktop (1440px), Tablet (768px), Mobile (375px) | PASS | Playwright test suites (all 27 tests passed across desktop, tablet, and mobile projects) | None |
+| Accessibility (V5) | Axe automated accessibility scan on all viewports without any selector exclusions; ReturnRail contrast fixed | PASS | `tests/a11y/foundation.spec.ts` (0 violations across desktop, tablet, mobile on root and /approach); Direction C Light contrast verified | Manual assistive technology review |
+| Performance | Production bundling & build efficiency | PASS | `npm run build` completed in ~2.8s, total JS gzip ~38.5KB, CSS ~3.7KB, zero bundle warnings | Production network throttling |
 | Security | Static execution & hash-mode routing | PASS | Hash-mode client architecture requires zero dynamic server execution; no third-party script injection | None |
 | Compatibility | Cross-browser standards compliance | PASS | Vite/Vue 3 modern baseline targets modern evergreen browsers | Legacy browser testing out of scope |
-| Content / Evidence Integrity (V9) | Penpot prototype texts & CTA copy exact correspondence | PASS | `tests/unit/orientation-project01.test.ts` asserts verbatim content matching Penpot Board 1 & 2 copy | None |
-| Build / Deployment | Production build generation & type correctness | PASS | `npx vue-tsc --noEmit` exit code 0; `vite build` generated `dist/` | Production deployment in Stage 09 |
+| Content / Evidence Integrity (V9) | Penpot prototype texts & CTA copy exact correspondence; governing philosophy verbatim | PASS | `tests/unit/approach.test.ts` asserts verbatim content matching Penpot Board 3 and data-model.md | None |
+| Build / Deployment | Production build generation & type correctness | PASS | `npx vue-tsc -b` exit code 0; `vite build` generated `dist/` | Production deployment in Stage 09 |
 
 ## 7. Discrepancy Record
 

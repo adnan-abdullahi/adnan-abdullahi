@@ -201,7 +201,7 @@ const returnConfig = computed<ReturnConfig | null>(() => {
 
 .return-rail-sublabel {
   font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   line-height: var(--line-height-normal);
 }
 </style>

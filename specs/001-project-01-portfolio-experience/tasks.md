@@ -78,14 +78,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Create unit tests for Engineering Approach content structure and navigation events in `tests/unit/approach.test.ts`.
-- [ ] T022 [P] [US2] Create Playwright E2E test in `tests/e2e/us2-approach.spec.ts` verifying traversal from `#/project-01` to `#/approach` and return to `#/project-01`.
+- [x] T021 [P] [US2] Create unit tests for Engineering Approach content structure and navigation events in `tests/unit/approach.test.ts`.
+- [x] T022 [P] [US2] Create Playwright E2E test in `tests/e2e/us2-approach.spec.ts` verifying traversal from `#/project-01` to `#/approach` and return to `#/project-01`.
 
 ### Implementation for User Story 2
 
-- [ ] T023 [P] [US2] Create approved text content module for Engineering Approach in `app/src/content/approach.ts` containing the governing philosophy (`Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity`) and methodology sections (FR-012, FR-017).
-- [ ] T024 [P] [US2] Implement reusable dimensional navigation card component in `app/src/components/DimensionCard.vue` rendering title, summary, and action link for project dimensions, styled with Vue `<style scoped>`.
-- [ ] T025 [US2] Implement `app/src/views/ApproachView.vue` displaying Engineering Approach narrative, governing philosophy, dimension badge, action link to Deep Engineering (`#/deep-engineering`), and return control to `#/project-01`, styled with Vue `<style scoped>` consuming global tokens (FR-005, US2).
+- [x] T023 [P] [US2] Create approved text content module for Engineering Approach in `app/src/content/approach.ts` containing the governing philosophy (`Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity`) and methodology sections (FR-012, FR-017).
+- [x] T024 [P] [US2] Implement reusable dimensional navigation card component in `app/src/components/DimensionCard.vue` rendering title, summary, and action link for project dimensions, styled with Vue `<style scoped>`.
+- [x] T025 [US2] Implement `app/src/views/ApproachView.vue` displaying Engineering Approach narrative, governing philosophy, dimension badge, action link to Deep Engineering (`#/deep-engineering`), and return control to `#/project-01`, styled with Vue `<style scoped>` consuming global tokens (FR-005, US2).
 
 **Checkpoint**: User Story 2 is functional and testable independently alongside User Story 1.
 
