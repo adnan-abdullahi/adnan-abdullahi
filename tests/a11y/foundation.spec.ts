@@ -22,4 +22,12 @@ test.describe("Stage 08 Accessibility Foundation (T002, Category V5)", () => {
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
+
+  test("verifies axe-core audit passes on #/record (Engineering Record dimension)", async ({
+    page,
+  }) => {
+    await page.goto("/#/record");
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
 });

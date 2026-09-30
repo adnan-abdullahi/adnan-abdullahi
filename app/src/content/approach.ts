@@ -8,77 +8,76 @@
  */
 
 export interface ApproachSection {
-  heading: string
-  body: string
+  heading: string;
+  body: string;
 }
 
 export interface EngineeringApproachContent {
-  id: 'engineering-approach'
-  title: string
-  eyebrow: string
-  contextLabel: string
-  parentProject: 'project-01'
-  intro: string
-  governingPhilosophy: string
-  technologyPrinciple: string
-  sections: ApproachSection[]
+  id: "engineering-approach";
+  title: string;
+  eyebrow: string;
+  contextLabel: string;
+  parentProject: "project-01";
+  intro: string;
+  governingPhilosophy: string;
+  technologyPrinciple: string;
+  sections: ApproachSection[];
   actions: {
     primary: {
-      label: string
-      to: string
-      ariaLabel: string
-    }
+      label: string;
+      to: string;
+      ariaLabel: string;
+    };
     secondary: {
-      label: string
-      to: string
-      ariaLabel: string
-    }
-  }
-  deeperInspectionDestination: 'deep-engineering'
-  returnDestination: 'project-01'
+      label: string;
+      to: string;
+      ariaLabel: string;
+    };
+  };
+  deeperInspectionDestination: "deep-engineering";
+  returnDestination: "project-01";
 }
 
 export const approachContent: EngineeringApproachContent = {
-  id: 'engineering-approach',
-  title: 'Engineering Approach',
-  eyebrow: 'PROJECT 01 / DIMENSION',
-  contextLabel: 'PROJECT 01',
-  parentProject: 'project-01',
+  id: "engineering-approach",
+  title: "Engineering Approach",
+  eyebrow: "PROJECT 01 / DIMENSION",
+  contextLabel: "PROJECT 01",
+  parentProject: "project-01",
   intro:
-    'The work is not treated as a straight path from idea to implementation. Understanding comes first, decisions are made under uncertainty, and the result is evaluated against the evidence available.',
+    "The work is not treated as a straight path from idea to implementation. Understanding comes first, decisions are made under uncertainty, and the result is evaluated against the evidence available.",
   governingPhilosophy:
-    'Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity',
+    "Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity",
   technologyPrinciple:
-    'Technology is treated as an instrument that assists engineering work. Human understanding, judgment, responsibility, and verification remain central.',
+    "Technology is treated as an instrument that assists engineering work. Human understanding, judgment, responsibility, and verification remain central.",
   sections: [
     {
-      heading: 'Methodology & Inquiry',
-      body: 'The work is not treated as a straight path from idea to implementation. Understanding comes first, decisions are made under uncertainty, and the result is evaluated against the evidence available.'
+      heading: "Methodology & Inquiry",
+      body: "The work is not treated as a straight path from idea to implementation. Understanding comes first, decisions are made under uncertainty, and the result is evaluated against the evidence available.",
     },
     {
-      heading: 'Governing Engineering Philosophy',
-      body: 'Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity'
+      heading: "Governing Engineering Philosophy",
+      body: "Understand → Push Forward Under Uncertainty → Evaluate → Identify Gaps → Iterate → Establish Sufficient Clarity",
     },
     {
-      heading: 'Technology as Instrument',
-      body: 'Technology is treated as an instrument that assists engineering work. Human understanding, judgment, responsibility, and verification remain central.'
-    }
+      heading: "Technology as Instrument",
+      body: "Technology is treated as an instrument that assists engineering work. Human understanding, judgment, responsibility, and verification remain central.",
+    },
   ],
   actions: {
     primary: {
-      label: 'Continue to Deep Engineering',
-      to: '/deep-engineering',
-      ariaLabel: 'Continue to Deep Engineering'
+      label: "Continue to Deep Engineering",
+      to: "/deep-engineering",
+      ariaLabel: "Continue to Deep Engineering",
     },
     secondary: {
-      label: 'Back to Project 01',
-      to: '/project-01',
-      ariaLabel: 'Back to Project 01'
-    }
+      label: "Back to Project 01",
+      to: "/project-01",
+      ariaLabel: "Back to Project 01",
+    },
   },
-  deeperInspectionDestination: 'deep-engineering',
-  returnDestination: 'project-01'
-} as const
+  deeperInspectionDestination: "deep-engineering",
+  returnDestination: "project-01",
+} as const;
 
-export default approachContent
-
+export default approachContent;

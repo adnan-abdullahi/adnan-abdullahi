@@ -99,13 +99,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Create unit tests for Engineering Record decision entries and visible uncertainty models in `tests/unit/record.test.ts`.
-- [ ] T027 [P] [US3] Create Playwright E2E test in `tests/e2e/us3-record.spec.ts` verifying traversal from `#/project-01` to `#/record`, return to `#/project-01`, and distinct visual styling from Approach.
+- [x] T026 [P] [US3] Create unit tests for Engineering Record decision entries and visible uncertainty models in `tests/unit/record.test.ts`.
+- [x] T027 [P] [US3] Create Playwright E2E test in `tests/e2e/us3-record.spec.ts` verifying traversal from `#/project-01` to `#/record`, return to `#/project-01`, and distinct visual styling from Approach.
 
 ### Implementation for User Story 3
 
-- [ ] T028 [P] [US3] Create approved text content module for Engineering Record in `app/src/content/record.ts` containing chronological decision records, revisions, and explicit visible uncertainties (FR-006, FR-015, FR-017).
-- [ ] T029 [US3] Implement `app/src/views/RecordView.vue` displaying chronological decision cards, visible uncertainty callouts, dimension badge, action link to Deep Engineering (`#/deep-engineering`), and return control to `#/project-01`, styled with Vue `<style scoped>` consuming global tokens (FR-006, FR-007, US3).
+- [x] T028 [P] [US3] Create approved text content module for Engineering Record in `app/src/content/record.ts` containing chronological decision records, revisions, and explicit visible uncertainties (FR-006, FR-015, FR-017).
+- [x] T029 [US3] Implement `app/src/views/RecordView.vue` displaying chronological decision cards, visible uncertainty callouts, dimension badge, action link to Deep Engineering (`#/deep-engineering`), and return control to `#/project-01`, styled with Vue `<style scoped>` consuming global tokens (FR-006, FR-007, US3).
 
 **Checkpoint**: User Stories 1, 2, and 3 are functional and demonstrate clear distinction between Approach and Record.
 

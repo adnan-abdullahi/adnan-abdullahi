@@ -75,7 +75,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/record',
     name: 'engineering-record',
-    component: createViewPlaceholder('RecordView', 'Engineering Record'),
+    component: () => import('@/views/RecordView.vue'),
     meta: {
       title: 'Engineering Record',
       depth: 'dimension',

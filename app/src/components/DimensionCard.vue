@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed } from "vue";
+import { RouterLink } from "vue-router";
 
 const props = defineProps<{
-  title: string
-  summary: string
-  to?: string
-  actionLabel?: string
-  ariaLabel?: string
-}>()
+  title: string;
+  summary: string;
+  to?: string;
+  actionLabel?: string;
+  ariaLabel?: string;
+}>();
 
 const computedAriaLabel = computed(() => {
-  if (props.ariaLabel) return props.ariaLabel
-  if (props.actionLabel) return `${props.actionLabel} — ${props.title}`
-  return `Inspect ${props.title}`
-})
+  if (props.ariaLabel) return props.ariaLabel;
+  if (props.actionLabel) return `${props.actionLabel} — ${props.title}`;
+  return `Inspect ${props.title}`;
+});
 </script>
 
 <template>
@@ -35,7 +35,7 @@ const computedAriaLabel = computed(() => {
         class="dimension-card-link"
         :aria-label="computedAriaLabel"
       >
-        <span>{{ actionLabel || 'Inspect Dimension' }}</span>
+        <span>{{ actionLabel || "Inspect Dimension" }}</span>
         <span class="dimension-card-arrow" aria-hidden="true">&rarr;</span>
       </RouterLink>
     </div>
@@ -50,7 +50,9 @@ const computedAriaLabel = computed(() => {
   background-color: var(--color-bg-canvas);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .dimension-card:hover {
@@ -119,4 +121,3 @@ const computedAriaLabel = computed(() => {
   transform: translateX(2px);
 }
 </style>
-
