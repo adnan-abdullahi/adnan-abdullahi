@@ -42,7 +42,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/orientation',
     name: 'orientation',
-    component: createViewPlaceholder('OrientationView', 'Portfolio Orientation'),
+    component: () => import('@/views/OrientationView.vue'),
     meta: {
       title: 'Portfolio Orientation',
       depth: 'entry',
@@ -53,7 +53,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/project-01',
     name: 'project-01',
-    component: createViewPlaceholder('Project01View', 'Project 01 — Portfolio Experience'),
+    component: () => import('@/views/Project01View.vue'),
     meta: {
       title: 'Project 01 — Portfolio Experience',
       depth: 'project-context',

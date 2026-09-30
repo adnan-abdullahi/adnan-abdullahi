@@ -92,7 +92,7 @@ const currentLocationTitle = computed(() => {
         </RouterLink>
 
         <!-- Brand mark when on entry orientation -->
-        <span v-else class="mobile-brand-mark">
+        <span v-else class="mobile-brand-mark" role="img" aria-label="Project 01 brand">
           PROJECT 01
         </span>
       </div>
@@ -113,7 +113,7 @@ const currentLocationTitle = computed(() => {
   top: 0;
   z-index: 90;
   width: 100%;
-  background-color: var(--color-bg-surface);
+  background-color: var(--color-bg-canvas);
   border-bottom: 1px solid var(--color-border-subtle);
   box-sizing: border-box;
 }

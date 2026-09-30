@@ -11,18 +11,20 @@ describe('Stage 08 Foundation Setup (T001–T006)', () => {
     expect(fontFamily).toBe('IBM Plex Sans')
   })
 
-  it('T004: Verifies Stage 04 design tokens and semantic values are expected', () => {
+  it('T004: Verifies Direction C Light design tokens and semantic values are expected (Decision 1)', () => {
     const tokens = {
-      canvasBg: '#0D0D0D',
-      cardSurface: '#1A1A2E',
-      interactivePrimary: '#4A90D9',
-      accentTeal: '#6C8EBF',
-      purpleDeeper: '#8B6FD4',
-      statusVerified: '#3A5F3A'
+      canvasBg: '#FFFFFF',
+      textPrimary: '#18212B',
+      textSecondary: '#52606D',
+      interactivePrimary: '#245B8F',
+      accentSurface: '#E3EEF7',
+      borderSubtle: '#D9DEE3'
     }
-    expect(tokens.canvasBg).toBe('#0D0D0D')
-    expect(tokens.cardSurface).toBe('#1A1A2E')
-    expect(tokens.interactivePrimary).toBe('#4A90D9')
+    expect(tokens.canvasBg).toBe('#FFFFFF')
+    expect(tokens.textPrimary).toBe('#18212B')
+    expect(tokens.interactivePrimary).toBe('#245B8F')
+    expect(tokens.accentSurface).toBe('#E3EEF7')
+    expect(tokens.borderSubtle).toBe('#D9DEE3')
   })
 
   it('T006: Verifies responsive breakpoints scale', () => {

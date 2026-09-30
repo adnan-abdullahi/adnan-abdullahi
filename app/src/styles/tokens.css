@@ -39,49 +39,53 @@
   --primitive-red-400: #D94A4A;   /* Discrepancy / Error Indicator */
 
   /* ==========================================================================
-     2. SEMANTIC COLOR TOKENS (Application Default: High-Contrast Dark Theme)
+     2. SEMANTIC COLOR TOKENS (Application Foundation: Direction C Light Theme)
+     Governed by Decision 1 (Stage 08 Reconciled Source of Truth)
      ========================================================================== */
 
   /* Surfaces & Backgrounds */
-  --color-bg-canvas: var(--primitive-dark-900);
-  --color-bg-surface: var(--primitive-dark-800);
-  --color-surface-card: var(--primitive-dark-700);
-  --color-surface-card-hover: #21213B;
-  --color-surface-overlay: rgba(13, 13, 13, 0.85);
+  --color-bg-canvas: var(--primitive-white);              /* #FFFFFF */
+  --color-bg-surface: var(--primitive-gray-100);          /* #F6F7F8 */
+  --color-surface-card: var(--primitive-white);           /* #FFFFFF */
+  --color-surface-accent: #E3EEF7;                        /* Reconciled Accent Surface */
+  --color-surface-card-hover: #F0F4F8;
+  --color-surface-overlay: rgba(24, 33, 43, 0.6);
 
   /* Text & Typography */
-  --color-text-primary: var(--primitive-white);
-  --color-text-secondary: var(--primitive-gray-200);
-  --color-text-muted: var(--primitive-gray-400);
-  --color-text-inverse: var(--primitive-gray-900);
+  --color-text-primary: var(--primitive-gray-900);        /* #18212B */
+  --color-text-secondary: var(--primitive-gray-600);      /* #52606D */
+  --color-text-muted: var(--primitive-gray-600);          /* #52606D */
+  --color-text-tertiary: var(--primitive-gray-400);       /* #A0AAB5 */
+  --color-text-inverse: var(--primitive-white);           /* #FFFFFF */
+  --color-text-on-interactive: var(--primitive-white);    /* #FFFFFF */
 
   /* Interactive Elements */
-  --color-interactive-primary: var(--primitive-blue-500);
-  --color-interactive-hover: #5BA0E9;
-  --color-interactive-active: #3A7CC5;
-  --color-interactive-focus: var(--primitive-blue-500);
+  --color-interactive-primary: var(--primitive-blue-700); /* #245B8F */
+  --color-interactive-hover: var(--primitive-blue-900);   /* #183F63 */
+  --color-interactive-active: #0F273D;
+  --color-interactive-focus: var(--primitive-blue-700);   /* #245B8F */
 
   /* Borders & Dividers */
-  --color-border-subtle: var(--primitive-dark-600);
-  --color-border-default: #2E2E48;
-  --color-border-strong: #3F3F60;
-  --color-border-focus: var(--primitive-blue-500);
+  --color-border-subtle: var(--primitive-gray-300);       /* #D9DEE3 */
+  --color-border-default: var(--primitive-gray-300);      /* #D9DEE3 */
+  --color-border-strong: #A0AAB5;
+  --color-border-focus: var(--primitive-blue-700);        /* #245B8F */
 
   /* Domain & Depth Badges */
-  --color-depth-entry: var(--primitive-gray-400);
-  --color-depth-project: var(--primitive-blue-500);
+  --color-depth-entry: var(--primitive-gray-600);
+  --color-depth-project: var(--primitive-blue-700);
   --color-depth-dimension: var(--primitive-teal-400);
   --color-depth-deeper: var(--primitive-purple-400);
 
   /* Verification & Evidence Status */
   --color-status-verified: var(--primitive-green-500);
-  --color-status-verified-text: #78D978;
+  --color-status-verified-text: #2D682D;
   --color-status-uncertain: var(--primitive-amber-400);
-  --color-status-uncertain-text: #FFB366;
+  --color-status-uncertain-text: #8A4F00;
   --color-status-discrepancy: var(--primitive-red-400);
 
   /* Focus Indicator (WCAG 2.1 AA Compliant Focus Rings) */
-  --focus-ring-color: var(--primitive-blue-500);
+  --focus-ring-color: var(--primitive-blue-700);
   --focus-ring-offset: 2px;
   --focus-ring-width: 2px;
   --focus-ring: var(--focus-ring-width) solid var(--focus-ring-color);

@@ -1,92 +1,102 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
-import type { ExperienceLocation } from '@/models/experience'
-import DepthIndicator from './DepthIndicator.vue'
+import { computed } from "vue";
+import { useRoute, RouterLink } from "vue-router";
+import type { ExperienceLocation } from "@/models/experience";
+import DepthIndicator from "./DepthIndicator.vue";
 
-const route = useRoute()
-
-interface BreadcrumbItem {
-  label: string
-  to?: string
-  isCurrent: boolean
-}
+const route = useRoute();
 
 /**
- * Compute active breadcrumb chain based on canonical navigation topology.
- * Governed by specs/001-project-01-portfolio-experience/data-model.md Section 4
+ * Context label displayed alongside professional identity in the header.
+ * Reflects current location in canonical 5-state topology.
  */
-const breadcrumbs = computed<BreadcrumbItem[]>(() => {
-  const loc = (route.meta.location as ExperienceLocation) || 'orientation'
-
+const contextTag = computed<string | null>(() => {
+  const loc = (route.meta.location as ExperienceLocation) || "orientation";
   switch (loc) {
-    case 'orientation':
-      return [{ label: 'Portfolio Orientation', isCurrent: true }]
-    case 'project-01':
-      return [
-        { label: 'Orientation', to: '/orientation', isCurrent: false },
-        { label: 'Project 01', isCurrent: true }
-      ]
-    case 'engineering-approach':
-      return [
-        { label: 'Project 01', to: '/project-01', isCurrent: false },
-        { label: 'Engineering Approach', isCurrent: true }
-      ]
-    case 'engineering-record':
-      return [
-        { label: 'Project 01', to: '/project-01', isCurrent: false },
-        { label: 'Engineering Record', isCurrent: true }
-      ]
-    case 'deep-engineering':
-      return [
-        { label: 'Project 01', to: '/project-01', isCurrent: false },
-        { label: 'Deep Engineering', isCurrent: true }
-      ]
+    case "orientation":
+      return null;
+    case "project-01":
+      return "PROJECT 01";
+    case "engineering-approach":
+      return "PROJECT 01 / APPROACH";
+    case "engineering-record":
+      return "PROJECT 01 / RECORD";
+    case "deep-engineering":
+      return "PROJECT 01 / DEEP ENGINEERING";
     default:
-      return [{ label: 'Project 01', to: '/project-01', isCurrent: true }]
+      return "PROJECT 01";
   }
-})
+});
 </script>
 
 <template>
   <div class="desktop-header-container">
     <div class="header-inner">
-      <!-- Project Context Brand -->
-      <div class="header-context">
-        <RouterLink to="/project-01" class="header-title-link">
-          <span class="project-tag">PROJECT 01</span>
-          <span class="header-title">Portfolio Experience</span>
+      <!-- Professional Identity: Centered on Adnan Abdullahi (Decision 2) -->
+      <div class="header-identity">
+        <RouterLink
+          to="/orientation"
+          class="identity-link"
+          aria-label="Adnan Abdullahi — Portfolio Orientation"
+        >
+          <span class="identity-name">Adnan Abdullahi</span>
         </RouterLink>
+        <span
+          v-if="contextTag"
+          class="project-tag"
+          role="img"
+          aria-label="Project 01 context brand"
+        >
+          {{ contextTag }}
+        </span>
       </div>
 
-      <!-- Reactive Breadcrumbs -->
-      <nav aria-label="Breadcrumb Navigation" class="header-breadcrumbs">
-        <ol class="breadcrumb-list">
-          <li
-            v-for="(crumb, index) in breadcrumbs"
-            :key="index"
-            class="breadcrumb-item"
-          >
-            <span v-if="index > 0" class="breadcrumb-separator" aria-hidden="true">/</span>
+      <!-- Contextual 5-State IA Navigation (No generic tabs per Decision 2) -->
+      <nav aria-label="Engineering Experience Navigation" class="header-nav">
+        <ul class="nav-list">
+          <li class="nav-item">
             <RouterLink
-              v-if="crumb.to && !crumb.isCurrent"
-              :to="crumb.to"
-              class="breadcrumb-link"
+              to="/orientation"
+              class="nav-link"
+              :class="{
+                'nav-link--active':
+                  route.path === '/orientation' || route.path === '/',
+              }"
             >
-              {{ crumb.label }}
+              Orientation
             </RouterLink>
-            <span
-              v-else
-              class="breadcrumb-current"
-              aria-current="page"
-            >
-              {{ crumb.label }}
-            </span>
           </li>
-        </ol>
+          <li class="nav-item">
+            <RouterLink
+              to="/project-01"
+              class="nav-link"
+              :class="{ 'nav-link--active': route.path === '/project-01' }"
+            >
+              Project 01
+            </RouterLink>
+          </li>
+          <li class="nav-item">
+            <RouterLink
+              to="/approach"
+              class="nav-link"
+              :class="{ 'nav-link--active': route.path === '/approach' }"
+            >
+              Approach
+            </RouterLink>
+          </li>
+          <li class="nav-item">
+            <RouterLink
+              to="/record"
+              class="nav-link"
+              :class="{ 'nav-link--active': route.path === '/record' }"
+            >
+              Engineering Record
+            </RouterLink>
+          </li>
+        </ul>
       </nav>
 
-      <!-- Inspection Depth Badge -->
+      <!-- Inspection Depth Indicator -->
       <div class="header-depth">
         <DepthIndicator />
       </div>
@@ -98,7 +108,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 .desktop-header-container {
   display: none;
   width: 100%;
-  background-color: var(--color-bg-surface);
+  background-color: var(--color-bg-canvas);
   border-bottom: 1px solid var(--color-border-subtle);
   box-sizing: border-box;
 }
@@ -127,29 +137,38 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
   }
 }
 
-.header-context {
-  display: flex;
-  align-items: center;
-}
-
-.header-title-link {
+.header-identity {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.identity-link {
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
   color: var(--color-text-primary);
-  font-weight: var(--font-weight-semibold);
   transition: opacity 0.15s ease;
 }
 
-.header-title-link:hover {
+.identity-link:hover {
   opacity: 0.85;
 }
 
-.header-title-link:focus-visible {
+.identity-link:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 4px;
   border-radius: var(--radius-sm);
+}
+
+.identity-name {
+  font-family: var(--font-family-base);
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
 }
 
 .project-tag {
@@ -163,61 +182,62 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
   font-weight: var(--font-weight-semibold);
 }
 
-.header-title {
-  font-size: var(--font-size-sm);
-  letter-spacing: -0.01em;
-}
-
-.header-breadcrumbs {
-  flex: 1;
+.header-nav {
   display: flex;
-  justify-content: center;
+  align-items: center;
 }
 
-.breadcrumb-list {
+.nav-list {
   display: flex;
   align-items: center;
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: var(--font-size-sm);
+  gap: var(--space-4);
 }
 
-.breadcrumb-item {
+@media (min-width: 1025px) {
+  .nav-list {
+    gap: var(--space-6);
+  }
+}
+
+.nav-item {
   display: inline-flex;
   align-items: center;
 }
 
-.breadcrumb-separator {
-  margin: 0 var(--space-2);
-  color: var(--color-text-tertiary);
-}
-
-.breadcrumb-link {
+.nav-link {
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   text-decoration: none;
-  transition: color 0.15s ease;
+  padding: var(--space-1) 0;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.breadcrumb-link:hover {
+.nav-link:hover {
   color: var(--color-interactive-primary);
-  text-decoration: underline;
 }
 
-.breadcrumb-link:focus-visible {
+.nav-link:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-.breadcrumb-current {
+.nav-link--active {
   color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+  border-bottom-color: var(--color-interactive-primary);
 }
 
 .header-depth {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 </style>
-
