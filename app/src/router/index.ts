@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
-import { defineComponent, h, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import type { ExperienceLocation, InspectionDepth } from '@/models/experience'
 
 /**
@@ -13,20 +13,6 @@ declare module 'vue-router' {
     depthLabel: string
   }
 }
-
-/**
- * Placeholder component for route views.
- * Will be replaced by full view components in Phase 3–6 (T019, T020, T025, T029, T034).
- */
-const createViewPlaceholder = (viewName: string, heading: string) =>
-  defineComponent({
-    name: viewName,
-    render() {
-      return h('section', { class: 'view-container', 'data-view': viewName }, [
-        h('h1', { class: 'type-h1', tabindex: -1 }, heading)
-      ])
-    }
-  })
 
 /**
  * The 5 canonical route records defining the accepted Project 01 navigation topology.
@@ -86,7 +72,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/deep-engineering',
     name: 'deep-engineering',
-    component: createViewPlaceholder('DeepEngineeringView', 'Deep Engineering'),
+    component: () => import('@/views/DeepEngineeringView.vue'),
     meta: {
       title: 'Deep Engineering — Design Foundations',
       depth: 'deeper-inspection',

@@ -26,8 +26,9 @@ test.describe("User Story 3: Engineering Record Dimension & Decisions (T027)", (
     );
     await expect(headerIdentity).toContainText("Adnan Abdullahi");
 
-    const header = page.locator(".app-header-landmark");
-    await expect(header).toContainText("Dimension");
+    const contextTag = page.locator(".desktop-header-container .project-tag");
+    await expect(contextTag).toHaveText("PROJECT 01");
+    await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
 
     // Verify View Landmark, Eyebrow & Title
     const eyebrow = page.locator(".record-eyebrow");
@@ -52,6 +53,15 @@ test.describe("User Story 3: Engineering Record Dimension & Decisions (T027)", (
     await expect(columns.nth(0)).toContainText(
       "An apparent verification failure was investigated before changing the product.",
     );
+    await expect(columns.nth(0)).toContainText(
+      "The discrepancy was traced to the inspection path and previous search assumption, after which the design foundations were accepted.",
+    );
+    await expect(columns.nth(0)).not.toContainText("Stage 04 was accepted");
+
+    // Capture screenshot for visual inspection of Decision 03 wording
+    await page.screenshot({
+      path: "C:/Users/ADMIN/.gemini/antigravity/brain/1218db9a-ff86-4fe9-b15a-4b4c76f01945/record-decision03-desktop.png",
+    });
 
     // Column 2: PROTOTYPE
     await expect(columns.nth(1)).toContainText("PROTOTYPE");
@@ -78,26 +88,25 @@ test.describe("User Story 3: Engineering Record Dimension & Decisions (T027)", (
     // 5. Verify return to Project 01
     await expect(page).toHaveURL(/.*#\/project-01/);
     await expect(page).toHaveTitle(/Project 01 — Portfolio Experience/);
-    await expect(page.locator(".app-header-landmark")).toContainText(
-      "Project Context",
-    );
+    await expect(
+      page.locator(".desktop-header-container .project-tag"),
+    ).toHaveText("PROJECT 01");
   });
 
-  test('verifies contextual return rail from "#/record" back to "#/project-01"', async ({
+  test('verifies ReturnRail does not appear and returns to "#/project-01" via approved in-canvas button', async ({
     page,
   }) => {
     // 1. Navigate to Record
     await page.goto("/#/record");
     await expect(page).toHaveURL(/.*#\/record/);
 
-    // 2. Locate Return Rail
-    const returnRail = page.locator(".return-rail-link");
-    await expect(returnRail).toBeVisible();
-    await expect(returnRail).toHaveAttribute("href", "#/project-01");
-    await expect(returnRail).toContainText("Return to Project 01");
+    // 2. Verify ReturnRail is not rendered (Decision 02 Point 2)
+    await expect(page.locator(".return-rail-link")).toHaveCount(0);
 
-    // 3. Click Return Rail to execute lateral return
-    await returnRail.click();
+    // 3. Click approved in-canvas return action
+    const backBtn = page.getByRole("link", { name: "Back to Project 01" });
+    await expect(backBtn).toBeVisible();
+    await backBtn.click();
     await expect(page).toHaveURL(/.*#\/project-01/);
     await expect(page).toHaveTitle(/Project 01 — Portfolio Experience/);
   });
@@ -120,9 +129,11 @@ test.describe("User Story 3: Engineering Record Dimension & Decisions (T027)", (
     await expect(page).toHaveURL(/.*#\/deep-engineering/);
     await expect(page).toHaveTitle(/Deep Engineering/);
 
-    // Verify Deeper Inspection depth indicator
-    const header = page.locator(".app-header-landmark");
-    await expect(header).toContainText("Deeper Inspection");
+    // Verify Deep Engineering context tag and absence of depth indicator (Decision 02 Point 1)
+    await expect(
+      page.locator(".desktop-header-container .project-tag"),
+    ).toHaveText("PROJECT 01");
+    await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
   });
 
   test('supports direct entry to "#/record" with preserved context and depth', async ({
@@ -135,9 +146,10 @@ test.describe("User Story 3: Engineering Record Dimension & Decisions (T027)", (
     await expect(page.locator(".record-title")).toHaveText(
       "Engineering Record",
     );
-    await expect(page.locator(".app-header-landmark")).toContainText(
-      "Dimension",
-    );
+    const contextTag = page.locator(".desktop-header-container .project-tag");
+    await expect(contextTag).toHaveText("PROJECT 01");
+    await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
+    await expect(page.locator(".return-rail-link")).toHaveCount(0);
   });
 
   test("preserves clear conceptual and visual distinction between Approach and Record (FR-007)", async ({

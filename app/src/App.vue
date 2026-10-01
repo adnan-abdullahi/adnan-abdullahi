@@ -2,7 +2,6 @@
 import { RouterView } from 'vue-router'
 import Header from './components/Header.vue'
 import MobileNav from './components/MobileNav.vue'
-import ReturnRail from './components/ReturnRail.vue'
 </script>
 
 <template>
@@ -37,11 +36,6 @@ import ReturnRail from './components/ReturnRail.vue'
         <RouterView />
       </div>
     </main>
-
-    <!-- Traversal & Return Actions Landmark -->
-    <nav role="navigation" aria-label="Contextual Traversal" class="app-return-landmark">
-      <ReturnRail />
-    </nav>
   </div>
 </template>
 
@@ -121,9 +115,5 @@ import ReturnRail from './components/ReturnRail.vue'
   .main-viewport-container {
     padding: 0 var(--space-8);
   }
-}
-
-.app-return-landmark {
-  width: 100%;
 }
 </style>

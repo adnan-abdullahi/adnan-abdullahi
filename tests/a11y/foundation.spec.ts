@@ -30,4 +30,12 @@ test.describe("Stage 08 Accessibility Foundation (T002, Category V5)", () => {
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
+
+  test("verifies axe-core audit passes on #/deep-engineering (Deep Engineering level)", async ({
+    page,
+  }) => {
+    await page.goto("/#/deep-engineering");
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
 });

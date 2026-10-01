@@ -74,7 +74,7 @@ describe("User Story 3: Engineering Record Dimension & Decisions (T026)", () => 
       const col1 = recordContent.chronologicalEntries[0];
       expect(col1.title).toBe("DESIGN FOUNDATIONS");
       expect(col1.body).toBe(
-        "An apparent verification failure was investigated before changing the product. The discrepancy was traced to the inspection path and previous search assumption, after which Stage 04 was accepted.",
+        "An apparent verification failure was investigated before changing the product. The discrepancy was traced to the inspection path and previous search assumption, after which the design foundations were accepted.",
       );
 
       // Column 2: PROTOTYPE

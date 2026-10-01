@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import orientationContent from '@/content/orientation'
+import { RouterLink } from "vue-router";
+import orientationContent from "@/content/orientation";
 
-const content = orientationContent
+const content = orientationContent;
 </script>
 
 <template>
@@ -178,22 +178,41 @@ const content = orientationContent
 .btn-secondary {
   display: inline-flex;
   align-items: center;
-  color: var(--color-text-secondary);
+  justify-content: center;
+  min-height: 52px;
+  min-width: 280px;
+  padding: 0 var(--space-6);
+  background-color: var(--color-surface-accent);
+  color: var(--color-interactive-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-base);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
-  padding: var(--space-2) 0;
-  transition: color 0.15s ease;
+  box-sizing: border-box;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .btn-secondary {
+    min-width: 310px;
+  }
 }
 
 .btn-secondary:hover {
-  color: var(--color-text-primary);
+  background-color: #d3e5f3;
+  color: var(--color-interactive-primary);
+  border-color: #d3e5f3;
 }
 
 .btn-secondary:focus-visible {
   outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  outline-offset: 3px;
 }
 
 /* Evidence Section */
@@ -233,4 +252,3 @@ const content = orientationContent
   border-width: 0;
 }
 </style>
-

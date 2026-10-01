@@ -305,6 +305,56 @@ Implement Stage 08 — Phase 5: Engineering Record dimension experience accordin
 **Next Authorized Step:**  
 - Present Phase 5 verification evidence for human inspection and authorization.
 
+### 2026-10-01 — Session S04: User Story 4 — Deep Engineering & Contextual Return (Phase 6 Implementation & Verification)
+
+**Context:**  
+Phase 5 (Engineering Record) accepted, committed, and pushed. Authorized execution of Phase 6: User Story 4 — Deep Engineering & Contextual Return (Tasks T030–T034).
+
+**Actions:**  
+1. Inspected Penpot Page 04 Board 05 (Deep Engineering) via read-only MCP connection and extracted exact approved copy, structure, typography, and actions:
+   - Header identity: `Adnan Abdullahi`, Context label: `PROJECT 01`, Header Rule: 1px `#D9DEE3`.
+   - Eyebrow: `PROJECT 01 / DEEPER INSPECTION`
+   - Screen Title: `Deep Engineering`
+   - Intro Statement: `Deeper inspection moves from the resulting interface into the evidence behind engineering decisions.`
+   - Section Subtitle: `Design Foundations`
+   - 3 Narrative Paragraphs detailing the investigation of the apparent semantic color system verification discrepancy.
+   - 6-step Flow Sequence: `Implementation → Verification → Apparent Discrepancy → Investigation → Reconciliation → Acceptance`.
+   - Scope Statement (Qualification): `This project does not yet claim production implementation, deployment outcomes, or real-world user metrics that have not been established.`
+   - Validation Gap: `Current validation has identified a different gap: the evidence already recorded in the engineering workspace needs to be materialized more clearly so that the actual engineering journey can be inspected as a coherent system.`
+   - Action Control: Single secondary button `Back to Project 01` (to `#/project-01`). Explicitly NO forward action (Deep Engineering is the deepest level).
+2. Added `EvidenceItem` and `DeepEngineering` domain entities to `app/src/models/experience.ts` per `data-model.md` Section 2.6 & 2.7.
+3. Created approved content module `app/src/content/deep-engineering.ts` (T032) modeling the Design Foundations case study, 9-part evidence chain (`EVID-DF-01`), flow sequence, narrative, scope qualification, validation gap, and return action.
+4. Implemented `app/src/components/EvidenceCard.vue` (T033) rendering the 9-part evidence chain (`Problem` → `Requirement` → `Decision` → `Technical Work` → `Evidence` → `Verification` → `Outcome` → `Reflection` → `Growth`) with visible uncertainty badge (`[data-uncertainty-boundary="true"]`) and clean semantic styling.
+5. Implemented `app/src/views/DeepEngineeringView.vue` (T034) with Penpot Board 05 composition: eyebrow, `#main-heading` title, intro statement, Design Foundations narrative, workflow sequence block, `EvidenceCard` component, scope boundary cards, and `Back to Project 01` action.
+6. Updated `app/src/router/index.ts` replacing placeholder with dynamic import of `DeepEngineeringView.vue`, removed unused placeholder helper, and refined tablet header wrapping in `Header.vue`.
+7. Created Vitest unit tests in `tests/unit/deep-engineering.test.ts` (T030) — 17 tests verifying domain model invariants, copy fidelity, flow sequence, 9-part evidence item fields, visible uncertainty boundary, route metadata, and component rendering.
+8. Created Playwright E2E tests in `tests/e2e/us4-deep-engineering.spec.ts` (T031) — 12 tests verifying traversal from Approach and Record to Deep Engineering, ReturnRail lateral return, direct deep link entry, and responsive layout across desktop, tablet, and mobile.
+9. Added `#/deep-engineering` accessibility test to `tests/a11y/foundation.spec.ts`.
+10. Captured responsive screenshots (`browser_deep_1440.png`, `browser_deep_768.png`, `browser_deep_375.png`) for visual inspection against Penpot Board 05.
+
+**Evidence:**  
+- Code: `app/src/models/experience.ts`, `app/src/content/deep-engineering.ts`, `app/src/components/EvidenceCard.vue`, `app/src/views/DeepEngineeringView.vue`, `app/src/components/Header.vue`, `app/src/router/index.ts`.
+- Tests: `tests/unit/deep-engineering.test.ts`, `tests/e2e/us4-deep-engineering.spec.ts`, `tests/a11y/foundation.spec.ts`.
+- Visual Captures: `browser_deep_1440.png`, `browser_deep_768.png`, `browser_deep_375.png`.
+
+**Verification:**  
+- Vitest: 5 test suites, 53 unit tests passed cleanly (`deep-engineering.test.ts`: 17/17).
+- Playwright E2E: 60/60 tests passed across Desktop (1440px), Tablet (768px), and Mobile (375px).
+- Axe accessibility: 12/12 tests passed with 0 violations across all 3 viewports on root, /approach, /record, and /deep-engineering.
+- TypeScript & build: `vue-tsc -p app/tsconfig.json --noEmit` and `vue-tsc -b && vite build` succeeded with 0 errors.
+
+**Findings:**  
+- Deep Engineering functions strictly as a deeper-inspection layer of Project 01 (FR-008, FR-009).
+- Contextual return from Deep Engineering strictly navigates to `#/project-01`, never directly to `#/orientation`, preserving the accepted navigation topology (Orientation → Project 01 → Dimension → Deeper Inspection → Project 01).
+- 9-part relationship chain is rendered sequentially without speculative or ungrounded claims; visible uncertainty is surfaced explicitly (FR-011, FR-015, FR-018).
+- Header and layout adapt responsively to tablet (768px) and mobile (375px) without horizontal clipping or scrollbar overflow.
+
+**Remaining Uncertainty:**  
+- Human visual inspection and acceptance pending before Phase 7.
+
+**Next Authorized Step:**  
+- Present Phase 6 verification evidence for human inspection and authorization.
+
 ## 5. Technical Decisions
 
 | Decision | Context | Options considered | Decision | Evidence | Status |
@@ -317,15 +367,15 @@ New consequential technical decisions should be recorded here rather than disapp
 
 | Category | Verification activity | Result | Evidence | Remaining uncertainty |
 |---|---|---|---|---|
-| Functional (V1) | Route synchronization & bidirectional navigation (Orientation ↔ Project 01 ↔ Approach / Record → Deep Engineering) | PASS | `tests/unit/orientation-project01.test.ts`, `tests/unit/approach.test.ts`, `tests/unit/record.test.ts` (36 unit tests); Playwright test suites (45 E2E tests) | Deep Engineering view pending Phase 6 |
-| Experience / Behavioral (V1) | Primary CTA click traversal, dimension branching (Approach & Record), return rail traversal & forward to deep engineering | PASS | `tests/e2e/us1-orientation-project01.spec.ts`, `tests/e2e/us2-approach.spec.ts`, `tests/e2e/us3-record.spec.ts` | Deep Engineering pending Phase 6 |
-| Visual / Design Fidelity (V2) | Direction C Light palette, open Orientation composition, two-column Project 01, Penpot-faithful Approach and Record | PASS | Playwright full-page screenshots (`browser_orientation_reconciled_1440.png`, `browser_project01_reconciled_1440.png`, `browser_approach_1440.png`, `browser_record_1440.png`, `browser_record_768.png`, `browser_record_375.png`) verified against Penpot Page 04 Boards 1, 2, 3, & 4 | Human final visual sign-off |
-| Responsive (V4) | Multi-device baseline verification across Desktop (1440px), Tablet (768px), Mobile (375px) | PASS | Playwright test suites (all 45 tests passed across desktop, tablet, and mobile projects) | None |
-| Accessibility (V5) | Axe automated accessibility scan on all viewports without any selector exclusions; ReturnRail contrast verified | PASS | `tests/a11y/foundation.spec.ts` (0 violations across desktop, tablet, mobile on root, /approach, and /record); Direction C Light contrast verified | Manual assistive technology review |
-| Performance | Production bundling & build efficiency | PASS | `npm run build` completed in ~2.8s, total JS gzip ~38.5KB, CSS ~3.7KB, zero bundle warnings | Production network throttling |
+| Functional (V1) | Route synchronization & bidirectional navigation (Orientation ↔ Project 01 ↔ Approach / Record → Deep Engineering → Project 01) | PASS | `tests/unit/orientation-project01.test.ts`, `tests/unit/approach.test.ts`, `tests/unit/record.test.ts`, `tests/unit/deep-engineering.test.ts` (53 unit tests); Playwright test suites (60 E2E tests) | None for Phase 6 scope |
+| Experience / Behavioral (V1) | Primary CTA click traversal, dimension branching (Approach & Record), deep engineering advancement & strict contextual return to Project 01 | PASS | `tests/e2e/us1-orientation-project01.spec.ts`, `tests/e2e/us2-approach.spec.ts`, `tests/e2e/us3-record.spec.ts`, `tests/e2e/us4-deep-engineering.spec.ts` | Phase 7 traversal integrity |
+| Visual / Design Fidelity (V2) | Direction C Light palette, open Orientation composition, two-column Project 01, Penpot-faithful Approach, Record, and Deep Engineering | PASS | Playwright full-page screenshots (`browser_orientation_reconciled_1440.png`, `browser_project01_reconciled_1440.png`, `browser_approach_1440.png`, `browser_record_1440.png`, `browser_deep_1440.png`, `browser_deep_768.png`, `browser_deep_375.png`) verified against Penpot Page 04 Boards 1, 2, 3, 4, & 5 | Human final visual sign-off |
+| Responsive (V4) | Multi-device baseline verification across Desktop (1440px), Tablet (768px), Mobile (375px) | PASS | Playwright test suites (all 60 tests passed across desktop, tablet, and mobile projects); header wrapped cleanly on tablet without horizontal overflow | None |
+| Accessibility (V5) | Axe automated accessibility scan on all viewports without any selector exclusions; ReturnRail & EvidenceCard contrast verified | PASS | `tests/a11y/foundation.spec.ts` (12/12 passing; 0 violations across desktop, tablet, mobile on root, /approach, /record, and /deep-engineering); Direction C Light contrast verified | Manual assistive technology review |
+| Performance | Production bundling & build efficiency | PASS | `npm run build` completed in ~3.6s, total JS gzip ~38.5KB, CSS ~3.7KB, zero bundle warnings | Production network throttling |
 | Security | Static execution & hash-mode routing | PASS | Hash-mode client architecture requires zero dynamic server execution; no third-party script injection | None |
 | Compatibility | Cross-browser standards compliance | PASS | Vite/Vue 3 modern baseline targets modern evergreen browsers | Legacy browser testing out of scope |
-| Content / Evidence Integrity (V9) | Penpot prototype texts & CTA copy exact correspondence; chronological decision records & visible uncertainty verbatim | PASS | `tests/unit/approach.test.ts`, `tests/unit/record.test.ts` assert verbatim content matching Penpot Boards 3 & 4 and data-model.md | None |
+| Content / Evidence Integrity (V9) | Penpot prototype texts & CTA copy exact correspondence; chronological decision records & 9-part evidence chain verbatim | PASS | `tests/unit/approach.test.ts`, `tests/unit/record.test.ts`, `tests/unit/deep-engineering.test.ts` assert verbatim content matching Penpot Boards 3, 4, 5 and Stage 04 checkpoint | None |
 | Build / Deployment | Production build generation & type correctness | PASS | `npx vue-tsc -b` and `npx vue-tsc -p app/tsconfig.json --noEmit` exit code 0; `vite build` generated `dist/` | Production deployment in Stage 09 |
 
 ## 7. Discrepancy Record

@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
-import type { ExperienceLocation } from '@/models/experience'
-import DepthIndicator from './DepthIndicator.vue'
+import { computed } from "vue";
+import { useRoute, RouterLink } from "vue-router";
+import type { ExperienceLocation } from "@/models/experience";
 
-const route = useRoute()
+const route = useRoute();
 
 interface ReturnTarget {
-  label: string
-  to: string
-  ariaLabel: string
+  label: string;
+  to: string;
+  ariaLabel: string;
 }
 
 /**
@@ -17,52 +16,52 @@ interface ReturnTarget {
  * Governed by specs/001-project-01-portfolio-experience/data-model.md Section 4
  */
 const returnTarget = computed<ReturnTarget | null>(() => {
-  const loc = (route.meta.location as ExperienceLocation) || 'orientation'
+  const loc = (route.meta.location as ExperienceLocation) || "orientation";
 
   switch (loc) {
-    case 'orientation':
+    case "orientation":
       // Entry context; no parent return path
-      return null
-    case 'project-01':
+      return null;
+    case "project-01":
       return {
-        label: 'Orientation',
-        to: '/orientation',
-        ariaLabel: 'Return to Portfolio Orientation'
-      }
-    case 'engineering-approach':
-    case 'engineering-record':
-    case 'deep-engineering':
+        label: "Orientation",
+        to: "/orientation",
+        ariaLabel: "Return to Portfolio Orientation",
+      };
+    case "engineering-approach":
+    case "engineering-record":
+    case "deep-engineering":
       return {
-        label: 'Project 01',
-        to: '/project-01',
-        ariaLabel: 'Return to Project 01'
-      }
+        label: "Project 01",
+        to: "/project-01",
+        ariaLabel: "Return to Project 01",
+      };
     default:
       return {
-        label: 'Project 01',
-        to: '/project-01',
-        ariaLabel: 'Return to Project 01'
-      }
+        label: "Project 01",
+        to: "/project-01",
+        ariaLabel: "Return to Project 01",
+      };
   }
-})
+});
 
 const currentLocationTitle = computed(() => {
-  const loc = (route.meta.location as ExperienceLocation) || 'orientation'
+  const loc = (route.meta.location as ExperienceLocation) || "orientation";
   switch (loc) {
-    case 'orientation':
-      return 'Orientation'
-    case 'project-01':
-      return 'Project 01'
-    case 'engineering-approach':
-      return 'Approach'
-    case 'engineering-record':
-      return 'Record'
-    case 'deep-engineering':
-      return 'Deep Engineering'
+    case "orientation":
+      return "Orientation";
+    case "project-01":
+      return "Project 01";
+    case "engineering-approach":
+      return "Approach";
+    case "engineering-record":
+      return "Record";
+    case "deep-engineering":
+      return "Deep Engineering";
     default:
-      return 'Project 01'
+      return "Project 01";
   }
-})
+});
 </script>
 
 <template>
@@ -90,17 +89,11 @@ const currentLocationTitle = computed(() => {
           </svg>
           <span class="return-text">{{ returnTarget.label }}</span>
         </RouterLink>
-
-        <!-- Brand mark when on entry orientation -->
-        <span v-else class="mobile-brand-mark" role="img" aria-label="Project 01 brand">
-          PROJECT 01
-        </span>
       </div>
 
-      <!-- Current Location & Depth Indicator -->
+      <!-- Current Location -->
       <div class="mobile-status-area">
         <span class="mobile-location-label">{{ currentLocationTitle }}</span>
-        <DepthIndicator compact />
       </div>
     </div>
   </nav>
@@ -154,7 +147,9 @@ const currentLocationTitle = computed(() => {
   text-decoration: none;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .mobile-return-btn:hover {

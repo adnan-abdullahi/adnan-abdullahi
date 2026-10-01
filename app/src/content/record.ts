@@ -63,7 +63,7 @@ export const recordContent: EngineeringRecordContent = {
       id: "design-foundations",
       stage: "STAGE 04",
       title: "DESIGN FOUNDATIONS",
-      body: "An apparent verification failure was investigated before changing the product. The discrepancy was traced to the inspection path and previous search assumption, after which Stage 04 was accepted.",
+      body: "An apparent verification failure was investigated before changing the product. The discrepancy was traced to the inspection path and previous search assumption, after which the design foundations were accepted.",
       problem:
         "Apparent verification failure during typography and token inspection",
       decision:

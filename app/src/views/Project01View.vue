@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import project01Content from '@/content/project01'
+import { RouterLink } from "vue-router";
+import project01Content from "@/content/project01";
 
-const content = project01Content
+const content = project01Content;
 </script>
 
 <template>
@@ -21,7 +21,10 @@ const content = project01Content
     <!-- Penpot Two-Column Composition (Decision 4) -->
     <div class="project01-columns">
       <!-- Left Column: Narrative, Context & Actions (~760px) -->
-      <section class="narrative-column" aria-label="Project Narrative and Actions">
+      <section
+        class="narrative-column"
+        aria-label="Project Narrative and Actions"
+      >
         <h2 class="project-definition">
           {{ content.overview.heading }}
         </h2>
@@ -71,20 +74,17 @@ const content = project01Content
       <!-- Right Column: Approach & Record Dimension Summaries (~340px) -->
       <aside class="dimensions-column" aria-label="Project Dimension Summaries">
         <article class="dimension-summary">
-          <h2 class="dimension-summary-title">
-            Engineering Approach
-          </h2>
+          <h2 class="dimension-summary-title">Engineering Approach</h2>
           <p class="dimension-summary-text">
             How the work is understood, advanced, evaluated, and clarified.
           </p>
         </article>
 
         <article class="dimension-summary">
-          <h2 class="dimension-summary-title">
-            Engineering Record
-          </h2>
+          <h2 class="dimension-summary-title">Engineering Record</h2>
           <p class="dimension-summary-text">
-            What happened, what was decided, what changed, what was verified, and what remains unresolved.
+            What happened, what was decided, what changed, what was verified,
+            and what remains unresolved.
           </p>
         </article>
       </aside>
@@ -231,7 +231,9 @@ const content = project01Content
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
   box-sizing: border-box;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 @media (min-width: 640px) {
@@ -260,7 +262,7 @@ const content = project01Content
 }
 
 .action-btn--accent:hover {
-  background-color: #D3E5F3;
+  background-color: #d3e5f3;
 }
 
 .action-btn--accent:focus-visible {
@@ -301,4 +303,3 @@ const content = project01Content
   margin: 0;
 }
 </style>
-

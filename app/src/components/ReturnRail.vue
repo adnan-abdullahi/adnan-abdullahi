@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
-import type { ExperienceLocation } from '@/models/experience'
+import { computed } from "vue";
+import { useRoute, RouterLink } from "vue-router";
+import type { ExperienceLocation } from "@/models/experience";
 
 const props = defineProps<{
-  targetLocation?: ExperienceLocation
-}>()
+  targetLocation?: ExperienceLocation;
+}>();
 
-const route = useRoute()
+const route = useRoute();
 
 interface ReturnConfig {
-  to: string
-  label: string
-  sublabel: string
-  ariaLabel: string
+  to: string;
+  label: string;
+  sublabel: string;
+  ariaLabel: string;
 }
 
 /**
@@ -23,54 +23,57 @@ interface ReturnConfig {
  * - specs/001-project-01-portfolio-experience/contracts/ui-contracts.md Section 3
  */
 const returnConfig = computed<ReturnConfig | null>(() => {
-  const loc = props.targetLocation || (route.meta?.location as ExperienceLocation) || 'orientation'
+  const loc =
+    props.targetLocation ||
+    (route.meta?.location as ExperienceLocation) ||
+    "orientation";
 
   switch (loc) {
-    case 'orientation':
+    case "orientation":
       // Root entry level has no return path
-      return null
+      return null;
 
-    case 'project-01':
+    case "project-01":
       return {
-        to: '/orientation',
-        label: 'Return to Portfolio Orientation',
-        sublabel: 'Back to entry context & role overview',
-        ariaLabel: 'Return to Portfolio Orientation'
-      }
+        to: "/orientation",
+        label: "Return to Portfolio Orientation",
+        sublabel: "Back to entry context & role overview",
+        ariaLabel: "Return to Portfolio Orientation",
+      };
 
-    case 'engineering-approach':
+    case "engineering-approach":
       return {
-        to: '/project-01',
-        label: 'Return to Project 01',
-        sublabel: 'Back to central portfolio project context',
-        ariaLabel: 'Return to Project 01'
-      }
+        to: "/project-01",
+        label: "Return to Project 01",
+        sublabel: "Back to central portfolio project context",
+        ariaLabel: "Return to Project 01",
+      };
 
-    case 'engineering-record':
+    case "engineering-record":
       return {
-        to: '/project-01',
-        label: 'Return to Project 01',
-        sublabel: 'Back to central portfolio project context',
-        ariaLabel: 'Return to Project 01'
-      }
+        to: "/project-01",
+        label: "Return to Project 01",
+        sublabel: "Back to central portfolio project context",
+        ariaLabel: "Return to Project 01",
+      };
 
-    case 'deep-engineering':
+    case "deep-engineering":
       return {
-        to: '/project-01',
-        label: 'Return to Project 01',
-        sublabel: 'Contextual return from deeper inspection to central project',
-        ariaLabel: 'Return to Project 01'
-      }
+        to: "/project-01",
+        label: "Return to Project 01",
+        sublabel: "Contextual return from deeper inspection to central project",
+        ariaLabel: "Return to Project 01",
+      };
 
     default:
       return {
-        to: '/project-01',
-        label: 'Return to Project 01',
-        sublabel: 'Back to central portfolio project context',
-        ariaLabel: 'Return to Project 01'
-      }
+        to: "/project-01",
+        label: "Return to Project 01",
+        sublabel: "Back to central portfolio project context",
+        ariaLabel: "Return to Project 01",
+      };
   }
-})
+});
 </script>
 
 <template>
@@ -144,7 +147,10 @@ const returnConfig = computed<ReturnConfig | null>(() => {
   border-radius: var(--radius-md);
   text-decoration: none;
   color: var(--color-text-primary);
-  transition: border-color 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    background-color 0.2s ease;
   min-height: 48px;
   box-sizing: border-box;
 }

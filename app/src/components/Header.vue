@@ -2,13 +2,12 @@
 import { computed } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import type { ExperienceLocation } from "@/models/experience";
-import DepthIndicator from "./DepthIndicator.vue";
 
 const route = useRoute();
 
 /**
  * Context label displayed alongside professional identity in the header.
- * Reflects current location in canonical 5-state topology.
+ * Reflects current location in canonical 5-state topology (Decision 02 Point 1).
  */
 const contextTag = computed<string | null>(() => {
   const loc = (route.meta.location as ExperienceLocation) || "orientation";
@@ -16,13 +15,10 @@ const contextTag = computed<string | null>(() => {
     case "orientation":
       return null;
     case "project-01":
-      return "PROJECT 01";
     case "engineering-approach":
-      return "PROJECT 01 / APPROACH";
     case "engineering-record":
-      return "PROJECT 01 / RECORD";
     case "deep-engineering":
-      return "PROJECT 01 / DEEP ENGINEERING";
+      return "PROJECT 01";
     default:
       return "PROJECT 01";
   }
@@ -51,28 +47,16 @@ const contextTag = computed<string | null>(() => {
         </span>
       </div>
 
-      <!-- Contextual 5-State IA Navigation (No generic tabs per Decision 2) -->
-      <nav aria-label="Engineering Experience Navigation" class="header-nav">
+      <!-- Penpot Approved Header Navigation (Decision A) -->
+      <nav aria-label="Main Navigation" class="header-nav">
         <ul class="nav-list">
           <li class="nav-item">
             <RouterLink
-              to="/orientation"
+              to="/record"
               class="nav-link"
-              :class="{
-                'nav-link--active':
-                  route.path === '/orientation' || route.path === '/',
-              }"
+              :class="{ 'nav-link--active': route.path === '/record' }"
             >
-              Orientation
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <RouterLink
-              to="/project-01"
-              class="nav-link"
-              :class="{ 'nav-link--active': route.path === '/project-01' }"
-            >
-              Project 01
+              Engineering Record
             </RouterLink>
           </li>
           <li class="nav-item">
@@ -85,21 +69,17 @@ const contextTag = computed<string | null>(() => {
             </RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink
-              to="/record"
-              class="nav-link"
-              :class="{ 'nav-link--active': route.path === '/record' }"
-            >
-              Engineering Record
-            </RouterLink>
+            <span class="nav-link nav-link--unresolved" aria-disabled="true">
+              About
+            </span>
+          </li>
+          <li class="nav-item">
+            <span class="nav-link nav-link--unresolved" aria-disabled="true">
+              Contact
+            </span>
           </li>
         </ul>
       </nav>
-
-      <!-- Inspection Depth Indicator -->
-      <div class="header-depth">
-        <DepthIndicator />
-      </div>
     </div>
   </div>
 </template>
@@ -134,6 +114,18 @@ const contextTag = computed<string | null>(() => {
 @media (min-width: 1025px) {
   .header-inner {
     padding: var(--space-4) var(--space-8);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .header-inner {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+
+  .header-nav {
+    order: 3;
+    width: 100%;
   }
 }
 
@@ -208,9 +200,10 @@ const contextTag = computed<string | null>(() => {
 }
 
 .nav-link {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
   padding: var(--space-1) 0;
   border-bottom: 2px solid transparent;
@@ -219,7 +212,7 @@ const contextTag = computed<string | null>(() => {
     border-color 0.15s ease;
 }
 
-.nav-link:hover {
+.nav-link:hover:not(.nav-link--unresolved) {
   color: var(--color-interactive-primary);
 }
 
@@ -230,14 +223,13 @@ const contextTag = computed<string | null>(() => {
 }
 
 .nav-link--active {
-  color: var(--color-text-primary);
+  color: var(--color-interactive-primary);
   font-weight: var(--font-weight-semibold);
   border-bottom-color: var(--color-interactive-primary);
 }
 
-.header-depth {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
+.nav-link--unresolved {
+  cursor: default;
+  user-select: none;
 }
 </style>

@@ -115,3 +115,39 @@ export interface EngineeringRecord {
   deeperInspectionDestination: 'deep-engineering'
   returnDestination: 'project-01'
 }
+
+/**
+ * An atomic, traceable unit in the Evidence & Evaluation System.
+ * Governed by specs/001-project-01-portfolio-experience/data-model.md (Section 2.7)
+ */
+export interface EvidenceItem {
+  id: string
+  problem: string
+  requirement: string
+  decision: string
+  technicalWork: string
+  evidence: string
+  verification: string
+  outcome: string
+  reflection: string
+  growth: string
+  uncertainty?: string
+}
+
+/**
+ * Domain entity representing the Deep Engineering deeper-inspection level.
+ * Governed by specs/001-project-01-portfolio-experience/data-model.md (Section 2.6)
+ */
+export interface DeepEngineering {
+  id: 'deep-engineering'
+  title: string
+  parentProject: 'project-01'
+  subtitle: string
+  caseStudy: {
+    title: string
+    overview: string
+    evidenceItems: EvidenceItem[]
+  }
+  returnDestination: 'project-01'
+}
+

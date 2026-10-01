@@ -119,14 +119,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T030 [P] [US4] Create unit tests for EvidenceItem model validation and 9-part relationship chain in `tests/unit/deep-engineering.test.ts`.
-- [ ] T031 [P] [US4] Create Playwright E2E test in `tests/e2e/us4-deep-engineering.spec.ts` verifying entry from Approach/Record to Deep Engineering and strict return traversal back to `#/project-01`.
+- [x] T030 [P] [US4] Create unit tests for EvidenceItem model validation and 9-part relationship chain in `tests/unit/deep-engineering.test.ts`.
+- [x] T031 [P] [US4] Create Playwright E2E test in `tests/e2e/us4-deep-engineering.spec.ts` verifying entry from Approach/Record to Deep Engineering and strict return traversal back to `#/project-01`.
 
 ### Implementation for User Story 4
 
-- [ ] T032 [P] [US4] Create approved content module for Deep Engineering in `app/src/content/deep-engineering.ts` containing the Design Foundations verification case study and atomic evidence nodes (FR-016, FR-017).
-- [ ] T033 [P] [US4] Implement evidence card component in `app/src/components/EvidenceCard.vue` rendering the complete 9-part evidence chain (`Problem`, `Requirement`, `Decision`, `Technical Work`, `Evidence`, `Verification`, `Outcome`, `Reflection`, `Growth`) with visible uncertainty badges for open questions per `contracts/ui-contracts.md`, styled with Vue `<style scoped>` (FR-011, FR-015).
-- [ ] T034 [US4] Implement `app/src/views/DeepEngineeringView.vue` displaying the Design Foundations verification case study, Deeper Inspection depth indicator, atomic evidence cards, and explicit lateral return rail to `#/project-01`, styled with Vue `<style scoped>` consuming global tokens (FR-008, FR-009, FR-010, US4).
+- [x] T032 [P] [US4] Create approved content module for Deep Engineering in `app/src/content/deep-engineering.ts` containing the Design Foundations verification case study and atomic evidence nodes (FR-016, FR-017).
+- [x] T033 [P] [US4] Implement evidence card component in `app/src/components/EvidenceCard.vue` rendering the complete 9-part evidence chain (`Problem`, `Requirement`, `Decision`, `Technical Work`, `Evidence`, `Verification`, `Outcome`, `Reflection`, `Growth`) with visible uncertainty badges for open questions per `contracts/ui-contracts.md`, styled with Vue `<style scoped>` (FR-011, FR-015).
+- [x] T034 [US4] Implement `app/src/views/DeepEngineeringView.vue` displaying the Design Foundations verification case study, Deeper Inspection depth indicator, atomic evidence cards, and explicit lateral return rail to `#/project-01`, styled with Vue `<style scoped>` consuming global tokens (FR-008, FR-009, FR-010, US4).
 
 **Checkpoint**: User Story 4 is functional, verifying the progressive inspection model and evidence traceability.
 
