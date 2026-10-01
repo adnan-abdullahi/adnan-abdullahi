@@ -182,8 +182,11 @@ Present completed Phase 3 implementation and verification report for human revie
 
 ### Session S02 — Source-of-Truth Reconciliation
 
+**Date:** 2026-09-30  
+**Status:** Human Decisions Established
+
 **Objective:**  
-Resolve material conflicts discovered between the accepted Stage 04–07 experience, Penpot prototype, Stage 08 planning artifacts, and the T016–T020 implementation before further implementation changes.
+Resolve material conflicts discovered between the accepted Stage 04–07 experience, Penpot prototype, Stage 08 planning artifacts, and the T016–T020 implementation before further implementation changes. This session consolidates the standalone Stage 08 Source-of-Truth Reconciliation record into this engineering journal.
 
 **Work Performed:**  
 A read-only reconciliation was completed. No source code, tests, Penpot artifacts, or configuration were modified during the investigation.
@@ -195,6 +198,14 @@ Stage 08 Source-of-Truth Reconciliation report and the documented Stage 04–07 
 The conflicting decisions were classified as explicitly accepted, explicitly revised, derived/proposed, implementation-only, or unresolved. The remaining material conflicts were presented to the human project authority.
 
 **Findings:**  
+The reconciliation established that:
+- Direction C light was explicitly accepted in Stage 04.
+- The Stage 08 dark palette entered through later planning without established human acceptance.
+- Stage 05 rejected generic portfolio tabs, but the later contextual application shell was a derived Stage 08 implementation contract that had not been reconciled with Penpot.
+- T019 introduced Orientation badges/cards not established by prior acceptance.
+- T020 introduced a single-column Project 01 composition that diverged from the Penpot two-column structure.
+- The CTA terminology evolved as the information architecture changed.
+
 The Stage 08 dark visual foundation lacked established human acceptance. The contextual application shell was a derived Stage 08 contract that had not been reconciled with the Penpot header. T019/T020 introduced visual/layout choices without prior acceptance.
 
 **Decisions:**  
@@ -204,6 +215,8 @@ The human project authority explicitly authorized:
 3. Open, left-aligned Penpot Orientation composition.
 4. Penpot two-column Project 01 composition.
 5. Orientation CTA: "Explore the Engineering Record".
+
+These decisions superseded conflicting derived or implementation-only Stage 08 decisions. Historical conflicting artifacts remain part of the engineering record and are not erased.
 
 **Remaining Uncertainty:**  
 The corrected implementation has not yet been implemented or re-verified.
@@ -354,6 +367,29 @@ Phase 5 (Engineering Record) accepted, committed, and pushed. Authorized executi
 
 **Next Authorized Step:**  
 - Present Phase 6 verification evidence for human inspection and authorization.
+
+### Session S04 — Human Reconciliation Decisions for Phase 6 Correction
+
+**Objective:**  
+Record the human decisions established before the next implementation correction, while keeping Stage 08 as one coherent engineering journal.
+
+**Decision 01 — Deep Engineering visual source of truth:**  
+The Deep Engineering page must follow **Penpot Board 05 — Deep Engineering** exactly as its approved visual source. No visual reinterpretation or redesign is authorized. The 9-part Evidence Card is not part of Board 05 and must not appear on the Deep Engineering page; its implementation is to be removed from that page. No visual elements not present in Board 05 are to be invented.
+
+**Decision 02 — Internal context and visible return controls:**  
+The visible entry context used internally across the experience is not visitor-facing information. Starting from Project 01 and across Engineering Approach, Engineering Record, and Deep Engineering, explicit visible internal context is to be hidden. The visible **Back to Portfolio Orientation** control on these non-Orientation pages is also to be removed. Internal navigation relationships may remain technically where required; this decision concerns visitor-facing visibility. No replacement visitor-facing control is authorized unless it is explicitly present in the approved Penpot experience.
+
+**Decision 03 — Remove internal Stage numbers from visitor-facing text:**  
+Internal Stage numbers are not to appear in visitor-facing copy. In Engineering Record, the phrase **“after which Stage 04 was accepted”** is to be replaced with **“after which the design foundations were accepted.”** Internal Stage 04 references may remain in engineering documentation where they are needed for traceability.
+
+**Decision 04 — Orientation secondary action styling:**  
+The Orientation secondary action **“View Engineering Approach”** is to use exactly the same visual treatment as the established Project 01 **“Back to Portfolio Orientation”** button: Direction C Light accent surface #E3EEF7, interactive blue #245B8F, and the same border/radius/height/padding/typography/visual weight, including equivalent hover and focus treatment. The action and route remain unchanged.
+
+**Governance:**  
+These decisions are human-authorized documentation and implementation constraints. They supersede conflicting derived or implementation-only choices for the affected visitor-facing experience. They do not constitute technical verification or human acceptance of the eventual correction.
+
+**Next Authorized Step:**  
+Update the Stage 08 implementation/specification documentation to reflect these decisions, then implement only the authorized corrections, verify them, and present the evidence for human inspection before any further progression.
 
 ## 5. Technical Decisions
 
