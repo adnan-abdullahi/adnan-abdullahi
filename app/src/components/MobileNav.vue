@@ -22,6 +22,12 @@ const returnTarget = computed<ReturnTarget | null>(() => {
     case "orientation":
       // Entry context; no parent return path
       return null;
+    case "about":
+      return {
+        label: "Orientation",
+        to: "/orientation",
+        ariaLabel: "Return to Portfolio Orientation",
+      };
     case "project-01":
       return {
         label: "Orientation",
@@ -50,6 +56,8 @@ const currentLocationTitle = computed(() => {
   switch (loc) {
     case "orientation":
       return "Orientation";
+    case "about":
+      return "About";
     case "project-01":
       return "Project 01";
     case "engineering-approach":

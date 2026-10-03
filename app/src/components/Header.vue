@@ -13,6 +13,7 @@ const contextTag = computed<string | null>(() => {
   const loc = (route.meta.location as ExperienceLocation) || "orientation";
   switch (loc) {
     case "orientation":
+    case "about":
       return null;
     case "project-01":
     case "engineering-approach":
@@ -69,9 +70,13 @@ const contextTag = computed<string | null>(() => {
             </RouterLink>
           </li>
           <li class="nav-item">
-            <span class="nav-link nav-link--unresolved" aria-disabled="true">
+            <RouterLink
+              to="/about"
+              class="nav-link"
+              :class="{ 'nav-link--active': route.path === '/about' }"
+            >
               About
-            </span>
+            </RouterLink>
           </li>
           <li class="nav-item">
             <span class="nav-link nav-link--unresolved" aria-disabled="true">

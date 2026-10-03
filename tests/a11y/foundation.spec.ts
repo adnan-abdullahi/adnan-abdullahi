@@ -38,4 +38,12 @@ test.describe("Stage 08 Accessibility Foundation (T002, Category V5)", () => {
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
+
+  test("verifies axe-core audit passes on #/about (About narrative page)", async ({
+    page,
+  }) => {
+    await page.goto("/#/about");
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
 });

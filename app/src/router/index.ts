@@ -81,6 +81,17 @@ export const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/about',
+    name: 'about',
+    component: () => import('@/views/AboutView.vue'),
+    meta: {
+      title: 'About',
+      depth: 'entry',
+      location: 'about',
+      depthLabel: 'About'
+    }
+  },
+  {
     // Catch-all: unrecognized paths redirect to orientation per ui-contracts.md
     path: '/:pathMatch(.*)*',
     redirect: '/orientation'
