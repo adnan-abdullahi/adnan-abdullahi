@@ -1,35 +1,13 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import { useRoute, RouterLink } from "vue-router";
-import type { ExperienceLocation } from "@/models/experience";
 
 const route = useRoute();
-
-/**
- * Context label displayed alongside professional identity in the header.
- * Reflects current location in canonical 5-state topology (Decision 02 Point 1).
- */
-const contextTag = computed<string | null>(() => {
-  const loc = (route.meta.location as ExperienceLocation) || "orientation";
-  switch (loc) {
-    case "orientation":
-    case "about":
-      return null;
-    case "project-01":
-    case "engineering-approach":
-    case "engineering-record":
-    case "deep-engineering":
-      return "PROJECT 01";
-    default:
-      return "PROJECT 01";
-  }
-});
 </script>
 
 <template>
   <div class="desktop-header-container">
     <div class="header-inner">
-      <!-- Professional Identity: Centered on Adnan Abdullahi (Decision 2) -->
+      <!-- Professional Identity: Semantic RouterLink to /orientation -->
       <div class="header-identity">
         <RouterLink
           to="/orientation"
@@ -38,24 +16,27 @@ const contextTag = computed<string | null>(() => {
         >
           <span class="identity-name">Adnan Abdullahi</span>
         </RouterLink>
-        <span
-          v-if="contextTag"
-          class="project-tag"
-          role="img"
-          aria-label="Project 01 context brand"
-        >
-          {{ contextTag }}
-        </span>
       </div>
 
-      <!-- Penpot Approved Header Navigation (Decision A) -->
+      <!-- Penpot Approved Header Navigation (5 Canonical Destinations per Requirement A & B) -->
       <nav aria-label="Main Navigation" class="header-nav">
         <ul class="nav-list">
+          <li class="nav-item">
+            <RouterLink
+              to="/orientation"
+              class="nav-link"
+              :class="{ 'nav-link--active': route.path === '/orientation' || route.path === '/' }"
+              :aria-current="(route.path === '/orientation' || route.path === '/') ? 'page' : undefined"
+            >
+              Home
+            </RouterLink>
+          </li>
           <li class="nav-item">
             <RouterLink
               to="/record"
               class="nav-link"
               :class="{ 'nav-link--active': route.path === '/record' }"
+              :aria-current="route.path === '/record' ? 'page' : undefined"
             >
               Engineering Record
             </RouterLink>
@@ -65,6 +46,7 @@ const contextTag = computed<string | null>(() => {
               to="/approach"
               class="nav-link"
               :class="{ 'nav-link--active': route.path === '/approach' }"
+              :aria-current="route.path === '/approach' ? 'page' : undefined"
             >
               Approach
             </RouterLink>
@@ -74,14 +56,20 @@ const contextTag = computed<string | null>(() => {
               to="/about"
               class="nav-link"
               :class="{ 'nav-link--active': route.path === '/about' }"
+              :aria-current="route.path === '/about' ? 'page' : undefined"
             >
               About
             </RouterLink>
           </li>
           <li class="nav-item">
-            <span class="nav-link nav-link--unresolved" aria-disabled="true">
+            <RouterLink
+              to="/contact"
+              class="nav-link"
+              :class="{ 'nav-link--active': route.path === '/contact' }"
+              :aria-current="route.path === '/contact' ? 'page' : undefined"
+            >
               Contact
-            </span>
+            </RouterLink>
           </li>
         </ul>
       </nav>
@@ -108,7 +96,7 @@ const contextTag = computed<string | null>(() => {
 .header-inner {
   max-width: var(--container-max-width, 1440px);
   margin: 0 auto;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-4) var(--container-padding-x-tablet, var(--space-6));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -118,7 +106,7 @@ const contextTag = computed<string | null>(() => {
 
 @media (min-width: 1025px) {
   .header-inner {
-    padding: var(--space-4) var(--space-8);
+    padding: var(--space-4) var(--container-padding-x-desktop, 80px);
   }
 }
 
@@ -137,7 +125,6 @@ const contextTag = computed<string | null>(() => {
 .header-identity {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
   flex-shrink: 0;
 }
 
@@ -146,17 +133,21 @@ const contextTag = computed<string | null>(() => {
   align-items: center;
   text-decoration: none;
   color: var(--color-text-primary);
-  transition: opacity 0.15s ease;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
 }
 
 .identity-link:hover {
-  opacity: 0.85;
+  color: var(--color-interactive-primary);
+}
+
+.identity-link:hover .identity-name {
+  color: var(--color-interactive-primary);
 }
 
 .identity-link:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 4px;
-  border-radius: var(--radius-sm);
 }
 
 .identity-name {
@@ -166,17 +157,7 @@ const contextTag = computed<string | null>(() => {
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
   line-height: var(--line-height-tight);
-}
-
-.project-tag {
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.05em;
-  padding: 2px var(--space-2);
-  background-color: var(--color-interactive-primary);
-  color: var(--color-text-on-interactive);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-semibold);
+  transition: color 0.15s ease;
 }
 
 .header-nav {
@@ -217,7 +198,7 @@ const contextTag = computed<string | null>(() => {
     border-color 0.15s ease;
 }
 
-.nav-link:hover:not(.nav-link--unresolved) {
+.nav-link:hover {
   color: var(--color-interactive-primary);
 }
 
@@ -231,10 +212,5 @@ const contextTag = computed<string | null>(() => {
   color: var(--color-interactive-primary);
   font-weight: var(--font-weight-semibold);
   border-bottom-color: var(--color-interactive-primary);
-}
-
-.nav-link--unresolved {
-  cursor: default;
-  user-select: none;
 }
 </style>

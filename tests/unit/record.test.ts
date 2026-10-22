@@ -221,10 +221,9 @@ describe("User Story 3: Engineering Record Dimension & Decisions (T026)", () => 
       expect(primaryBtn.text()).toContain("Continue to Deep Engineering");
       expect(primaryBtn.attributes("href")).toBe("#/deep-engineering");
 
-      const secondaryBtn = wrapper.find(".action-btn--accent");
-      expect(secondaryBtn.exists()).toBe(true);
-      expect(secondaryBtn.text()).toContain("Back to Project 01");
-      expect(secondaryBtn.attributes("href")).toBe("#/project-01");
+      // Contextual return action "Back to Project 01" is removed
+      expect(wrapper.find(".action-btn--accent").exists()).toBe(false);
+      expect(wrapper.text()).not.toContain("Back to Project 01");
     });
   });
 });

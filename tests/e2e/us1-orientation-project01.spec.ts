@@ -21,20 +21,28 @@ test.describe("User Story 1: Portfolio Orientation to Project 01 Entry & Return 
 
   test('traverses from "#/orientation" to "#/project-01" via primary CTA and returns to "#/orientation"', async ({
     page,
+    isMobile,
   }) => {
     // 1. Start at Orientation
     await page.goto("/#/orientation");
     await expect(page).toHaveURL(/.*#\/orientation/);
 
-    // Verify Penpot identity in header (Decision 2)
-    const headerIdentity = page.locator(
-      ".desktop-header-container .identity-name",
-    );
-    await expect(headerIdentity).toContainText("Adnan Abdullahi");
+    // Verify identity in header
+    if (!isMobile) {
+      const headerIdentity = page.locator(
+        ".desktop-header-container .identity-name",
+      );
+      await expect(headerIdentity).toContainText("Adnan Abdullahi");
+    } else {
+      const mobileIdentity = page.locator(
+        ".mobile-nav-container .mobile-identity-name",
+      );
+      await expect(mobileIdentity).toContainText("Adnan Abdullahi");
+    }
 
-    // 2. Click primary CTA "Explore the Engineering Record" (Decision 3 & 5)
+    // 2. Click primary CTA "Explore the Portfolio Project" (Requirement F.1)
     const primaryCta = page.getByRole("link", {
-      name: "Explore the Engineering Record",
+      name: "Explore the Portfolio Project",
     });
     await expect(primaryCta).toBeVisible();
     await primaryCta.click();
@@ -43,9 +51,8 @@ test.describe("User Story 1: Portfolio Orientation to Project 01 Entry & Return 
     await expect(page).toHaveURL(/.*#\/project-01/);
     await expect(page).toHaveTitle(/Project 01 — Portfolio Experience/);
 
-    // Verify Project 01 context label and absence of depth pill (Decision 02 Point 1)
-    const contextTag = page.locator(".desktop-header-container .project-tag");
-    await expect(contextTag).toHaveText("PROJECT 01");
+    // Verify absence of context label and absence of depth pill
+    await expect(page.locator(".project-tag")).toHaveCount(0);
     await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
 
     // Verify Two-Column Layout elements on Project 01 (Decision 4)
@@ -58,16 +65,36 @@ test.describe("User Story 1: Portfolio Orientation to Project 01 Entry & Return 
       page.getByRole("link", { name: "Inspect Engineering Record" }),
     ).toBeVisible();
 
-    // 4. Verify ReturnRail is not rendered (Decision 02 Point 2) and approved in-canvas return action is present
+    // 4. Verify ReturnRail and in-canvas return button are not rendered on Project 01
     await expect(page.locator(".return-rail-link")).toHaveCount(0);
-    const backBtn = page.getByRole("link", {
-      name: "Back to Portfolio Orientation",
-    });
-    await expect(backBtn).toBeVisible();
-    await expect(backBtn).toHaveAttribute("href", "#/orientation");
+    await expect(
+      page.getByRole("link", { name: "Back to Portfolio Orientation" }),
+    ).toHaveCount(0);
 
-    // 5. Click approved in-canvas return action to execute contextual return
-    await backBtn.click();
+    // 5. Verify distinct primary/secondary action hierarchy on Project 01
+    const approachLink = page.getByRole("link", {
+      name: "Inspect Engineering Approach",
+    });
+    await expect(approachLink).toHaveClass(/action-btn--primary/);
+
+    const recordLink = page.getByRole("link", {
+      name: "Inspect Engineering Record",
+    });
+    await expect(recordLink).toHaveClass(/action-btn--secondary|action-btn--accent/);
+
+    // 6. Return to Orientation via shared header / mobile navigation
+    if (isMobile) {
+      await page.locator(".mobile-hamburger-btn").click();
+      const homeLink = page
+        .locator("#mobile-nav-drawer")
+        .getByRole("link", { name: "Home" });
+      await homeLink.click();
+    } else {
+      const homeLink = page
+        .locator(".desktop-header-container")
+        .getByRole("link", { name: "Home", exact: true });
+      await homeLink.click();
+    }
     await expect(page).toHaveURL(/.*#\/orientation/);
     await expect(page).toHaveTitle(/Portfolio Orientation/);
   });
@@ -90,5 +117,67 @@ test.describe("User Story 1: Portfolio Orientation to Project 01 Entry & Return 
     await secondaryBtn.click();
     await expect(page).toHaveURL(/.*#\/approach/);
     await expect(page).toHaveTitle(/Engineering Approach/);
+  });
+
+  test("mobile navigation drawer opens, displays visible heading 'Menu', and closes on resize to desktop", async ({
+    page,
+  }) => {
+    // 1. Establish mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/#/orientation");
+
+    // 2. Open drawer via mobile hamburger button
+    const hamburger = page.locator(".mobile-hamburger-btn");
+    await expect(hamburger).toBeVisible();
+    await hamburger.click();
+
+    const drawer = page.locator("#mobile-nav-drawer");
+    await expect(drawer).toBeVisible();
+
+    // 3. Verify visible heading displays "Menu" (Change A)
+    const title = drawer.locator(".mobile-drawer-title");
+    await expect(title).toHaveText("Menu");
+
+    // 4. Resize viewport to desktop width >= 768px (Change B)
+    await page.setViewportSize({ width: 1024, height: 768 });
+
+    // Drawer must be closed
+    await expect(drawer).not.toBeVisible();
+
+    // 5. Resize back to mobile width < 768px (Change B)
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    // Drawer must remain closed until explicitly activated
+    await expect(drawer).not.toBeVisible();
+    await expect(hamburger).toHaveAttribute("aria-expanded", "false");
+
+    // 6. Activating hamburger again opens it normally
+    await hamburger.click();
+    await expect(drawer).toBeVisible();
+    await expect(title).toHaveText("Menu");
+  });
+
+  test("navigates to Orientation when clicking header identity brand link from another page", async ({
+    page,
+    isMobile,
+  }) => {
+    // 1. Start at Project 01
+    await page.goto("/#/project-01");
+    await expect(page).toHaveURL(/.*#\/project-01/);
+
+    // 2. Click the brand identity link in the header
+    if (isMobile) {
+      const mobileIdentity = page.locator(".mobile-nav-container .mobile-identity-link");
+      await expect(mobileIdentity).toBeVisible();
+      await mobileIdentity.click();
+    } else {
+      const desktopIdentity = page.locator(".desktop-header-container .identity-link");
+      await expect(desktopIdentity).toBeVisible();
+      await desktopIdentity.click();
+    }
+
+    // 3. Verify arrival at Orientation / Home
+    await expect(page).toHaveURL(/.*#\/orientation/);
+    await expect(page).toHaveTitle(/Portfolio Orientation/);
   });
 });

@@ -17,6 +17,7 @@ export type ExperienceLocation =
   | 'engineering-record'   // Engineering Record (Dimension of Project 01)
   | 'deep-engineering'     // Deep Engineering (Deeper Inspection Level)
   | 'about'                // About (Professional Narrative)
+  | 'contact'              // Contact (Direct Inquiry / Conversation)
 
 /**
  * The four progressive inspection depth levels.

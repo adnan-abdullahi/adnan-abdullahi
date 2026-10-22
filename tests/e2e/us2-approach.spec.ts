@@ -26,8 +26,7 @@ test.describe("User Story 2: Engineering Approach Dimension & Traversal (T022)",
     );
     await expect(headerIdentity).toContainText("Adnan Abdullahi");
 
-    const contextTag = page.locator(".desktop-header-container .project-tag");
-    await expect(contextTag).toHaveText("PROJECT 01");
+    await expect(page.locator(".project-tag")).toHaveCount(0);
     await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
 
     // Verify View Landmark, Eyebrow & Title
@@ -54,20 +53,18 @@ test.describe("User Story 2: Engineering Approach Dimension & Traversal (T022)",
       "Technology is treated as an instrument that assists engineering work. Human understanding, judgment, responsibility, and verification remain central.",
     );
 
-    // 4. Return to Project 01 via View Action Button
-    const backBtn = page.getByRole("link", { name: "Back to Project 01" });
-    await expect(backBtn).toBeVisible();
-    await backBtn.click();
-
-    // 5. Verify return to Project 01
-    await expect(page).toHaveURL(/.*#\/project-01/);
-    await expect(page).toHaveTitle(/Project 01 — Portfolio Experience/);
+    // 4. Verify primary forward action is rendered and "Back to Project 01" is removed
+    const deepEngineeringBtn = page.getByRole("link", {
+      name: "Continue to Deep Engineering",
+    });
+    await expect(deepEngineeringBtn).toBeVisible();
+    await expect(deepEngineeringBtn).toHaveClass(/action-btn--primary/);
     await expect(
-      page.locator(".desktop-header-container .project-tag"),
-    ).toHaveText("PROJECT 01");
+      page.getByRole("link", { name: "Back to Project 01" }),
+    ).toHaveCount(0);
   });
 
-  test('verifies ReturnRail does not appear and returns to "#/project-01" via approved in-canvas button', async ({
+  test('verifies ReturnRail and in-canvas "Back to Project 01" do not appear on Approach', async ({
     page,
   }) => {
     // 1. Navigate to Approach
@@ -77,12 +74,17 @@ test.describe("User Story 2: Engineering Approach Dimension & Traversal (T022)",
     // 2. Verify ReturnRail is not rendered (Decision 02 Point 2)
     await expect(page.locator(".return-rail-link")).toHaveCount(0);
 
-    // 3. Click approved in-canvas return action
-    const backBtn = page.getByRole("link", { name: "Back to Project 01" });
-    await expect(backBtn).toBeVisible();
-    await backBtn.click();
-    await expect(page).toHaveURL(/.*#\/project-01/);
-    await expect(page).toHaveTitle(/Project 01 — Portfolio Experience/);
+    // 3. Verify in-canvas "Back to Project 01" is not rendered
+    await expect(
+      page.getByRole("link", { name: "Back to Project 01" }),
+    ).toHaveCount(0);
+
+    // 4. Verify forward action is rendered with primary styling
+    const deepEngineeringBtn = page.getByRole("link", {
+      name: "Continue to Deep Engineering",
+    });
+    await expect(deepEngineeringBtn).toBeVisible();
+    await expect(deepEngineeringBtn).toHaveClass(/action-btn--primary/);
   });
 
   test('advances from "#/approach" to authorized deeper-inspection path "#/deep-engineering"', async ({
@@ -103,10 +105,8 @@ test.describe("User Story 2: Engineering Approach Dimension & Traversal (T022)",
     await expect(page).toHaveURL(/.*#\/deep-engineering/);
     await expect(page).toHaveTitle(/Deep Engineering/);
 
-    // Verify Deep Engineering context tag and absence of depth indicator (Decision 02 Point 1)
-    await expect(
-      page.locator(".desktop-header-container .project-tag"),
-    ).toHaveText("PROJECT 01");
+    // Verify absence of context tag and absence of depth indicator (Decision 02 Point 1)
+    await expect(page.locator(".project-tag")).toHaveCount(0);
     await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
   });
 
@@ -121,8 +121,7 @@ test.describe("User Story 2: Engineering Approach Dimension & Traversal (T022)",
     await expect(page.locator(".approach-title")).toHaveText(
       "Engineering Approach",
     );
-    const contextTag = page.locator(".desktop-header-container .project-tag");
-    await expect(contextTag).toHaveText("PROJECT 01");
+    await expect(page.locator(".project-tag")).toHaveCount(0);
     await expect(page.locator(".depth-indicator-badge")).toHaveCount(0);
     await expect(page.locator(".return-rail-link")).toHaveCount(0);
   });

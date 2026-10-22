@@ -133,7 +133,7 @@ describe("About Page Implementation & Fidelity", () => {
       expect(heading.attributes("tabindex")).toBe("-1");
     });
 
-    it("renders all 5 semantic sections with accessible labelledby headings", () => {
+    it("renders all 5 semantic sections with accessible labelledby headings and Section 1 eyebrow", () => {
       const wrapper = mount(AboutView, {
         global: {
           plugins: [router],
@@ -143,13 +143,17 @@ describe("About Page Implementation & Fidelity", () => {
       const sections = wrapper.findAll("section.about-section");
       expect(sections).toHaveLength(5);
 
+      const eyebrow = wrapper.find("#about-me-heading");
+      expect(eyebrow.exists()).toBe(true);
+      expect(eyebrow.text()).toBe("About Me");
+      expect(eyebrow.classes()).toContain("about-eyebrow");
+
       const sectionHeadings = wrapper.findAll("h2.section-heading");
-      expect(sectionHeadings).toHaveLength(5);
-      expect(sectionHeadings[0].text()).toBe("About Me");
-      expect(sectionHeadings[1].text()).toBe("How I Work");
-      expect(sectionHeadings[2].text()).toBe("What I Work On");
-      expect(sectionHeadings[3].text()).toBe("Where I'm Going");
-      expect(sectionHeadings[4].text()).toBe("Let's Connect");
+      expect(sectionHeadings).toHaveLength(4);
+      expect(sectionHeadings[0].text()).toBe("How I Work");
+      expect(sectionHeadings[1].text()).toBe("What I Work On");
+      expect(sectionHeadings[2].text()).toBe("Where I'm Going");
+      expect(sectionHeadings[3].text()).toBe("Let's Connect");
     });
 
     it("renders identity name and role in Section 1", () => {
@@ -194,7 +198,7 @@ describe("About Page Implementation & Fidelity", () => {
   });
 
   describe("Header & Mobile Navigation Integration", () => {
-    it("renders active About link in Header when on /about route without project-tag", async () => {
+    it("renders active About link in Header when on /about route without project-tag and all 5 canonical links", async () => {
       await router.push("/about");
       await router.isReady();
 
@@ -204,15 +208,36 @@ describe("About Page Implementation & Fidelity", () => {
         },
       });
 
+      // Verify all 5 canonical navigation links in Desktop Header (Requirement A & B)
+      const homeLink = wrapper.find('a[href="#/orientation"]');
+      const recordLink = wrapper.find('a[href="#/record"]');
+      const approachLink = wrapper.find('a[href="#/approach"]');
       const aboutLink = wrapper.find('a[href="#/about"]');
+      const contactLink = wrapper.find('a[href="#/contact"]');
+
+      expect(homeLink.exists()).toBe(true);
+      expect(recordLink.exists()).toBe(true);
+      expect(approachLink.exists()).toBe(true);
       expect(aboutLink.exists()).toBe(true);
+      expect(contactLink.exists()).toBe(true);
+
+      // Verify active link indicators (Requirement B.4 & B.5)
       expect(aboutLink.classes()).toContain("nav-link--active");
+      expect(aboutLink.attributes("aria-current")).toBe("page");
+
+      // Verify clickable personal identity link
+      const identityName = wrapper.find(".identity-name");
+      expect(identityName.exists()).toBe(true);
+      expect(identityName.text()).toBe("Adnan Abdullahi");
+      const identityLink = wrapper.find("a.identity-link");
+      expect(identityLink.exists()).toBe(true);
+      expect(identityLink.attributes("href")).toBe("#/orientation");
 
       // Verify no project context tag on About page (open header)
       expect(wrapper.find(".project-tag").exists()).toBe(false);
     });
 
-    it("renders mobile navigation with Return to Orientation when on /about", async () => {
+    it("renders mobile navigation with hamburger button and accessible 5-destination drawer", async () => {
       await router.push("/about");
       await router.isReady();
 
@@ -222,11 +247,48 @@ describe("About Page Implementation & Fidelity", () => {
         },
       });
 
-      expect(wrapper.find(".mobile-location-label").text()).toBe("About");
-      const returnBtn = wrapper.find(".mobile-return-btn");
-      expect(returnBtn.exists()).toBe(true);
-      expect(returnBtn.attributes("href")).toBe("#/orientation");
-      expect(returnBtn.text()).toContain("Orientation");
+      // Verify hamburger button in mobile header (Requirement C.1 & E)
+      const hamburgerBtn = wrapper.find(".mobile-hamburger-btn");
+      expect(hamburgerBtn.exists()).toBe(true);
+      expect(hamburgerBtn.attributes("aria-label")).toBe("Open navigation menu");
+      expect(hamburgerBtn.attributes("aria-expanded")).toBe("false");
+
+      // Verify contextual return button is removed (Requirement C.3)
+      expect(wrapper.find(".mobile-return-btn").exists()).toBe(false);
+
+      // Open drawer (Requirement C.2 & D)
+      await hamburgerBtn.trigger("click");
+      expect(hamburgerBtn.attributes("aria-expanded")).toBe("true");
+
+      const drawer = wrapper.find("#mobile-nav-drawer");
+      expect(drawer.exists()).toBe(true);
+      expect(drawer.attributes("role")).toBe("dialog");
+      expect(drawer.attributes("aria-modal")).toBe("true");
+
+      // Verify all 5 canonical destinations exist in drawer (Requirement C.2 & C.8)
+      const links = drawer.findAll("a");
+      expect(links).toHaveLength(5);
+      const hrefs = links.map((l) => l.attributes("href"));
+      expect(hrefs).toContain("#/orientation");
+      expect(hrefs).toContain("#/record");
+      expect(hrefs).toContain("#/approach");
+      expect(hrefs).toContain("#/about");
+      expect(hrefs).toContain("#/contact");
+
+      // Verify active indicator on About link (Requirement C.7 & E)
+      const activeLink = drawer.find('a[href="#/about"]');
+      expect(activeLink.classes()).toContain("mobile-drawer-link--active");
+      expect(activeLink.attributes("aria-current")).toBe("page");
+
+      // Verify close control (Requirement D.4 & E)
+      const closeBtn = drawer.find(".mobile-drawer-close-btn");
+      expect(closeBtn.exists()).toBe(true);
+      expect(closeBtn.attributes("aria-label")).toBe("Close navigation menu");
+
+      // Close drawer via close button (Requirement D.4)
+      await closeBtn.trigger("click");
+      expect(wrapper.find("#mobile-nav-drawer").exists()).toBe(false);
+      expect(hamburgerBtn.attributes("aria-expanded")).toBe("false");
     });
   });
 });

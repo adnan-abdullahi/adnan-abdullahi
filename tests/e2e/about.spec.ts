@@ -42,15 +42,26 @@ test.describe("About Page & Navigation Traversal", () => {
     await page.goto("/#/about");
     await expect(page).toHaveURL(/.*#\/about/);
 
-    // Section 1: About Me
+    // Section 1: About Me Eyebrow & Identity
     const aboutMeHeading = page.locator("#about-me-heading");
     await expect(aboutMeHeading).toHaveText("About Me");
+    await expect(aboutMeHeading).toHaveClass(/about-eyebrow/);
     await expect(page.locator(".about-view .identity-name")).toHaveText("Adnan Abdullahi");
     await expect(page.locator(".about-view .identity-role")).toHaveText("Computer Scientist • Engineer");
 
-    // Section 2: How I Work
+    // Verify main page title styling (primary text color)
+    const mainHeadingColor = await page.locator("#main-heading").evaluate(
+      (el) => window.getComputedStyle(el).color,
+    );
+    expect(mainHeadingColor).toBe("rgb(24, 33, 43)");
+
+    // Section 2: How I Work (Blue Accent Heading)
     const howIWorkHeading = page.locator("#how-i-work-heading");
     await expect(howIWorkHeading).toHaveText("How I Work");
+    const howIWorkColor = await howIWorkHeading.evaluate(
+      (el) => window.getComputedStyle(el).color,
+    );
+    expect(howIWorkColor).toBe("rgb(36, 91, 143)");
     await expect(page.locator(".about-view")).toContainText(
       "I build in order to turn understanding into something tangible.",
     );
@@ -64,16 +75,24 @@ test.describe("About Page & Navigation Traversal", () => {
       "The technology supports the work. Human understanding and engineering judgment remain central.",
     );
 
-    // Section 3: What I Work On
+    // Section 3: What I Work On (Blue Accent Heading)
     const whatIWorkOnHeading = page.locator("#what-i-work-on-heading");
     await expect(whatIWorkOnHeading).toHaveText("What I Work On");
+    const whatIWorkOnColor = await whatIWorkOnHeading.evaluate(
+      (el) => window.getComputedStyle(el).color,
+    );
+    expect(whatIWorkOnColor).toBe("rgb(36, 91, 143)");
     await expect(page.locator(".about-view")).toContainText(
       "This portfolio exists to make that development inspectable.",
     );
 
-    // Section 4: Where I'm Going
+    // Section 4: Where I'm Going (Blue Accent Heading)
     const whereImGoingHeading = page.locator("#where-im-going-heading");
     await expect(whereImGoingHeading).toHaveText("Where I'm Going");
+    const whereImGoingColor = await whereImGoingHeading.evaluate(
+      (el) => window.getComputedStyle(el).color,
+    );
+    expect(whereImGoingColor).toBe("rgb(36, 91, 143)");
     await expect(page.locator(".about-view")).toContainText(
       "My engineering practice is still developing.",
     );
@@ -81,9 +100,13 @@ test.describe("About Page & Navigation Traversal", () => {
       "I do not see learning as something that ends when a particular skill, project, or stage is completed.",
     );
 
-    // Section 5: Let's Connect & CTA
+    // Section 5: Let's Connect (Blue Accent Heading) & CTA
     const letsConnectHeading = page.locator("#lets-connect-heading");
     await expect(letsConnectHeading).toHaveText("Let's Connect");
+    const letsConnectColor = await letsConnectHeading.evaluate(
+      (el) => window.getComputedStyle(el).color,
+    );
+    expect(letsConnectColor).toBe("rgb(36, 91, 143)");
     await expect(page.locator(".about-view")).toContainText(
       "Perhaps the work has given you an idea, raised a problem worth exploring",
     );
@@ -123,6 +146,18 @@ test.describe("About Page & Navigation Traversal", () => {
         () => document.documentElement.clientWidth,
       );
       expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+
+      // Check section responsive spacing (desktop: 64px, tablet: 48px, mobile: 40px)
+      const sectionMargin = await page.locator(".about-section").first().evaluate(
+        (el) => window.getComputedStyle(el).marginBottom,
+      );
+      if (vp.name === "desktop") {
+        expect(sectionMargin).toBe("64px");
+      } else if (vp.name === "tablet") {
+        expect(sectionMargin).toBe("48px");
+      } else if (vp.name === "mobile") {
+        expect(sectionMargin).toBe("40px");
+      }
 
       // Capture screenshot for visual inspection
       await page.screenshot({

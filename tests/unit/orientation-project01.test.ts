@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { mount } from "@vue/test-utils";
 import router from "../../app/src/router";
 import type { PortfolioOrientation, Project01 } from "../../app/src/models/experience";
+import Project01View from "../../app/src/views/Project01View.vue";
 
 describe("User Story 1: Orientation & Project 01 State Models & Routing (T016)", () => {
   beforeEach(async () => {
@@ -94,9 +96,9 @@ describe("User Story 1: Orientation & Project 01 State Models & Routing (T016)",
   });
 
   describe("Reconciled Phase 3 Content & CTA Invariants (Decisions 3, 4, 5)", () => {
-    it("verifies Orientation primary CTA is 'Explore the Engineering Record' targeting /project-01", async () => {
+    it("verifies Orientation primary CTA is 'Explore the Portfolio Project' targeting /project-01", async () => {
       const { orientationContent } = await import("../../app/src/content/orientation");
-      expect(orientationContent.actions.primary.label).toBe("Explore the Engineering Record");
+      expect(orientationContent.actions.primary.label).toBe("Explore the Portfolio Project");
       expect(orientationContent.actions.primary.to).toBe("/project-01");
       expect(orientationContent.actions.secondary.to).toBe("/approach");
     });
@@ -107,6 +109,28 @@ describe("User Story 1: Orientation & Project 01 State Models & Routing (T016)",
       expect(project01Content.dimensions.items[0].to).toBe("/approach");
       expect(project01Content.dimensions.items[1].to).toBe("/record");
       expect(project01Content.returnDestination.to).toBe("/orientation");
+    });
+
+    it("renders Project 01 action hierarchy: primary Approach, secondary Record, and no return button", async () => {
+      await router.push("/project-01");
+      const wrapper = mount(Project01View, {
+        global: { plugins: [router] },
+      });
+
+      // Primary action: Inspect Engineering Approach
+      const primaryBtn = wrapper.find(".action-btn--primary");
+      expect(primaryBtn.exists()).toBe(true);
+      expect(primaryBtn.text()).toContain("Inspect Engineering Approach");
+      expect(primaryBtn.attributes("href")).toBe("#/approach");
+
+      // Secondary action: Inspect Engineering Record
+      const secondaryBtn = wrapper.find(".action-btn--secondary");
+      expect(secondaryBtn.exists()).toBe(true);
+      expect(secondaryBtn.text()).toContain("Inspect Engineering Record");
+      expect(secondaryBtn.attributes("href")).toBe("#/record");
+
+      // Removed contextual return button
+      expect(wrapper.text()).not.toContain("Back to Portfolio Orientation");
     });
   });
 });

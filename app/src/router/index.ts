@@ -92,6 +92,17 @@ export const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/contact',
+    name: 'contact',
+    component: () => import('@/views/ContactView.vue'),
+    meta: {
+      title: 'Contact',
+      depth: 'entry',
+      location: 'contact',
+      depthLabel: 'Contact'
+    }
+  },
+  {
     // Catch-all: unrecognized paths redirect to orientation per ui-contracts.md
     path: '/:pathMatch(.*)*',
     redirect: '/orientation'
