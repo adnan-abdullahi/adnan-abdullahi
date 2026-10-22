@@ -7,6 +7,7 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+*.tsbuildinfo
 
 # Testing and coverage artifacts
 test-results/
@@ -25,3 +26,14 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Backend virtual environment and secrets
+backend/.venv/
+backend/.env
