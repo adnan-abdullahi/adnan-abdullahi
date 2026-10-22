@@ -18,9 +18,9 @@ const content = aboutContent;
     <div class="reading-container">
       <!-- Section 1: About Me -->
       <section class="about-section" aria-labelledby="about-me-heading">
-        <h2 id="about-me-heading" class="section-heading">
+        <p id="about-me-heading" class="about-eyebrow">
           {{ content.aboutMe.heading }}
-        </h2>
+        </p>
         <div class="identity-block">
           <div class="identity-name">{{ content.aboutMe.name }}</div>
           <div class="identity-role">{{ content.aboutMe.role }}</div>
@@ -111,9 +111,8 @@ const content = aboutContent;
 <style scoped>
 /* Page Layout */
 .about-view {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-4) 64px;
+  width: 100%;
+  padding: var(--space-8) 0 64px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -121,13 +120,13 @@ const content = aboutContent;
 
 @media (min-width: 768px) {
   .about-view {
-    padding: var(--space-10, 40px) var(--space-8) 80px;
+    padding: var(--space-10, 40px) 0 80px;
   }
 }
 
 @media (min-width: 1025px) {
   .about-view {
-    padding: 42px 80px 101px;
+    padding: 42px 0 101px;
   }
 }
 
@@ -142,9 +141,21 @@ const content = aboutContent;
   font-family: var(--font-family-base);
   font-size: clamp(2.25rem, 4vw, 3rem);
   font-weight: var(--font-weight-bold);
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   outline: none;
+}
+
+/* Eyebrow Label (matches .record-eyebrow, .approach-eyebrow, .project-eyebrow) */
+.about-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: clamp(0.875rem, 1.25vw, 1.125rem);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.02em;
+  margin: 0 0 var(--space-2, 8px);
+  text-transform: uppercase;
 }
 
 /* Single-Column Editorial Reading Width */
@@ -155,22 +166,22 @@ const content = aboutContent;
   flex-direction: column;
 }
 
-/* Section Spacing: Pure whitespace (96px on desktop) */
+/* Section Spacing: Balanced responsive whitespace (64px desktop / 48px tablet / 40px mobile) */
 .about-section {
   display: flex;
   flex-direction: column;
-  margin-bottom: 56px;
+  margin-bottom: var(--space-10, 40px);
 }
 
 @media (min-width: 768px) {
   .about-section {
-    margin-bottom: 72px;
+    margin-bottom: var(--space-12, 48px);
   }
 }
 
 @media (min-width: 1025px) {
   .about-section {
-    margin-bottom: 96px;
+    margin-bottom: var(--space-16, 64px);
   }
 }
 
@@ -178,9 +189,9 @@ const content = aboutContent;
   margin-bottom: 0;
 }
 
-/* Section Heading (24px SemiBold) */
+/* Section Heading (24px SemiBold, Blue Accent) */
 .section-heading {
-  color: var(--color-text-primary);
+  color: var(--color-interactive-primary);
   font-family: var(--font-family-base);
   font-size: 1.5rem;
   font-weight: var(--font-weight-semibold);
@@ -245,12 +256,12 @@ const content = aboutContent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  min-height: 52px;
   min-width: 200px;
   padding: 0 var(--space-6);
   background-color: var(--color-interactive-primary);
   color: var(--color-text-on-interactive);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-family: var(--font-family-base);
   font-size: 1rem;
   font-weight: var(--font-weight-semibold);

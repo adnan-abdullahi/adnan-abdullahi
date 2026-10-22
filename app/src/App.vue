@@ -101,19 +101,19 @@ import MobileNav from './components/MobileNav.vue'
   width: 100%;
   max-width: var(--container-max-width, 1440px);
   margin: 0 auto;
-  padding: 0 var(--space-4);
+  padding: 0 var(--container-padding-x-mobile, var(--space-4));
   box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
   .main-viewport-container {
-    padding: 0 var(--space-6);
+    padding: 0 var(--container-padding-x-tablet, var(--space-6));
   }
 }
 
 @media (min-width: 1025px) {
   .main-viewport-container {
-    padding: 0 var(--space-8);
+    padding: 0 var(--container-padding-x-desktop, 80px);
   }
 }
 </style>

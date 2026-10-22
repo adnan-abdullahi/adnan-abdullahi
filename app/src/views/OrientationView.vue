@@ -65,9 +65,8 @@ const content = orientationContent;
 
 <style scoped>
 .orientation-view {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-4);
+  width: 100%;
+  padding: var(--space-8) 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
@@ -76,14 +75,14 @@ const content = orientationContent;
 
 @media (min-width: 768px) {
   .orientation-view {
-    padding: var(--space-12) var(--space-8);
+    padding: var(--space-12) 0;
     gap: var(--space-10, 40px);
   }
 }
 
 @media (min-width: 1025px) {
   .orientation-view {
-    padding: 48px 80px;
+    padding: 48px 0;
     gap: 44px;
   }
 }
@@ -149,20 +148,25 @@ const content = orientationContent;
   flex-wrap: wrap;
 }
 
-.btn-primary {
+.btn-primary,
+.btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  min-width: 292px;
+  min-height: 52px;
+  min-width: 310px;
   padding: 0 var(--space-6);
-  background-color: var(--color-interactive-primary);
-  color: var(--color-text-on-interactive);
   border-radius: var(--radius-sm);
+  font-family: var(--font-family-base);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
   box-sizing: border-box;
+}
+
+.btn-primary {
+  background-color: var(--color-interactive-primary);
+  color: var(--color-text-on-interactive);
   transition: background-color 0.15s ease;
 }
 
@@ -176,32 +180,14 @@ const content = orientationContent;
 }
 
 .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  min-width: 280px;
-  padding: 0 var(--space-6);
   background-color: var(--color-surface-accent);
   color: var(--color-interactive-primary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
-  box-sizing: border-box;
+  cursor: pointer;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
     border-color 0.15s ease;
-  cursor: pointer;
-}
-
-@media (min-width: 640px) {
-  .btn-secondary {
-    min-width: 310px;
-  }
 }
 
 .btn-secondary:hover {
@@ -213,6 +199,28 @@ const content = orientationContent;
 .btn-secondary:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .actions-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    height: auto;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+  }
 }
 
 /* Evidence Section */

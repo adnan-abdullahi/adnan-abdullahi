@@ -99,9 +99,8 @@ const content = deepEngineeringContent;
 
 <style scoped>
 .deep-engineering-view {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-4);
+  width: 100%;
+  padding: var(--space-8) 0;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -109,13 +108,13 @@ const content = deepEngineeringContent;
 
 @media (min-width: 768px) {
   .deep-engineering-view {
-    padding: var(--space-12) var(--space-8);
+    padding: var(--space-12) 0;
   }
 }
 
 @media (min-width: 1025px) {
   .deep-engineering-view {
-    padding: 44px 80px 64px 80px;
+    padding: 44px 0 64px 0;
   }
 }
 
@@ -174,9 +173,10 @@ const content = deepEngineeringContent;
 
 @media (min-width: 1025px) {
   .narrative-column {
-    width: 640px;
+    flex: 1 1 auto;
+    width: auto;
     max-width: 640px;
-    flex-shrink: 0;
+    min-width: 0;
     gap: 0;
   }
 }
@@ -227,9 +227,9 @@ const content = deepEngineeringContent;
 
 @media (min-width: 1025px) {
   .flow-column {
+    flex: 0 0 165px;
     width: 165px;
-    margin-left: 40px;
-    flex-shrink: 0;
+    margin-left: clamp(24px, 2.8vw, 40px);
   }
 }
 
@@ -275,9 +275,11 @@ const content = deepEngineeringContent;
 
 @media (min-width: 1025px) {
   .boundary-column {
-    width: 360px;
-    margin-left: 75px;
-    flex-shrink: 0;
+    flex: 0 1 360px;
+    width: auto;
+    max-width: 360px;
+    min-width: 0;
+    margin-left: clamp(24px, 5.5vw, 75px);
     gap: 51px;
   }
 }

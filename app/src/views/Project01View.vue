@@ -39,35 +39,23 @@ const content = project01Content;
           </p>
         </div>
 
-        <!-- Action Grid (Penpot 3-Button Gateway) -->
+        <!-- Action Navigation Gateway: Primary (Approach) & Secondary (Record) -->
         <div class="project-actions" aria-label="Project Navigation Actions">
-          <div class="primary-actions-row">
-            <RouterLink
-              to="/approach"
-              class="action-btn action-btn--primary"
-              aria-label="Inspect Engineering Approach"
-            >
-              <span>Inspect Engineering Approach</span>
-            </RouterLink>
+          <RouterLink
+            to="/approach"
+            class="action-btn action-btn--primary"
+            aria-label="Inspect Engineering Approach"
+          >
+            <span>Inspect Engineering Approach</span>
+          </RouterLink>
 
-            <RouterLink
-              to="/record"
-              class="action-btn action-btn--primary"
-              aria-label="Inspect Engineering Record"
-            >
-              <span>Inspect Engineering Record</span>
-            </RouterLink>
-          </div>
-
-          <div class="secondary-actions-row">
-            <RouterLink
-              to="/orientation"
-              class="action-btn action-btn--accent"
-              aria-label="Back to Portfolio Orientation"
-            >
-              <span>Back to Portfolio Orientation</span>
-            </RouterLink>
-          </div>
+          <RouterLink
+            to="/record"
+            class="action-btn action-btn--secondary"
+            aria-label="Inspect Engineering Record"
+          >
+            <span>Inspect Engineering Record</span>
+          </RouterLink>
         </div>
       </section>
 
@@ -94,9 +82,8 @@ const content = project01Content;
 
 <style scoped>
 .project01-view {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-4);
+  width: 100%;
+  padding: var(--space-8) 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
@@ -105,14 +92,14 @@ const content = project01Content;
 
 @media (min-width: 768px) {
   .project01-view {
-    padding: var(--space-12) var(--space-8);
+    padding: var(--space-12) 0;
     gap: var(--space-10, 40px);
   }
 }
 
 @media (min-width: 1025px) {
   .project01-view {
-    padding: 44px 80px 64px 80px;
+    padding: 44px 0 64px 0;
     gap: 40px;
   }
 }
@@ -201,22 +188,11 @@ const content = project01Content;
   margin: 0;
 }
 
-/* Actions */
 .project-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-.primary-actions-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
-}
-
-.secondary-actions-row {
-  display: flex;
+  margin-top: var(--space-4);
 }
 
 .action-btn {
@@ -224,7 +200,7 @@ const content = project01Content;
   align-items: center;
   justify-content: center;
   min-height: 52px;
-  min-width: 280px;
+  min-width: 310px;
   padding: 0 var(--space-6);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-base);
@@ -234,12 +210,6 @@ const content = project01Content;
   transition:
     background-color 0.15s ease,
     color 0.15s ease;
-}
-
-@media (min-width: 640px) {
-  .action-btn {
-    min-width: 310px;
-  }
 }
 
 .action-btn--primary {
@@ -256,18 +226,50 @@ const content = project01Content;
   outline-offset: 3px;
 }
 
+.action-btn--secondary,
 .action-btn--accent {
   background-color: var(--color-surface-accent);
   color: var(--color-interactive-primary);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
+.action-btn--secondary:hover,
 .action-btn--accent:hover {
   background-color: #d3e5f3;
+  color: var(--color-interactive-primary);
+  border-color: #d3e5f3;
 }
 
+.action-btn--secondary:focus-visible,
 .action-btn--accent:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .project-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+
+  .action-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    height: auto;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+  }
 }
 
 /* Right Column: ~340px */

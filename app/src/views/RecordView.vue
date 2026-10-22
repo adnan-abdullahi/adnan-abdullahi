@@ -55,7 +55,7 @@ const content = recordContent;
         {{ content.concludingNote }}
       </p>
 
-      <!-- Action Navigation Gateway (Penpot 2-Button Gateway) -->
+      <!-- Action Navigation Gateway -->
       <div class="record-actions" aria-label="Record Navigation Actions">
         <RouterLink
           :to="content.actions.primary.to"
@@ -64,14 +64,6 @@ const content = recordContent;
         >
           <span>{{ content.actions.primary.label }}</span>
         </RouterLink>
-
-        <RouterLink
-          :to="content.actions.secondary.to"
-          class="action-btn action-btn--accent"
-          :aria-label="content.actions.secondary.ariaLabel"
-        >
-          <span>{{ content.actions.secondary.label }}</span>
-        </RouterLink>
       </div>
     </section>
   </div>
@@ -79,9 +71,8 @@ const content = recordContent;
 
 <style scoped>
 .record-view {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-4);
+  width: 100%;
+  padding: var(--space-8) 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
@@ -90,14 +81,14 @@ const content = recordContent;
 
 @media (min-width: 768px) {
   .record-view {
-    padding: var(--space-12) var(--space-8);
+    padding: var(--space-12) 0;
     gap: var(--space-10, 40px);
   }
 }
 
 @media (min-width: 1025px) {
   .record-view {
-    padding: 44px 80px 64px 80px;
+    padding: 44px 0 64px 0;
     gap: 40px;
   }
 }

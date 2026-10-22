@@ -53,10 +53,10 @@ export const orientationContent: PortfolioOrientationContent = {
   },
   actions: {
     primary: {
-      label: "Explore the Engineering Record",
+      label: "Explore the Portfolio Project",
       sublabel: "Central engineering project experience & evidence gateway",
       to: "/project-01",
-      ariaLabel: "Explore the Engineering Record",
+      ariaLabel: "Explore the Portfolio Project",
     },
     secondary: {
       label: "View Engineering Approach",

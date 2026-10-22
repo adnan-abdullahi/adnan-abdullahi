@@ -103,6 +103,18 @@
   --space-16: 4rem;    /* 64px */
 
   /* ==========================================================================
+     3B. CONTAINER & VIEWPORT LAYOUT TOKENS
+     Governed by Correction 2: Shared Container Alignment (Option C)
+     - Desktop: 1440px baseline with 1280px content area and 80px horizontal insets
+     - Tablet (768px - 1024px): 24px horizontal insets
+     - Mobile (< 768px): 16px horizontal insets
+     ========================================================================== */
+  --container-max-width: 1440px;
+  --container-padding-x-mobile: var(--space-4);   /* 16px */
+  --container-padding-x-tablet: var(--space-6);   /* 24px */
+  --container-padding-x-desktop: 80px;            /* 80px Penpot baseline inset (1440px - 2*80px = 1280px) */
+
+  /* ==========================================================================
      4. RADII & ELEVATION
      ========================================================================== */
   --radius-sm: 4px;
