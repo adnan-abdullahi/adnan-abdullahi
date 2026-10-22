@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import Header from './components/Header.vue'
 import MobileNav from './components/MobileNav.vue'
+import Footer from './components/Footer.vue'
 </script>
 
 <template>
@@ -36,6 +37,9 @@ import MobileNav from './components/MobileNav.vue'
         <RouterView />
       </div>
     </main>
+
+    <!-- Application Footer Landmark -->
+    <Footer />
   </div>
 </template>
 
