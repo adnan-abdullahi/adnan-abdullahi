@@ -1,6 +1,6 @@
 # Stage 09 — Evaluation
 
-**Status:** Started — Planning and baseline (2026-10-27)  
+**Status:** Active — 09.1 recorded; 09.2 read-only audit completed (2026-10-27)  
 **Project:** Project 01 — Professional Engineering Portfolio  
 **Stage:** 09 of 10  
 **Governing project record:** `docs/PROJECT-01.md`
@@ -74,7 +74,9 @@ Free hosting is subject to provider limits and terms. The target is zero require
 
 ### 09.1 — Evaluation Plan and Baseline
 
-**Status:** In progress.
+**Status:** Recorded (2026-10-27).
+
+The boundary, Stage 08 baseline, sequence, acceptance criteria, and authorization controls are recorded in this document and the Stage 09 journal.
 
 Activities:
 - Record this stage boundary and evaluation sequence.
@@ -86,7 +88,22 @@ Exit condition: The stage boundary, baseline, and acceptance criteria are record
 
 ### 09.2 — Zero-Cost Deployment Feasibility and Readiness Audit
 
-**Status:** Pending.
+**Status:** Completed — read-only audit (2026-10-27). Detailed findings: `docs/DEPLOYMENT.md`.
+
+The audit provisionally recommends:
+- Cloudflare Pages for the static Vue/Vite frontend.
+- Render Free Web Service for the Django API only as a zero-cost evaluation/demo service, with documented cold-start and reliability limitations.
+- TiDB Cloud Starter in MySQL-compatible mode for persistent contact records, subject to driver/schema/migration compatibility verification and zero-spend configuration.
+
+Material findings:
+- Production API configuration must be separated from the Vite localhost development proxy.
+- Migration credential retrieval depends on Windows Credential Manager; Linux migration execution is expected to fail unless a portable, secret-safe path is approved.
+- No dedicated health-check endpoint was found in the inspected URL configuration.
+- CORS and allowed hosts require production environment values.
+- The default console email backend does not deliver real notifications, and Render Free blocks standard outbound SMTP ports.
+- Free Render Postgres expires after 30 days, so it is not recommended as the contact database.
+
+No source code, database, external account, or hosting configuration was changed during the audit.
 
 Activities:
 - Inspect deployment-related frontend and backend configuration read-only.
@@ -98,7 +115,7 @@ Activities:
 - Determine how contact submissions should be delivered and whether an appropriate free email API exists.
 - Compare options and recommend the smallest viable architecture.
 
-Exit condition: A written audit distinguishes confirmed facts, uncertainties, trade-offs, free-tier constraints, and proposed changes. No implementation or external-service change is made during this audit.
+Exit condition: A written audit distinguishes confirmed facts, uncertainties, trade-offs, free-tier constraints, and proposed changes. **Satisfied:** `docs/DEPLOYMENT.md` records the audit and official provider references. No implementation or external-service change was made during the audit.
 
 ### 09.3 — Deployment Preparation
 
@@ -182,25 +199,29 @@ In particular:
 - No paid service or domain is permitted under the project's stated constraint.
 - No external account, repository setting, deployment, or production change is made without explicit approval.
 
-## 7. Initial Open Questions
+## 7. Remaining Questions After the Readiness Audit
 
-These questions are intentionally unresolved until the readiness audit provides evidence:
+The read-only audit narrowed the architecture but does not establish a final deployment decision:
 
-- Which free hosting combination best fits the Vue/Vite frontend and Django API?
-- Can the existing MySQL requirement be supported sustainably at zero cost, or would an approved database change be needed?
-- How can database migrations be run securely without relying on a credential stored only in Windows Credential Manager?
-- What free and reliable method, if any, can deliver contact messages to the intended inbox?
-- What data persistence, sleep/cold-start, backup, bandwidth, build-minute, and usage limits apply to the chosen services?
-- Which manual assistive-technology and performance checks are practical with the available tools?
+- Can the existing `mysqlclient` driver, schema, migrations, and TLS configuration connect successfully to a TiDB Cloud Starter MySQL-compatible instance?
+- What portable migration credential process preserves least privilege without depending on Windows Credential Manager or exposing secrets?
+- What minimal health-check endpoint and production security configuration should be proposed?
+- Can a free email API deliver contact notifications without requiring a purchased domain, payment method, or paid plan?
+- What service terms, region choices, quota behavior, and data-handling requirements apply at account setup?
+- What manual assistive-technology and performance checks are practical with the available tools?
+
+These questions must be resolved before public deployment is described as ready.
 
 ## 8. Current Progress
 
 - [x] Stage 09 marked as started in `docs/PROJECT-01.md`.
-- [x] Stage 09 purpose, boundary, sequence, and acceptance criteria drafted.
+- [x] Stage 09 purpose, boundary, sequence, and acceptance criteria recorded.
 - [x] Stage 08 baseline and known deployment-relevant facts recorded.
-- [ ] Review and agree the Stage 09 boundary.
-- [ ] Conduct the read-only deployment-readiness audit.
-- [ ] Record the zero-cost architecture recommendation.
-- [ ] Seek approval before implementation or external changes.
+- [x] 09.2 read-only deployment-readiness audit completed and recorded in `docs/DEPLOYMENT.md`.
+- [x] Provisional zero-cost architecture and key limitations documented.
+- [ ] Human review and decision on the proposed architecture.
+- [ ] Resolve and approve the portable migration, health-check, production API/CORS, and contact-notification approach.
+- [ ] Begin 09.3 deployment preparation only after explicit approval.
+- [ ] Create/configure external services and deploy only after separate explicit authorization.
 
-**Current stage position:** 09.1 — Evaluation Plan and Baseline. The next sequential activity is review of this boundary, followed by 09.2 read-only deployment-readiness audit. No deployment has been performed.
+**Current stage position:** 09.2 — Read-only audit completed; provisional architecture awaits human decision. No deployment has been performed.
