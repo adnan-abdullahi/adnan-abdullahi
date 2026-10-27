@@ -64,3 +64,61 @@ These items must be investigated in 09.2 rather than assumed.
 ### Next step
 
 Proceed sequentially to **09.2 — Zero-Cost Deployment Feasibility and Readiness Audit**. Inspect the relevant source and configuration read-only, distinguish verified facts from unknowns, and prepare an evidence-based architecture recommendation. Do not implement, deploy, or modify external services during the audit.
+
+
+---
+
+## Session 02 — Zero-Cost Deployment Readiness Audit
+
+**Date:** 2026-10-27  
+**Position:** 09.2 — Readiness audit completed; architecture decision pending
+
+### Method
+
+Inspected the current GitHub source read-only, including the Vite configuration, frontend/root package scripts, Django settings and URL configuration, requirements, migration credential utility, contact API view/model/migration, and relevant repository search results. Checked current official provider documentation for Cloudflare Pages, Render Free, and TiDB Cloud Starter.
+
+No application source or test file was changed. No external account was created or configured. No database or deployment was created.
+
+### Findings
+
+1. **Frontend hosting:** The Vue 3 / TypeScript / Vite frontend has a root npm workspace and `npm run build`; Vite's expected output directory is `app/dist`. Cloudflare Pages is a promising static host with a free `pages.dev` address. Its current official limits page reports 500 builds per month and a 20-minute build timeout.
+2. **Production API routing:** Contact submission uses relative `/api/contact/`, while the Vite proxy sends `/api` to `http://127.0.0.1:8000` only in local development. A production API origin/configuration or equivalent approved routing arrangement is required; local behavior should be preserved.
+3. **Database:** Django currently uses the MySQL backend and `mysqlclient`. TiDB Cloud Starter offers a MySQL-compatible free tier with 5 GiB row storage and 50 million request units per month for eligible free instances; its official docs say a credit card is not required and describe quota restrictions. This is a promising way to avoid a database-engine migration, but driver/schema/migration compatibility has not been tested.
+4. **Migration portability:** Django settings import `credential_vault` for migration commands. The module accesses Windows-only `ctypes.windll` APIs during import. On a Linux deployment this is expected to fail; the current `ImportError` handler does not catch an `AttributeError` raised by that Windows-specific initialization. A portable, secret-safe migration process is a blocker.
+5. **Health checks:** The inspected URL configuration exposes `/api/contact/`; no dedicated health-check route was found. The contact endpoint is intended for POST submissions and should not be assumed to provide a successful HTTP-200 health response.
+6. **Production settings:** Secret key is required, DEBUG defaults to false, and allowed hosts/CORS are environment-controlled. However, CORS defaults to localhost origins, so production values must be configured and narrowly scoped.
+7. **Email delivery:** Django defaults to console email backend, which logs messages rather than delivering them. Render Free also blocks outbound SMTP ports 25, 465, and 587. Actual notification delivery is unresolved; HTTP 201 represents database receipt, not proof of email delivery.
+8. **Free hosting constraints:** Render documents that its free web service spins down after 15 minutes idle, may take about a minute to wake, uses ephemeral local storage, and is intended for hobby/testing/preview rather than production applications. Its free Postgres expires after 30 days, so it is not recommended for this contact database.
+9. **No deployment configuration found:** The inspected repository search did not find a backend Dockerfile, Procfile, Render Blueprint, or dedicated health endpoint. This is an audit observation, not a request to add them without approval.
+
+### Provisional architecture proposal
+
+- Cloudflare Pages for the static frontend.
+- Render Free Web Service for the Django API, explicitly treated as a public evaluation/demo service with cold-start and reliability limitations.
+- TiDB Cloud Starter MySQL-compatible database, configured with a zero spending limit, subject to compatibility validation.
+- Free provider subdomains; no paid domain or paid plan.
+- A free email API remains an unresolved investigation item and must be validated before claiming live contact notifications work.
+
+Provider references recorded in `docs/DEPLOYMENT.md`:
+- Cloudflare Pages limits: https://developers.cloudflare.com/pages/platform/limits/
+- Render Free limitations: https://render.com/docs/free
+- TiDB Cloud Starter limits: https://docs.pingcap.com/tidbcloud/serverless-limitations/
+- TiDB Cloud plan selection: https://docs.pingcap.com/tidbcloud/select-cluster-tier/
+- TiDB MySQL compatibility: https://docs.pingcap.com/tidbcloud/mysql-compatibility/
+
+### Decisions and authorization status
+
+**Proposed, not yet authorized:** Use the architecture above for zero-cost public evaluation.
+
+**Not authorized/performed:** Creating accounts, creating a database, configuring hosting, changing source or tests, changing database permissions, changing the database engine, configuring email, deploying, or exposing the application publicly.
+
+### Verification and record updates
+
+- Created `docs/DEPLOYMENT.md` with source findings, official provider references, risk register, and proposed responses.
+- Updated `docs/STAGE-09-EVALUATION.md` to mark 09.1 recorded and 09.2 audit completed.
+- Updated `docs/PROJECT-01.md` to reflect the current stage position and pending architecture decision.
+- All these changes are documentation-only GitHub updates. The application itself remains unchanged.
+
+### Next step
+
+The project owner should review the provisional architecture and its limitations. Only after explicit approval should 09.3 begin with proposed implementation changes, presented for review before execution. Public deployment requires a separate explicit authorization.
