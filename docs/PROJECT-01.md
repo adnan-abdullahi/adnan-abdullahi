@@ -191,9 +191,12 @@ The stage will proceed sequentially through:
 5. Live-system evaluation.
 6. Findings, approved remediation, verification, and closure decision.
 
-The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record will be **`journal/P1-STAGE09-EVALUATION.md`**. Deployment instructions and the selected architecture will be recorded in **`docs/DEPLOYMENT.md`** once justified by the readiness investigation.
+The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record is **`journal/P1-STAGE09-EVALUATION.md`**. The read-only deployment feasibility and readiness audit is recorded in **`docs/DEPLOYMENT.md`**.
 
-The current step is **09.1 — Evaluation Plan and Baseline**. No deployment, hosting-account creation, paid service, domain purchase, database migration, or implementation change is authorized by this status update. Stage 09 activities remain subject to the project’s proposal → human decision → authorization → execution → verification controls.
+**09.1 — Evaluation Plan and Baseline:** Recorded.  
+**09.2 — Zero-Cost Deployment Feasibility and Readiness Audit:** Read-only source and provider-plan review completed on 2026-10-27. A provisional option is Cloudflare Pages for the static frontend, Render Free for the Django API as an evaluation/demo service, and TiDB Cloud Starter in MySQL-compatible mode for persistent contact records. Important blockers remain: portable Linux migration credentials, production API/CORS configuration, a health-check endpoint, and real email notification delivery.
+
+**Current position:** 09.2 audit completed; architecture review and explicit human decision are required before 09.3 — Deployment Preparation. No deployment, hosting-account creation/configuration, database creation or migration, paid service, domain purchase, or application-code change has been performed or authorized. Stage 09 remains subject to proposal → human decision → authorization → execution → verification controls.
 
 ## Repository Structure
 
@@ -267,7 +270,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 06:** Accepted and Closed — Prototype  
 **Stage 07:** Accepted and Closed — Validation  
 **Stage 08:** Closed — Engineering Implementation  
-**Stage 09:** Started — Evaluation planning and baseline; deployment integrated into stage scope
+**Stage 09:** Active — 09.1 baseline recorded; 09.2 read-only deployment audit completed; architecture decision pending
 
 Stage 08 closure is documented in:
 
@@ -277,5 +280,10 @@ Its detailed implementation history, technical decisions, verification evidence,
 
 **`journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md`**
 
-Stage 09 is now active. Its first activity is to establish and record the evaluation boundary and baseline before proceeding to a read-only deployment-readiness audit. Deployment must remain entirely within the zero-cost constraint, and any proposed repository, database, hosting, or production-configuration changes require review and explicit authorization before execution. Stage 09 is not considered complete until the available evidence supports a documented closure decision.
+Stage 09's governing plan, chronological journal, and deployment-readiness record are:
+- `docs/STAGE-09-EVALUATION.md`
+- `journal/P1-STAGE09-EVALUATION.md`
+- `docs/DEPLOYMENT.md`
+
+The next step is to review the provisional zero-cost architecture and audit findings. Deployment preparation cannot begin until the proposed material changes are reviewed and explicitly authorized. No external service has been configured and no public deployment has been performed. Stage 09 is not considered complete until the available evidence supports a documented closure decision.
 
