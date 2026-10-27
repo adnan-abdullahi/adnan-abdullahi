@@ -1,0 +1,164 @@
+# Deployment — Zero-Cost Feasibility and Readiness Record
+
+**Project:** Project 01 — Professional Engineering Portfolio  
+**Stage:** 09 — Evaluation  
+**Status:** Provisional architecture recommendation; no deployment performed  
+**Audit date:** 2026-10-27  
+**Governing stage plan:** `docs/STAGE-09-EVALUATION.md`
+
+## 1. Objective and Cost Constraint
+
+Identify a viable path to make the Vue/Vite portfolio and Django contact API publicly reachable while keeping required monetary cost at zero.
+
+The proposal must not require a paid hosting plan, purchased domain, paid database, paid email subscription, or payment-card-backed spending. Free services have limits and may suspend or restrict use when quotas are exhausted; this is not equivalent to unlimited production availability.
+
+No external account has been created or configured, and no application or hosting change has been made as part of this audit.
+
+## 2. Read-Only Repository Findings
+
+### Frontend
+
+- Application: Vue 3, TypeScript, Vite.
+- Build script: `npm run build` in the `app` workspace; runs `vue-tsc -b && vite build`.
+- Root package defines an npm workspace for `app`, with root scripts delegating build and tests.
+- Vite output is expected at `app/dist` under the current default Vite configuration.
+- Local development proxy: `/api` → `http://127.0.0.1:8000`.
+- Contact submission uses relative URL `/api/contact/`.
+
+**Implication:** A static host can serve the frontend, but a separate API origin requires an explicit production API base URL or an equivalent routing arrangement. The development proxy must remain for local development and must not be mistaken for a production API route. A production change should preserve current tests and local behavior.
+
+### Backend
+
+- Django REST Framework exposes `/api/contact/`.
+- Contact submissions are persisted to a relational database before notification dispatch; the API returns HTTP 201 after the database receipt succeeds.
+- The current database engine is `django.db.backends.mysql`, configured by environment variables.
+- Dependencies include Django, Django REST Framework, django-cors-headers, `mysqlclient==2.3.0`, and python-dotenv.
+- `DJANGO_SECRET_KEY` is required at startup.
+- `DJANGO_DEBUG` defaults to false; `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` are environment-configurable.
+- CORS defaults currently list local development origins only.
+- Anonymous contact submissions are rate-limited to 5/hour.
+- No dedicated health-check route was found in the inspected URL configuration; `/api/contact/` is a POST endpoint and is not a suitable assumption for an HTTP-200 health check.
+- No deployment-specific Dockerfile, Procfile, or Render Blueprint was found in the inspected repository search.
+
+### Migration and credential portability
+
+The settings module detects migration commands and then imports `credential_vault.py` to retrieve a migration identity from Windows Credential Manager. That module initializes Windows-only `ctypes.windll` APIs at import time.
+
+**Finding:** The existing migration path is Windows-specific. A Linux-hosted deployment cannot safely assume that this path will work; in the current code, importing the module on a non-Windows runtime is expected to fail before the `ImportError` handler can handle it. This is a deployment blocker to resolve through an approved portable credential/migration design. Do not weaken the database's least-privilege intent or put secrets in source control to work around it.
+
+### Contact notifications
+
+- Django defaults to `django.core.mail.backends.console.EmailBackend`.
+- That backend logs email content rather than delivering a real email.
+- Render's free web services block outbound SMTP on ports 25, 465, and 587.
+
+**Finding:** Real notification delivery is not established. A successful HTTP 201 currently means the database receipt succeeded; it must not be described as proof that an email was delivered. A suitable free email API, its sender-verification requirements, limits, and compatibility with the zero-cost constraint remain to be investigated. Do not claim the live contact workflow is fully operational until an actual delivery test succeeds or the user approves a clearly documented alternative.
+
+### Data persistence and operational needs
+
+The contact API stores visitor name, email, message, and delivery diagnostics. A production database must therefore be persistent, protected, and appropriate for personal data. An ephemeral local SQLite database or the backend service's local filesystem is not an acceptable persistent store for this workflow.
+
+## 3. Provisional Zero-Cost Architecture
+
+### Frontend — Cloudflare Pages
+
+**Recommendation:** Use Cloudflare Pages for the static Vue/Vite frontend, subject to account authorization and a successful build preview.
+
+Official references:
+- Vue deployment guide: https://developers.cloudflare.com/pages/framework-guides/deploy-a-vue-site/
+- Pages limits: https://developers.cloudflare.com/pages/platform/limits/
+
+The current Cloudflare Pages Free limits page reports 500 builds per month, one concurrent build, and a 20-minute build timeout. Static assets are distributed through Cloudflare's network. Use the provider's `pages.dev` subdomain and avoid purchasing a domain.
+
+Initial build configuration to validate:
+- Repository root: repository root, because the root package declares the npm workspace.
+- Build command: `npm run build`.
+- Output directory: `app/dist`.
+
+This is a proposal, not yet tested against a live Cloudflare build. The repository is private; Git-provider integration permissions must be reviewed and explicitly authorized.
+
+### Backend — Render Free Web Service
+
+**Provisional option:** Render Free Web Service for the Django API, using a provider subdomain.
+
+Official reference: https://render.com/docs/free
+
+Current documented limitations include:
+- The service spins down after 15 minutes without inbound traffic and can take about a minute to start again.
+- The local filesystem is ephemeral.
+- Free services may restart and have usage limits.
+- Free web services cannot send outbound SMTP on ports 25, 465, or 587.
+- Render explicitly positions free instances for testing, hobby projects, and previews rather than production applications.
+
+**Interpretation:** Render may be acceptable for a no-cost public portfolio evaluation or demonstration, but its free backend should not be represented as production-grade or continuously available. If the project later requires dependable production contact handling, uptime, or persistent operational guarantees, a paid service may be necessary; that would be outside the current zero-cost constraint and must not be introduced without a new decision.
+
+Official service reference: https://render.com/docs/web-services
+
+### Database — TiDB Cloud Starter, MySQL-compatible
+
+**Provisional option:** TiDB Cloud Starter in MySQL-compatible mode, subject to compatibility testing.
+
+Official references:
+- Free quotas and limitations: https://docs.pingcap.com/tidbcloud/serverless-limitations/
+- Plan selection and spending limit: https://docs.pingcap.com/tidbcloud/select-cluster-tier/
+- MySQL compatibility: https://docs.pingcap.com/tidbcloud/mysql-compatibility/
+
+The current official docs state that the first five MySQL-compatible Starter instances per organization have a free quota of 5 GiB row-based storage, 5 GiB columnar storage, and 50 million request units per month. The free option does not require a credit card. When the free quota is reached, new connections may be restricted until the quota resets. Setting the spending limit to zero is necessary to preserve the no-spend requirement.
+
+**Advantages:** It may preserve the existing Django MySQL engine and avoid a database-engine migration.
+
+**Uncertainties to verify:** Compatibility of the current schema/migrations and `mysqlclient` driver, connection/TLS configuration, service region, quota behavior, credential handling, and whether the service terms fit the intended public contact workload.
+
+Do not create a database or migrate data during this audit.
+
+### Why not Render Free Postgres?
+
+Render's official free-plan documentation says free Postgres databases expire 30 days after creation and have no backups. That is unsuitable as the default persistent database for the contact form. A different persistent free database option must be validated before deployment.
+
+## 4. Zero-Cost Constraint Controls
+
+Before any external setup:
+- Confirm that every selected service is explicitly on a $0/free tier.
+- Where a spending limit exists, set it to zero.
+- Do not add a payment method merely to enable a service.
+- Confirm whether the service suspends, throttles, or deletes data when its free quota or lifetime limit is reached.
+- Use free provider subdomains only.
+- Do not accept a trial that later automatically converts to a paid plan.
+- Record the relevant provider terms and date checked.
+
+The goal is no required monetary cost. The plan cannot promise permanent availability, unlimited usage, or unchanged provider terms.
+
+## 5. Audit Findings and Proposed Responses
+
+| ID | Finding | Risk / impact | Proposed response | Status |
+|---|---|---|---|---|
+| D09-01 | Production frontend cannot rely on Vite's localhost API proxy. | Contact submissions will target the wrong origin or fail. | Introduce a production API base URL or approved equivalent while retaining the local proxy. | Proposed; approval required |
+| D09-02 | Migration credentials depend on Windows Credential Manager. | Linux migration execution is expected to fail. | Design portable, secret-safe migration credentials and a least-privilege migration process. | Proposed; approval required |
+| D09-03 | No dedicated health-check route was found. | Hosting health checks may fail or require an unsuitable endpoint. | Propose a minimal health endpoint that reveals no secrets or sensitive state. | Proposed; approval required |
+| D09-04 | Contact email defaults to console backend. | Messages may be stored without notifying the portfolio owner. | Investigate a free email API and verify sender requirements; do not claim delivery until tested. | Open |
+| D09-05 | CORS and allowed hosts default to local development values. | Public frontend requests may be rejected or host validation may fail. | Configure narrowly scoped production origins/hosts through environment variables. | Proposed; approval required |
+| D09-06 | Free Render web service has cold starts and is not recommended by Render for production. | Delayed first request and limited reliability. | Treat as a demonstration/evaluation environment only under the current $0 constraint. | Constraint accepted for evaluation only; human confirmation still required |
+| D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Prefer a validated persistent MySQL-compatible free tier with spending capped at $0; document quota and backup limits. | Provisional |
+| D09-08 | No dedicated production deployment configuration was found in the inspected files/search. | Setup may be non-reproducible. | After approval, document build/start commands, environment variables, migrations and verification. | Pending |
+
+## 6. Required Approval Before Implementation
+
+The audit does not authorize:
+- Changing source code or tests.
+- Changing database engines or schema.
+- Changing database privileges or migration credentials.
+- Creating/configuring Cloudflare, Render, TiDB, or email-provider accounts.
+- Deploying or making the site public.
+- Setting external service environment variables.
+- Adding any paid service, payment method, domain purchase, or subscription.
+
+The next decision is whether the project owner approves the proposed architecture for a **zero-cost public evaluation/demo**, understanding that the free backend has cold starts and is not a production reliability commitment. If approved, implementation proposals should be presented individually before any material change is executed.
+
+## 7. Audit Disposition
+
+**Read-only audit:** Completed against the current GitHub source and official provider documentation on 2026-10-27.  
+**Provisional architecture:** Cloudflare Pages frontend + Render Free Django API + TiDB Cloud Starter MySQL-compatible database.  
+**Real email delivery:** Unresolved.  
+**Public deployment:** Not performed.  
+**Source changes:** None as part of this audit.  
+**Next stage step:** Review the findings and obtain explicit approval before 09.3 deployment preparation.
