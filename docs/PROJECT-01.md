@@ -156,49 +156,32 @@ Historical reconstruction decisions remain preserved in the Stage 05 engineering
 
 ## Current Position
 
-The project has completed:
+Stages 01–07 have been completed and accepted as documented in their governing records.
 
-- Product Constitution
-- Product Experience & Structure Discovery
-- UX/UI Materialization and Prototype Validation
-- Design Foundations in Penpot
-- Stage 05 — Portfolio Screens / Portfolio Orientation
+**Stage 08 — Engineering Implementation: Closed (2026-10-27).**
 
-The project has completed through:
+The Stage 08 implementation and closure record is:
 
-**Stage 06 — Prototype**
+**`docs/STAGE-08-ENGINEERING-IMPLEMENTATION.md`**
 
-Stage 06 is accepted and closed.
+The Stage 08 engineering journal, including technical decisions, verification evidence, discrepancy handling, and remaining uncertainty, is:
 
-The Stage 06 evidence record is:
+**`journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md`**
 
-**`journal/P1-STAGE06-PROTOTYPE-EVIDENCE.md`**
+The closure commit is `d20454a680da8dddf7f350a7eebf4eaebcc4a0d9` (`chore: close Stage 08 engineering implementation`). The owner pushed this commit to GitHub on 2026-10-27.
 
-The evidence record documents the materialized prototype topology, interaction verification, problems encountered, revisions, boundary verification, unresolved matters, and provenance limitation.
+The recorded verification baseline is:
+- TypeScript check: 0 reported errors.
+- Unit tests: 119 passed across 9 suites.
+- Accessibility tests: 15 passed.
+- End-to-end tests: 188 passed, 1 intentional mobile-project skip, 0 failed.
+- Production build: successful.
 
-The project has completed Stage 07 — Validation.
+The mobile skip is limited to the desktop-header navigation test when running under the mobile Playwright project; mobile navigation is covered by separate tests. Manual assistive-technology evaluation and further performance evaluation remain appropriate topics for Stage 09.
 
-Stage 07 was validated through human inspection, evidence materialization, final prototype verification, and human acceptance.
+**Next stage: Stage 09 — Evaluation.**
 
-The governing Stage 07 record is:
-
-**`docs/STAGE-07-VALIDATION.md`**
-
-The Stage 07 human evaluation record is:
-
-**`journal/P1-STAGE07-HUMAN-UI-EVALUATION.md`**
-
-The final validated state established that the portfolio experience is sufficiently clear to proceed toward implementation. The established Experience Map has been materialized on Page 01 — Experience Map, the approved engineering evidence has been materialized across the Project 01 experience, and Page 05 — Validation contains the prototype reference used during validation.
-
-**Stage 07 — Validation: Accepted and Closed.**
-
-The project is now ready to proceed to:
-
-**Stage 08 — Engineering Implementation**
-
-Stage 05 remains closed. Future work should proceed from the accepted Portfolio Orientation state rather than reopening its structure without new evidence.
-
----
+Stage 09 is the next stage to prepare. Its scope, non-scope, evaluation protocol, deliverables, and acceptance criteria must be established before substantive evaluation begins. This project-level status does not, by itself, authorize every Stage 09 activity.
 
 ## Repository Structure
 
@@ -271,15 +254,16 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
 **Stage 06:** Accepted and Closed — Prototype  
 **Stage 07:** Accepted and Closed — Validation  
-**Stage 08:** Active — Engineering Implementation
+**Stage 08:** Closed — Engineering Implementation  
+**Stage 09:** Next — Evaluation; preparation pending
 
-The Stage 08 governing boundary and implementation verification framework are established in:
+Stage 08 closure is documented in:
 
 **`docs/STAGE-08-ENGINEERING-IMPLEMENTATION.md`**
 
-The Stage 08 working roadmap, session record, technical decisions, verification record, discrepancy record, evidence index, and remaining uncertainty are maintained in:
+Its detailed implementation history, technical decisions, verification evidence, discrepancy record, and remaining uncertainty are maintained in:
 
 **`journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md`**
 
-Stage 08 is now the active project stage.
+The next project activity is to prepare Stage 09 — Evaluation by establishing its purpose, scope, non-scope, expected outcomes, acceptance criteria, and evaluation protocol. Stage 09 execution should begin only after that boundary has been reviewed and agreed.
 
