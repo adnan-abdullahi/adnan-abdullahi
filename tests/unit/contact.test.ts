@@ -5,6 +5,8 @@ import type { ExperienceLocation } from "../../app/src/models/experience";
 import contactContent from "../../app/src/content/contact";
 import ContactView from "../../app/src/views/ContactView.vue";
 import Header from "../../app/src/components/Header.vue";
+import * as apiConfig from "../../app/src/config/api";
+import { ApiConfigurationError } from "../../app/src/config/api";
 
 describe("Contact Feature Implementation & Integration", () => {
   beforeEach(async () => {
@@ -684,6 +686,87 @@ describe("Contact Feature Implementation & Integration", () => {
       const alert = wrapper.find("#contact-form-error");
       expect(alert.exists()).toBe(true);
       expect(alert.text()).toContain("Network error");
+    });
+  });
+
+  describe("API Origin Configuration & Fail-Closed Error Handling", () => {
+    it("submits to configured HTTPS API origin when VITE_API_BASE_URL is set", async () => {
+      vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com");
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "success",
+            message: contactContent.success.message,
+            id: "11111111-2222-3333-4444-555555555555",
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+      const wrapper = mount(ContactView, {
+        global: { plugins: [router] },
+      });
+
+      await wrapper.find("input#contact-name").setValue("Ada Lovelace");
+      await wrapper.find("input#contact-email").setValue("ada@example.com");
+      await wrapper.find("textarea#contact-message").setValue("Configured origin test inquiry.");
+
+      await wrapper.find("form.contact-form").trigger("submit.prevent");
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [url] = fetchSpy.mock.calls[0];
+      expect(url).toBe("https://api.example.com/api/contact/");
+
+      vi.unstubAllEnvs();
+    });
+
+    it("fails closed without dispatching network request when configuration is invalid", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(apiConfig, "resolveApiUrl").mockImplementationOnce(() => {
+        throw new ApiConfigurationError("VITE_API_BASE_URL is required in production builds but was not configured.");
+      });
+
+      const wrapper = mount(ContactView, {
+        global: { plugins: [router] },
+      });
+
+      await wrapper.find("input#contact-name").setValue("Ada Lovelace");
+      await wrapper.find("input#contact-email").setValue("ada@example.com");
+      await wrapper.find("textarea#contact-message").setValue("Fail-closed preservation inquiry.");
+
+      await wrapper.find("form.contact-form").trigger("submit.prevent");
+      await wrapper.vm.$nextTick();
+      await wrapper.vm.$nextTick();
+
+      // Zero network calls dispatched
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      // Form inputs are preserved
+      expect(wrapper.find<HTMLInputElement>("input#contact-name").element.value).toBe("Ada Lovelace");
+      expect(wrapper.find<HTMLInputElement>("input#contact-email").element.value).toBe("ada@example.com");
+      expect(wrapper.find<HTMLTextAreaElement>("textarea#contact-message").element.value).toBe("Fail-closed preservation inquiry.");
+
+      // Form remains visible
+      expect(wrapper.find("form.contact-form").exists()).toBe(true);
+
+      // Submit button is restored to interactive state
+      const submitBtn = wrapper.find("button.btn-submit");
+      expect(submitBtn.attributes("disabled")).toBeUndefined();
+      expect(submitBtn.attributes("aria-busy")).toBe("false");
+      expect(wrapper.find(".spinner").exists()).toBe(false);
+
+      // Distinct configuration error banner displayed
+      const alert = wrapper.find("#contact-form-error");
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain("Unable to send message due to a service configuration issue");
+      expect(alert.text()).not.toContain("Network error");
+
+      // Safe console diagnostic was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[Contact Form Configuration Error]:",
+        "VITE_API_BASE_URL is required in production builds but was not configured."
+      );
     });
   });
 });

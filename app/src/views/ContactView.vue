@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, nextTick } from "vue";
+import { resolveApiUrl, ApiConfigurationError } from "@/config/api";
 import contactContent from "@/content/contact";
 
 const content = contactContent;
@@ -141,7 +142,8 @@ async function handleSubmit() {
   };
 
   try {
-    const response = await fetch("/api/contact/", {
+    const endpoint = resolveApiUrl("/api/contact/");
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -193,7 +195,12 @@ async function handleSubmit() {
       errorAlertRef.value?.focus();
     }
   } catch (error) {
-    errorMessage.value = "Network error. Please check your connection and try again.";
+    if (error instanceof ApiConfigurationError) {
+      console.error("[Contact Form Configuration Error]:", error.message);
+      errorMessage.value = "Unable to send message due to a service configuration issue. Please try again shortly.";
+    } else {
+      errorMessage.value = "Network error. Please check your connection and try again.";
+    }
     await nextTick();
     errorAlertRef.value?.focus();
   } finally {
@@ -305,7 +312,6 @@ defineExpose({
           ref="errorAlertRef"
           class="alert-banner"
           role="alert"
-          aria-live="assertive"
           tabindex="-1"
         >
           <span class="alert-icon" aria-hidden="true">!</span>
