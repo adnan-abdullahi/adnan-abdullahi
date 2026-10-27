@@ -6,6 +6,7 @@ test.describe("Stage 08 Accessibility Foundation (T002, Category V5)", () => {
     page,
   }) => {
     await page.goto("/");
+    await expect(page.locator("#main-heading")).toBeVisible();
     // Direction C Light foundation provides verified contrast:
     // - #FFFFFF on #245B8F: 7.02:1 (exceeds WCAG AA 4.5:1 and AAA 7.0:1)
     // - #18212B on #FFFFFF: 14.6:1 (AAA)

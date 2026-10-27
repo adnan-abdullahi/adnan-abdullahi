@@ -1,6 +1,6 @@
 # Stage 08 — Engineering Implementation
 
-**Status:** Active  
+**Status:** Closed (Authorized 2026-10-27)  
 **Project:** Project 01 — Portfolio Experience  
 **Stage:** 08 of 10
 
@@ -258,22 +258,22 @@ These concerns should not unnecessarily expand Stage 08.
 
 Stage 08 may be considered for closure when sufficient evidence establishes that:
 
-1. The accepted Project 01 experience has been implemented within scope.
-2. Relevant implementation requirements are traceable to specifications.
-3. Core functionality has been verified.
-4. The accepted experience and navigation have been verified.
-5. Relevant design foundations have been implemented and verified.
-6. Relevant responsive behavior has been tested.
-7. Relevant accessibility behavior has been tested.
-8. Relevant performance behavior has been examined.
-9. Relevant security risks have been examined.
-10. Relevant compatibility has been examined.
-11. Content and evidence integrity have been verified.
-12. The implementation can be built and delivered.
-13. Significant discrepancies have been investigated.
-14. Remaining limitations and uncertainties have been documented.
-15. Sufficient engineering evidence exists for Stage 09 Evaluation.
-16. Human acceptance of Stage 08 has been explicitly established.
+1. The accepted Project 01 experience has been implemented within scope. [SATISFIED — All 7 views and Django contact backend implemented]
+2. Relevant implementation requirements are traceable to specifications. [SATISFIED — Full bidirectional traceability across spec.md, data-model.md, and ui-contracts.md]
+3. Core functionality has been verified. [SATISFIED — 119 unit tests passing across 9 test suites; 188 E2E tests passing]
+4. The accepted experience and navigation have been verified. [SATISFIED — Full 7-route navigation topology and return paths verified]
+5. Relevant design foundations have been implemented and verified. [SATISFIED — Direction C Light design tokens and self-hosted IBM Plex Sans fonts verified]
+6. Relevant responsive behavior has been tested. [SATISFIED — Multi-device verification across Desktop 1440px, Tablet 768px, and Mobile 375px; 1 intentional mobile header test skip preserved]
+7. Relevant accessibility behavior has been tested. [SATISFIED — 15 of 15 axe-core accessibility tests passing across desktop, tablet, and mobile with zero violations]
+8. Relevant performance behavior has been examined. [SATISFIED — Production bundle ~42.6KB gzip, builds in ~5.9s, zero warnings]
+9. Relevant security risks have been examined. [SATISFIED — Static client-side hash routing; Django backend rate-limiting with encrypted credential vault]
+10. Relevant compatibility has been examined. [SATISFIED — Cross-browser modern baseline supported via Vite/Vue 3]
+11. Content and evidence integrity have been verified. [SATISFIED — Verbatim text asserted against Penpot active boards and Stage 04 checkpoint]
+12. The implementation can be built and delivered. [SATISFIED — Production build generated in app/dist/ without warnings]
+13. Significant discrepancies have been investigated. [SATISFIED — Documented in Section 13 and journal Discrepancy Record]
+14. Remaining limitations and uncertainties have been documented. [SATISFIED — Mobile test skip condition and Stage 09 manual AT audit documented]
+15. Sufficient engineering evidence exists for Stage 09 Evaluation. [SATISFIED — Complete evidence index and verification records established]
+16. Human acceptance of Stage 08 has been explicitly established. [SATISFIED — Stage 08 formally accepted and authorized for closure and local commit by the owner on 2026-10-27]
 
 ## 12. Human Source-of-Truth Reconciliation — 2026-09-30
 
@@ -285,8 +285,35 @@ A read-only reconciliation established the governing decisions for the current i
 2. The desktop header adopts the Penpot-style professional identity header centered on **Adnan Abdullahi**, while retaining the accepted information architecture and the Stage 05 rejection of generic portfolio tabs.
 3. Portfolio Orientation returns to the open, left-aligned Penpot composition without the unauthorized T019 pill badges, CTA card, or dashed evidence container.
 4. Project 01 returns to the Penpot two-column composition.
-5. The Orientation primary CTA is **Explore the Engineering Record**.
+5. The Orientation primary CTA is **Explore the Portfolio Project**, navigating to `/project-01` (reconciling with the authoritative application implementation; superseding the preliminary draft text "Explore the Engineering Record").
 
 The reconciliation also established that the Stage 08 dark palette was introduced without established human acceptance and that the T019/T020 visual treatments were implementation choices. These historical findings remain part of the engineering record.
 
 Implementation correction is authorized only against the five decisions above. After correction, the affected experience must undergo V1–V5 and V9 verification as applicable. No claim of verification is made by this documentation update.
+
+## 13. Application & Specification Reconciliation Records (2026-10-26)
+
+### 13.1 Contact Success Heading Reconciliation
+* **Authoritative Application Implementation:** In `app/src/views/ContactView.vue` and `app/src/content/contact.ts`, the heading displayed upon successful contact form submission is **"Message Sent"**.
+* **Observed Design Discrepancy:** In Penpot file `Project 01 — Portfolio Experience` (`c828d3cf-7d4e-8145-8008-977e84b5cadf`), Page `03 — Portfolio Screens`, Board 04 (Contact — Desktop), the corresponding text layer displays `"State Preview: Message Received (HTTP 201)"`.
+* **Settlement Record:** The application wording ("Message Sent") is confirmed as authoritative for the implemented product. The Penpot text is recorded factually as an observed discrepancy without assigning unsupported historical design intent. Neither code nor Penpot is modified.
+
+### 13.2 Secondary Action Omission on Approach and Record Views
+* **Observation:** In `app/src/content/approach.ts` and `app/src/content/record.ts`, `actions.secondary` defines `{ label: "Back to Project 01", to: "/project-01" }`. However, in `ApproachView.vue` and `RecordView.vue`, only the primary forward action (`"Continue to Deep Engineering"`) is rendered.
+* **Governing Decision & Evidence:** This omission is governed by documented **Decision 02** in `journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md` ("Internal context and visible return controls"), which explicitly removed visible in-canvas return buttons ("Back to Project 01" / "Back to Portfolio Orientation") from non-Orientation views.
+* **Automated Test Enforcement:** The non-rendering of the in-canvas secondary return action is explicitly asserted by automated Playwright E2E tests:
+  - `tests/e2e/us2-approach.spec.ts` (`test('verifies ReturnRail and in-canvas "Back to Project 01" do not appear on Approach')`)
+  - `tests/e2e/us3-record.spec.ts` (`test('verifies ReturnRail and in-canvas "Back to Project 01" do not appear on Record')`)
+  Both test suites assert `expect(page.getByRole("link", { name: "Back to Project 01" })).toHaveCount(0)`.
+
+### 13.3 Systematic Component Retirement (2026-10-27)
+* **Retired Components:** `app/src/components/ReturnRail.vue`, `app/src/components/DepthIndicator.vue`, and `app/src/components/EvidenceCard.vue`.
+* **Rationale:** As established in Penpot reconciliation audits and Human Decision 02, in-canvas return rails, depth pill badges, and isolated card wrappers were superseded by open viewport layouts and inline evidence presentation.
+* **Verification:** Zero imports remain across `app/src/`. All 119 unit tests pass, and production build succeeds cleanly.
+
+### 13.4 Final Verification Summary & Intentional Test Boundaries (2026-10-27)
+* **Vitest Unit Tests:** 119 passed across 9 suites (0 failed).
+* **Playwright Accessibility Tests (`tests/a11y/foundation.spec.ts`):** 15 passed across Desktop, Tablet, and Mobile (0 failed). Test 1 synchronized with `await expect(page.locator("#main-heading")).toBeVisible()`.
+* **Playwright End-to-End Tests:** 188 passed, 1 intentionally skipped, 0 failed.
+  - **Intentional Skip:** In `tests/e2e/about.spec.ts`, the desktop header traversal test is skipped on the mobile project (`test.skip(isMobile)`), because `.desktop-header-container` is hidden on viewports `< 768px` in favor of `MobileNav.vue`. Mobile navigation is verified by dedicated tests.
+* **Production Build:** `vue-tsc` typecheck reports 0 errors; Vite production bundle built in ~5.9s.

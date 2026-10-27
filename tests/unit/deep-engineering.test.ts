@@ -8,7 +8,6 @@ import type {
 import deepEngineeringContent, {
   designFoundationsEvidence,
 } from "../../app/src/content/deep-engineering";
-import EvidenceCard from "../../app/src/components/EvidenceCard.vue";
 import DeepEngineeringView from "../../app/src/views/DeepEngineeringView.vue";
 
 describe("User Story 4: Deep Engineering & Contextual Return (T030)", () => {
@@ -184,72 +183,6 @@ describe("User Story 4: Deep Engineering & Contextual Return (T030)", () => {
     });
   });
 
-  describe("EvidenceCard Component Rendering (T033, ui-contracts.md Section 5)", () => {
-    it("renders all 9 stages of the evidence chain in sequential order", () => {
-      const wrapper = mount(EvidenceCard, {
-        props: {
-          item: designFoundationsEvidence,
-        },
-      });
-
-      const steps = wrapper.findAll(".evidence-step");
-      expect(steps).toHaveLength(9);
-
-      const expectedKeys = [
-        "problem",
-        "requirement",
-        "decision",
-        "technical-work",
-        "evidence",
-        "verification",
-        "outcome",
-        "reflection",
-        "growth",
-      ];
-
-      expectedKeys.forEach((key, index) => {
-        expect(steps[index].attributes("data-step-key")).toBe(key);
-      });
-
-      // Verify step labels
-      expect(steps[0].text()).toContain("Problem");
-      expect(steps[6].text()).toContain("Outcome");
-      expect(steps[8].text()).toContain("Growth");
-    });
-
-    it("renders visible uncertainty boundary when uncertainty prop is present", () => {
-      const wrapper = mount(EvidenceCard, {
-        props: {
-          item: designFoundationsEvidence,
-        },
-      });
-
-      const uncertaintyEl = wrapper.find('[data-uncertainty-boundary="true"]');
-      expect(uncertaintyEl.exists()).toBe(true);
-      expect(uncertaintyEl.text()).toContain("Visible Uncertainty");
-      expect(uncertaintyEl.text()).toContain(
-        designFoundationsEvidence.uncertainty!,
-      );
-    });
-
-    it("does not render uncertainty container when uncertainty is absent", () => {
-      const itemWithoutUncertainty: EvidenceItem = {
-        ...designFoundationsEvidence,
-        uncertainty: undefined,
-      };
-
-      const wrapper = mount(EvidenceCard, {
-        props: {
-          item: itemWithoutUncertainty,
-        },
-      });
-
-      expect(wrapper.find('[data-uncertainty-boundary="true"]').exists()).toBe(
-        false,
-      );
-    });
-  });
-
   describe("DeepEngineeringView Component Rendering (T034)", () => {
     it("mounts properly and renders heading landmark with correct accessibility attributes", () => {
       const wrapper = mount(DeepEngineeringView, {
@@ -281,15 +214,14 @@ describe("User Story 4: Deep Engineering & Contextual Return (T030)", () => {
       expect(flowSteps[5].text()).toBe("Acceptance");
     });
 
-    it("confirms EvidenceCard component is not rendered on DeepEngineeringView per Penpot Board 05 reconciliation", () => {
+    it("confirms EvidenceCard markup is not rendered on DeepEngineeringView per Penpot Board 05 reconciliation", () => {
       const wrapper = mount(DeepEngineeringView, {
         global: {
           plugins: [router],
         },
       });
 
-      const evidenceCard = wrapper.findComponent(EvidenceCard);
-      expect(evidenceCard.exists()).toBe(false);
+      expect(wrapper.find(".evidence-card").exists()).toBe(false);
       expect(wrapper.find(".evidence-chain-wrapper").exists()).toBe(false);
     });
 

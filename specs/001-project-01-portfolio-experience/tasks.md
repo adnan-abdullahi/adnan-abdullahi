@@ -170,6 +170,44 @@
 
 ---
 
+---
+
+## Retrospective Task Reconciliation (Phases 9–14)
+
+*Note: The following tasks document implementation deliverables completed after Phase 6 and verified against Git history, source code, and Penpot audits. Tasks are marked complete `[x]` only where existing implementation evidence establishes completion; tasks representing pending retirement and closure remain pending `[ ]`.*
+
+### Phase 9: About View Experience (Retrospective Record — Commit `e87097c`)
+- [x] T050 [US-About] Implement `app/src/content/about.ts` defining personal engineering philosophy, background narrative, and career milestones.
+- [x] T051 [US-About] Implement `app/src/views/AboutView.vue` and register route `/about` in `app/src/router/index.ts`.
+- [x] T052 [US-About] Implement unit test suite `tests/unit/about.test.ts` (16 tests passing, verified in `e87097c`) and E2E test `tests/e2e/about.spec.ts`.
+
+### Phase 10: Shared Container Alignment & Layout Normalization (Retrospective Record — Commit `b947e9a`)
+- [x] T053 [Layout] Standardize layout containers to 1200px max-width across all views in `app/src/styles/tokens.css` and view templates.
+- [x] T054 [Layout] Create end-to-end container width consistency test suite in `tests/e2e/container-alignment.spec.ts`.
+
+### Phase 11: Contact Experience & Django Backend Integration (Retrospective Record — Commit `a28bad9`)
+- [x] T055 [US-Contact] Implement `app/src/views/ContactView.vue` and `app/src/content/contact.ts` with validation and state transitions.
+- [x] T056 [US-Contact] Configure Django REST backend in `backend/` with `/api/contact/` endpoint, rate limiting, and encrypted vault integration.
+- [x] T057 [US-Contact] Implement unit tests in `tests/unit/contact.test.ts` (28 tests passing, verified in `a28bad9`) and navigation tests in `tests/unit/navigation.test.ts`.
+
+### Phase 12: Responsive Pale-Blue Footer Implementation (Retrospective Record — Commit `c62d264`)
+- [x] T058 [Layout] Implement `app/src/components/Footer.vue` with 3-column pale-blue layout (`#F0F4F8`), `#D9DEE3` border, and responsive collapse.
+- [x] T059 [Layout] Implement unit test suite `tests/unit/footer.test.ts` (10 tests passing, verified in `c62d264`).
+
+### Phase 13: Penpot Design Reconciliation & Audit Baseline (Retrospective Record — 2026-10-26)
+- [x] T060 [Design] Reconcile Penpot Page 03 mobile footer stroke tokens to `#D9DEE3` and clean orphaned archival badge on Page 04 Board 07.
+- [x] T061 [Design] Verify complete typography unification under `IBM Plex Sans` (0 legacy `Work Sans` shapes) across all active boards.
+- [x] T062 [Design] Preserve historical validation boards on Pages 01, 02, and 05 with explicit archival warning banners.
+
+### Phase 14: Component Retirement & Stage 08 Systematic Closure (Current Execution)
+- [x] T063 Retire unused legacy component `ReturnRail.vue` (Gate 3).
+- [x] T064 Retire unused legacy component `DepthIndicator.vue` (Gate 3).
+- [x] T065 Retire unused legacy component `EvidenceCard.vue` and update unit tests in `tests/unit/deep-engineering.test.ts` (Gate 3).
+- [x] T066 Execute complete verification battery: typecheck (`vue-tsc` 0 errors), unit tests (119/119 passing), accessibility (15/15 passing), E2E (188 passing, 1 intentionally skipped on mobile), and production build (Gate 4).
+- [x] T067 Final Stage 08 review and human closure sign-off (Gate 5) — Formally approved and authorized for closure and local commit by the owner on 2026-10-27.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

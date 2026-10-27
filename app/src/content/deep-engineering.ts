@@ -8,14 +8,23 @@
  * - docs/STAGE-04-DESIGN-FOUNDATIONS-ACCEPTANCE-CHECKPOINT.md
  */
 
-import type { DeepEngineering, EvidenceItem } from "@/models/experience";
+import type { DeepEngineering, EvidenceItem } from "../models/experience";
 
 export interface DeepEngineeringContent extends DeepEngineering {
+  id: "deep-engineering";
+  title: string;
+  subtitle: string;
+  parentProject: "project-01";
   eyebrow: string;
   contextLabel: string;
   intro: string;
   flowSequence: string[];
   narrativeParagraphs: string[];
+  caseStudy: {
+    title: string;
+    overview: string;
+    evidenceItems: EvidenceItem[];
+  };
   scopeStatement: string;
   validationGap: string;
   action: {
@@ -23,6 +32,7 @@ export interface DeepEngineeringContent extends DeepEngineering {
     to: string;
     ariaLabel: string;
   };
+  returnDestination: "project-01";
 }
 
 export const designFoundationsEvidence: EvidenceItem = {
