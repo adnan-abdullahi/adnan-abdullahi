@@ -179,9 +179,21 @@ The recorded verification baseline is:
 
 The mobile skip is limited to the desktop-header navigation test when running under the mobile Playwright project; mobile navigation is covered by separate tests. Manual assistive-technology evaluation and further performance evaluation remain appropriate topics for Stage 09.
 
-**Next stage: Stage 09 — Evaluation.**
+**Stage 09 — Evaluation: Started (2026-10-27; planning and baseline phase).**
 
-Stage 09 is the next stage to prepare. Its scope, non-scope, evaluation protocol, deliverables, and acceptance criteria must be established before substantive evaluation begins. This project-level status does not, by itself, authorize every Stage 09 activity.
+Stage 09 has formally started with boundary definition and evaluation planning. Its scope integrates evaluation of the implemented portfolio with preparation for, zero-cost deployment of, and evidence-based evaluation of the public system.
+
+The stage will proceed sequentially through:
+1. Evaluation plan and baseline.
+2. Zero-cost deployment feasibility and read-only readiness audit.
+3. Deployment preparation after review and explicit approval of proposed changes.
+4. Public deployment after explicit authorization.
+5. Live-system evaluation.
+6. Findings, approved remediation, verification, and closure decision.
+
+The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record will be **`journal/P1-STAGE09-EVALUATION.md`**. Deployment instructions and the selected architecture will be recorded in **`docs/DEPLOYMENT.md`** once justified by the readiness investigation.
+
+The current step is **09.1 — Evaluation Plan and Baseline**. No deployment, hosting-account creation, paid service, domain purchase, database migration, or implementation change is authorized by this status update. Stage 09 activities remain subject to the project’s proposal → human decision → authorization → execution → verification controls.
 
 ## Repository Structure
 
@@ -255,7 +267,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 06:** Accepted and Closed — Prototype  
 **Stage 07:** Accepted and Closed — Validation  
 **Stage 08:** Closed — Engineering Implementation  
-**Stage 09:** Next — Evaluation; preparation pending
+**Stage 09:** Started — Evaluation planning and baseline; deployment integrated into stage scope
 
 Stage 08 closure is documented in:
 
@@ -265,5 +277,5 @@ Its detailed implementation history, technical decisions, verification evidence,
 
 **`journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md`**
 
-The next project activity is to prepare Stage 09 — Evaluation by establishing its purpose, scope, non-scope, expected outcomes, acceptance criteria, and evaluation protocol. Stage 09 execution should begin only after that boundary has been reviewed and agreed.
+Stage 09 is now active. Its first activity is to establish and record the evaluation boundary and baseline before proceeding to a read-only deployment-readiness audit. Deployment must remain entirely within the zero-cost constraint, and any proposed repository, database, hosting, or production-configuration changes require review and explicit authorization before execution. Stage 09 is not considered complete until the available evidence supports a documented closure decision.
 
