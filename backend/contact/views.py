@@ -7,7 +7,6 @@ Conforms strictly to docs/CONTACT-BACKEND-SPECIFICATION.md.
 import datetime
 import logging
 from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
@@ -16,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from contact.models import ContactMessage
+from contact.notifications import send_contact_notification
 from contact.serializers import ContactSubmissionSerializer
 from contact.throttling import ContactAnonRateThrottle
 
@@ -133,37 +133,9 @@ class ContactAPIView(APIView):
         # 5. Downstream Notification Dispatch (Decoupled, Post-Commit)
         # Attempt notification only after the database record is safely committed.
         try:
-            send_mail(
-                subject=f"Contact Inquiry from {contact_message.name}",
-                message=f"Name: {contact_message.name}\nEmail: {contact_message.email}\n\nMessage:\n{contact_message.message}",
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'webmaster@localhost',
-                recipient_list=[settings.NOTIFICATION_RECIPIENT_EMAIL],
-                fail_silently=False,
-            )
-
-            # In development with console.EmailBackend (or test locmem backend), use truthful 'simulated' status
-            email_backend = getattr(settings, 'EMAIL_BACKEND', '').lower()
-            is_simulated = any(dev_backend in email_backend for dev_backend in ('console', 'locmem', 'dummy'))
-            contact_message.delivery_status = (
-                ContactMessage.STATUS_SIMULATED if is_simulated else ContactMessage.STATUS_SENT
-            )
-            contact_message.delivery_attempts = 1
-            contact_message.last_attempt_at = timezone.now()
-            contact_message.delivery_error = None
-            contact_message.save(
-                update_fields=['delivery_status', 'delivery_attempts', 'last_attempt_at', 'delivery_error', 'updated_at']
-            )
+            send_contact_notification(contact_message)
         except Exception as notify_err:
-            logger.warning("Downstream email notification failed: %s", notify_err)
-            # Record failure diagnostics safely; do not invalidate MySQL persistence
-            contact_message.delivery_status = ContactMessage.STATUS_FAILED
-            contact_message.delivery_attempts = 1
-            contact_message.last_attempt_at = timezone.now()
-            # Store sanitized diagnostic info (exception type + truncated message)
-            contact_message.delivery_error = f"{type(notify_err).__name__}: {str(notify_err)[:500]}"
-            contact_message.save(
-                update_fields=['delivery_status', 'delivery_attempts', 'last_attempt_at', 'delivery_error', 'updated_at']
-            )
+            logger.warning("Downstream notification dispatch caught unexpected error: %s", notify_err)
 
         # 6. Return Confirmed Receipt Response
         # Receipt is confirmed because the record is safely stored in MySQL (Outcomes 2 & 3).

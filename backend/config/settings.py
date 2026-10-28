@@ -121,9 +121,13 @@ REST_FRAMEWORK = {
     },
 }
 
-# Email Backend (Development Console Backend)
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-NOTIFICATION_RECIPIENT_EMAIL = os.getenv('NOTIFICATION_RECIPIENT_EMAIL', 'abdullahiadnan550@gmail.com')
+# Contact Email Notification Configuration (Resend HTTPS API)
+# Uses environment variables: RESEND_API_KEY, CONTACT_NOTIFICATION_TO, CONTACT_NOTIFICATION_FROM
+# No hardcoded credentials or personal email addresses. Does not use SMTP.
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
+CONTACT_NOTIFICATION_TO = os.getenv('CONTACT_NOTIFICATION_TO', '').strip()
+CONTACT_NOTIFICATION_FROM = os.getenv('CONTACT_NOTIFICATION_FROM', '').strip()
+EMAIL_SIMULATION_ALLOWED = os.getenv('EMAIL_SIMULATION_ALLOWED', 'False').lower() in ('true', '1')
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [

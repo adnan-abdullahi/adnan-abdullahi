@@ -135,7 +135,7 @@ The goal is no required monetary cost. The plan cannot promise permanent availab
 | D09-01 | Production frontend cannot rely on Vite's localhost API proxy. | Contact submissions will target the wrong origin or fail. | Introduce a production API base URL or approved equivalent while retaining the local proxy. | Proposed; approval required |
 | D09-02 | Migration credentials depend on Windows Credential Manager. | Linux migration execution is expected to fail. | Implemented Option A: platform-neutral credential_vault with fail-closed precedence (DB_MIGRATE_* -> Windows vault -> fail closed) and out-of-band TLS migration execution. | Implemented locally; live database connectivity unverified |
 | D09-03 | No dedicated health-check route was found. | Hosting health checks may fail or require an unsuitable endpoint. | Implemented locally: GET /api/health/ process liveness endpoint (unauthenticated, 0 DB queries, 0 secrets). | Implemented locally; live hosting verification pending |
-| D09-04 | Contact email defaults to console backend. | Messages may be stored without notifying the portfolio owner. | Investigate a free email API and verify sender requirements; do not claim delivery until tested. | Open |
+| D09-04 | Contact email defaults to console backend / Render blocks SMTP. | Outbound SMTP is blocked on Render free tier. | Implemented locally: Resend HTTPS API notification service (Option A post-commit decoupled dispatch, reply-to visitor, zero secret exposure). | Implemented locally; live provider verification pending |
 | D09-05 | CORS and allowed hosts default to local development values. | Public frontend requests may be rejected or host validation may fail. | Configure narrowly scoped production origins/hosts through environment variables. | Proposed; approval required |
 | D09-06 | Free Render web service has cold starts and is not recommended by Render for production. | Delayed first request and limited reliability. | Treat as a demonstration/evaluation environment only under the current $0 constraint. | Constraint accepted for evaluation only; human confirmation still required |
 | D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Prefer a validated persistent MySQL-compatible free tier with spending capped at $0; document quota and backup limits. | Provisional |
@@ -212,7 +212,45 @@ Following Stage 09.3-A specification and approval, deployment hardening was impl
 - Live Render `$PORT` binding, container initialization, and edge TLS proxy forwarding remain unverified until deployment.
 - Live Gunicorn startup on a genuine Linux host remains unverified locally (Windows development uses `runserver`).
 - Live TiDB Cloud Serverless connectivity, TLS handshake (port 4000), and account permissions remain unverified.
-- Outbound SMTP blocking on Render remains open; real email delivery requires future integration of an approved zero-cost HTTP email API (Finding D09-04).
+- Live Resend HTTPS API reachability and domain verification remain unverified until external account configuration and live acceptance testing.
+
+### 5.3 Contact Email Notification Architecture (Finding D09-04)
+
+Following Stage 09.3-F implementation, production email notifications use the **Resend HTTPS API** rather than SMTP, bypassing Render's outbound SMTP restrictions.
+
+#### 1. Decoupled Persistence vs. Email Delivery (Option A)
+- **Database is Primary Source of Truth:** Visitor submissions are validated and committed to MySQL/TiDB in an atomic transaction before any notification attempt.
+- **Truthful Visitor Receipt:** The visitor receives HTTP 201 Created and their UUID receipt confirmation immediately upon successful database commit.
+- **Fault-Isolated Dispatch:** If the Resend API call fails (HTTP 4xx/5xx, network timeout, DNS failure, or missing configuration), the database record is **never** rolled back or deleted. The system logs a server-side warning and marks `delivery_status='failed'` with a sanitized diagnostic string on the database record. The visitor is never told the message was unsaved.
+- **Zero Diagnostic Leakage:** Neither the Resend API key nor raw visitor message contents are ever stored in `delivery_error` or leaked to error responses.
+
+#### 2. Resend Account & Sender Domain Requirements
+- **Cost Constraint:** Resend's free tier provides 3,000 emails/month and 100 emails/day, requiring no credit card and strictly satisfying the zero-cost requirement.
+- **Domain Verification:** In production, sending from a custom domain (e.g., `contact@yourdomain.com`) requires configuring SPF and DKIM DNS records in your domain registrar per Resend instructions.
+- **Testing Sender Identity:** For initial deployment or testing prior to domain verification, Resend provides `onboarding@resend.dev` to deliver notifications exclusively to the email address registered with the Resend account.
+- **Reply-To Integrity:** The visitor's validated email address is supplied as the `reply_to` parameter in the Resend payload. The sender (`from`) is never spoofed as the visitor, ensuring strict DMARC/SPF compliance and allowing the portfolio owner to click "Reply" directly in their email client.
+
+#### 3. Required Environment Variables
+The following environment variables must be configured:
+- `RESEND_API_KEY`: Secret API token generated in the Resend dashboard (`re_...`). In local development (`DEBUG=True`), setting this to `simulate` logs notification dispatch without making outbound HTTP calls. In production (`DEBUG=False`), `simulate` is prohibited and fails closed unless `EMAIL_SIMULATION_ALLOWED=True` is explicitly configured.
+- `EMAIL_SIMULATION_ALLOWED`: Optional override flag defaulting to `False`. Must remain `False` in production.
+- `CONTACT_NOTIFICATION_TO`: Portfolio owner's email address designated to receive visitor notifications.
+- `CONTACT_NOTIFICATION_FROM`: Authorized sender identity (e.g. `Portfolio Contact <contact@yourdomain.com>` or `Portfolio Contact <onboarding@resend.dev>`).
+
+#### 4. Secure API-Key Configuration in Render
+- In the Render Dashboard, navigate to the Backend Web Service > **Environment**.
+- Add `RESEND_API_KEY`, `CONTACT_NOTIFICATION_TO`, and `CONTACT_NOTIFICATION_FROM`.
+- Render automatically treats custom environment variables as secure secrets.
+- **CRITICAL:** Never commit `RESEND_API_KEY` or personal email addresses to Git or `backend/.env.example`.
+
+#### 5. Live Email Delivery Acceptance Test
+After deploying to Render with configured Resend environment variables:
+1. Open the portfolio contact form at the live Cloudflare Pages URL (or send `POST /api/contact/` via curl to Render).
+2. Submit a test inquiry with a valid name, your personal test email, and message.
+3. Verify the frontend displays the confirmation receipt message with a valid UUID.
+4. Verify in the database (or Render application logs) that `delivery_status` transitioned to `sent` and `delivery_attempts` is `1`.
+5. Check the owner's email inbox: confirm receipt of the notification containing the reference ID, visitor name, visitor email, timestamp, and message.
+6. Click "Reply" in your email client: confirm the destination address is the visitor's email address (`reply_to`), not the sender address.
 
 ## 6. Required Approval Before Implementation
 
@@ -231,7 +269,7 @@ The next decision is whether the project owner approves the proposed architectur
 
 **Read-only audit:** Completed against the current GitHub source and official provider documentation on 2026-10-27.  
 **Provisional architecture:** Cloudflare Pages frontend + Render Free Django API + TiDB Cloud Starter MySQL-compatible database.  
-**Real email delivery:** Unresolved.  
+**Real email delivery:** Implemented locally via Resend HTTPS API (Finding D09-04); live acceptance testing pending.
 **Public deployment:** Not performed.  
 **Source changes:** None as part of this audit.  
 **Next stage step:** Review the findings and obtain explicit approval before 09.3 deployment preparation.
