@@ -134,12 +134,12 @@ The goal is no required monetary cost. The plan cannot promise permanent availab
 |---|---|---|---|---|
 | D09-01 | Production frontend cannot rely on Vite's localhost API proxy. | Contact submissions will target the wrong origin or fail. | Introduce a production API base URL or approved equivalent while retaining the local proxy. | Proposed; approval required |
 | D09-02 | Migration credentials depend on Windows Credential Manager. | Linux migration execution is expected to fail. | Implemented Option A: platform-neutral credential_vault with fail-closed precedence (DB_MIGRATE_* -> Windows vault -> fail closed) and out-of-band TLS migration execution. | Implemented locally; live database connectivity unverified |
-| D09-03 | No dedicated health-check route was found. | Hosting health checks may fail or require an unsuitable endpoint. | Propose a minimal health endpoint that reveals no secrets or sensitive state. | Proposed; approval required |
+| D09-03 | No dedicated health-check route was found. | Hosting health checks may fail or require an unsuitable endpoint. | Implemented locally: GET /api/health/ process liveness endpoint (unauthenticated, 0 DB queries, 0 secrets). | Implemented locally; live hosting verification pending |
 | D09-04 | Contact email defaults to console backend. | Messages may be stored without notifying the portfolio owner. | Investigate a free email API and verify sender requirements; do not claim delivery until tested. | Open |
 | D09-05 | CORS and allowed hosts default to local development values. | Public frontend requests may be rejected or host validation may fail. | Configure narrowly scoped production origins/hosts through environment variables. | Proposed; approval required |
 | D09-06 | Free Render web service has cold starts and is not recommended by Render for production. | Delayed first request and limited reliability. | Treat as a demonstration/evaluation environment only under the current $0 constraint. | Constraint accepted for evaluation only; human confirmation still required |
 | D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Prefer a validated persistent MySQL-compatible free tier with spending capped at $0; document quota and backup limits. | Provisional |
-| D09-08 | No dedicated production deployment configuration was found in the inspected files/search. | Setup may be non-reproducible. | After approval, document build/start commands, environment variables, migrations and verification. | Pending |
+| D09-08 | No dedicated production deployment configuration was found in the inspected files/search. | Setup may be non-reproducible. | Implemented locally: Declared Gunicorn in requirements.txt with sys_platform != 'win32' marker. Documented Render build/start commands and root directory. | Implemented locally; live hosting verification pending |
 
 ### 5.1 Database Credential Architecture & Privilege Separation (Finding D09-02)
 
@@ -178,6 +178,41 @@ Following review in Stage 09.3, the database credential architecture (Option A) 
   - Remote TiDB TLS handshake, hostname verification, and gateway reachability (port 4000).
   - Live migration execution and table creation in TiDB Cloud.
 - **Explicit Boundary:** The system is **NOT production-verified**. Live database connectivity, accounts, and external services remain unconfigured pending explicit approval.
+
+### 5.2 Deployment Hardening & Startup Architecture (Findings D09-03, D09-08)
+
+Following Stage 09.3-A specification and approval, deployment hardening was implemented locally across `backend/config/urls.py`, `backend/contact/views.py`, `backend/requirements.txt`, and `backend/tests/test_health.py`.
+
+#### 1. Liveness Health Endpoint (`GET /api/health/`)
+- **Purpose:** Stateless, unauthenticated process liveness probe for the hosting platform (Render).
+- **Behavior:** Returns HTTP 200 OK with `application/json` payload `{"status": "healthy"}`.
+- **Strict Boundary:** Executes zero database queries (`assertNumQueries(0)`) and makes zero external network calls.
+- **Limitations:** A successful response confirms that Gunicorn and Django routing are responsive; it does **not** establish database readiness, contact-form persistence, or email delivery. If the database is unreachable, `/api/health/` still returns 200 while `/api/contact/` returns sanitized HTTP 500 without restarting the container.
+
+#### 2. Backend Production Startup Configuration (Render)
+- **Root Directory:** `backend`
+- **Build Command:** `pip install -r requirements.txt`
+- **WSGI Dependency:** Declared as `gunicorn>=23.0,<24.0; sys_platform != 'win32'` in `backend/requirements.txt`. On Linux (Render), Gunicorn is installed; on Windows development machines, Gunicorn is skipped cleanly.
+- **Startup Command:**
+  ```bash
+  gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 60
+  ```
+- **Resource Sizing:** 1 worker with 2 threads is chosen for Render's 512 MB RAM / 0.1 CPU free container to avoid memory pressure while handling concurrent health probes and contact submissions.
+- **Production Environment Rules:**
+  - `DJANGO_DEBUG=False` must be configured in Render dashboard environment variables.
+  - `DJANGO_SECRET_KEY` must be configured with a secure random key on Render and never committed.
+  - **Zero Startup Migrations:** Startup must **never** run `python manage.py migrate`. Migrations are executed out-of-band via Option A architecture.
+
+#### 3. Frontend Static Hosting Architecture (Cloudflare Pages)
+- **Router Configuration:** Retains `createWebHashHistory()` in `app/src/router/index.ts`.
+- **Public URL Topology:** Visitor-facing routes are hash-based (`/#/orientation`, `/#/project-01`, `/#/approach`, `/#/record`, `/#/deep-engineering`, `/#/about`, `/#/contact`).
+- **Static Compatibility:** Static hosts serve `index.html` on root, and client-side hash routing resolves views natively in the browser without server rewrite rules or `_redirects`.
+
+#### 4. Unverified Deployment Assumptions
+- Live Render `$PORT` binding, container initialization, and edge TLS proxy forwarding remain unverified until deployment.
+- Live Gunicorn startup on a genuine Linux host remains unverified locally (Windows development uses `runserver`).
+- Live TiDB Cloud Serverless connectivity, TLS handshake (port 4000), and account permissions remain unverified.
+- Outbound SMTP blocking on Render remains open; real email delivery requires future integration of an approved zero-cost HTTP email API (Finding D09-04).
 
 ## 6. Required Approval Before Implementation
 

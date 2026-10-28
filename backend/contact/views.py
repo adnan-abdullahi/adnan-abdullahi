@@ -26,6 +26,21 @@ RECEIPT_CONFIRMATION_MESSAGE = (
 )
 
 
+class HealthCheckView(APIView):
+    """
+    GET /api/health/
+    Stateless liveness probe for hosting platforms (Render).
+    Confirms the Django WSGI application process is responsive.
+    Performs zero database queries, zero external network calls,
+    and returns a minimal sanitized status response.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request, *args, **kwargs):
+        return Response({"status": "healthy"}, status=status.HTTP_200_OK)
+
+
 class ContactAPIView(APIView):
     """
     POST /api/contact/
