@@ -10,6 +10,7 @@ import json
 import urllib.error
 import urllib.request
 import uuid
+from email.message import Message
 from unittest.mock import MagicMock, patch
 from django.core.cache import cache
 from django.db import DatabaseError
@@ -329,7 +330,7 @@ class ContactAPITests(APITestCase):
             url="https://api.resend.com/emails",
             code=422,
             msg="Unprocessable Entity",
-            hdrs={},
+            hdrs=Message(),
             fp=io.BytesIO(error_payload)
         )
         mock_urlopen.side_effect = http_err
@@ -344,6 +345,7 @@ class ContactAPITests(APITestCase):
         self.assertEqual(msg.delivery_status, ContactMessage.STATUS_FAILED)
         self.assertEqual(msg.delivery_attempts, 1)
         self.assertIsNotNone(msg.last_attempt_at)
+        assert msg.delivery_error is not None
         self.assertIn("Resend HTTP 422: The domain example.com is not verified", msg.delivery_error)
         # Verify secret key was not leaked
         self.assertNotIn("re_test_secret_api_key_123", msg.delivery_error)
@@ -371,6 +373,7 @@ class ContactAPITests(APITestCase):
         msg = ContactMessage.objects.get(id=record_id)
         self.assertEqual(msg.delivery_status, ContactMessage.STATUS_FAILED)
         self.assertEqual(msg.delivery_attempts, 1)
+        assert msg.delivery_error is not None
         self.assertIn("Network error: URLError (Connection timed out)", msg.delivery_error)
 
     @override_settings(
@@ -396,6 +399,7 @@ class ContactAPITests(APITestCase):
         msg = ContactMessage.objects.get(id=record_id)
         self.assertEqual(msg.delivery_status, ContactMessage.STATUS_FAILED)
         self.assertEqual(msg.delivery_attempts, 0)
+        assert msg.delivery_error is not None
         self.assertIn("Missing required notification configuration", msg.delivery_error)
         self.assertIn("RESEND_API_KEY", msg.delivery_error)
         self.assertIn("CONTACT_NOTIFICATION_TO", msg.delivery_error)
@@ -419,6 +423,7 @@ class ContactAPITests(APITestCase):
         msg = ContactMessage.objects.get(id=record_id)
         self.assertEqual(msg.delivery_status, ContactMessage.STATUS_FAILED)
         self.assertEqual(msg.delivery_attempts, 0)
+        assert msg.delivery_error is not None
         self.assertIn("Missing required notification configuration: CONTACT_NOTIFICATION_TO", msg.delivery_error)
         self.assertNotIn("RESEND_API_KEY", msg.delivery_error)
         mock_urlopen.assert_not_called()
@@ -448,6 +453,7 @@ class ContactAPITests(APITestCase):
         msg = ContactMessage.objects.get(id=record_id)
         self.assertEqual(msg.delivery_status, ContactMessage.STATUS_FAILED)
         self.assertEqual(msg.delivery_attempts, 0)
+        assert msg.delivery_error is not None
         self.assertIn("Simulation mode (RESEND_API_KEY=simulate) is prohibited in production (DEBUG=False).", msg.delivery_error)
         self.assertNotEqual(msg.delivery_status, ContactMessage.STATUS_SENT)
         self.assertNotEqual(msg.delivery_status, ContactMessage.STATUS_SIMULATED)
