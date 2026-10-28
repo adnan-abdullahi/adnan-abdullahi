@@ -50,33 +50,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration
-# Default: Least-privilege runtime account (portfolio_user)
-DB_NAME = os.getenv('DB_NAME', 'portfolio_db')
-DB_USER = os.getenv('DB_USER', 'portfolio_user')
-DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
-DB_PORT = os.getenv('DB_PORT', '3306')
 
-# Check if running a migration command
-is_migrate_command = any(arg == 'migrate' or arg.startswith('migrate') for arg in sys.argv)
-if is_migrate_command or os.getenv('DJANGO_MIGRATE_MODE') == '1':
-    # Dynamic migration identity retrieval from Windows Credential Manager
-    try:
-        from credential_vault import get_migration_credential, has_migration_credential
-        if has_migration_credential():
-            mig_user, mig_pw = get_migration_credential()
-            DB_USER = mig_user
-            DB_PASSWORD = mig_pw
-        else:
-            raise RuntimeError(
-                "Migration execution blocked: 'portfolio_migrator' credential not found in Windows Credential Manager."
-            )
-    except ImportError as e:
-        raise RuntimeError(
-            f"Migration execution blocked: Unable to import credential_vault module: {e}"
-        )
-
-if 'test' in sys.argv:
+# 1. Test runner isolation: Always evaluate first
+# Supported test invocation: manage.py test [options]
+is_test_command = len(sys.argv) > 1 and sys.argv[1] == 'test'
+if is_test_command:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -84,6 +62,36 @@ if 'test' in sys.argv:
         }
     }
 else:
+    # 2. Runtime baseline: Least-privilege application account (portfolio_user)
+    DB_NAME = os.getenv('DB_NAME', 'portfolio_db')
+    DB_USER = os.getenv('DB_USER', 'portfolio_user')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
+    DB_PORT = os.getenv('DB_PORT', '3306')
+
+    # 3. Elevated migration identity: Gated strictly to the 'migrate' subcommand
+    is_migrate_command = len(sys.argv) > 1 and sys.argv[1] == 'migrate'
+    if is_migrate_command:
+        try:
+            from credential_vault import get_migration_database_credentials
+            DB_USER, DB_PASSWORD = get_migration_database_credentials()
+        except (RuntimeError, ImportError) as e:
+            raise RuntimeError(f"Database migration aborted: {e}") from None
+
+    # Base MySQL connection options
+    db_options = {
+        'charset': 'utf8mb4',
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+    }
+
+    # Optional TLS options for remote MySQL / TiDB Cloud
+    db_ssl_mode = os.getenv('DB_SSL_MODE')
+    db_ssl_ca = os.getenv('DB_SSL_CA')
+    if db_ssl_mode:
+        db_options['ssl_mode'] = db_ssl_mode
+    if db_ssl_ca:
+        db_options['ssl'] = {'ca': db_ssl_ca}
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -92,10 +100,7 @@ else:
             'PASSWORD': DB_PASSWORD,
             'HOST': DB_HOST,
             'PORT': DB_PORT,
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
+            'OPTIONS': db_options,
         }
     }
 

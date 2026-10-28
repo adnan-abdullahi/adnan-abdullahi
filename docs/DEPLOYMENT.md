@@ -133,13 +133,51 @@ The goal is no required monetary cost. The plan cannot promise permanent availab
 | ID | Finding | Risk / impact | Proposed response | Status |
 |---|---|---|---|---|
 | D09-01 | Production frontend cannot rely on Vite's localhost API proxy. | Contact submissions will target the wrong origin or fail. | Introduce a production API base URL or approved equivalent while retaining the local proxy. | Proposed; approval required |
-| D09-02 | Migration credentials depend on Windows Credential Manager. | Linux migration execution is expected to fail. | Design portable, secret-safe migration credentials and a least-privilege migration process. | Proposed; approval required |
+| D09-02 | Migration credentials depend on Windows Credential Manager. | Linux migration execution is expected to fail. | Implemented Option A: platform-neutral credential_vault with fail-closed precedence (DB_MIGRATE_* -> Windows vault -> fail closed) and out-of-band TLS migration execution. | Implemented locally; live database connectivity unverified |
 | D09-03 | No dedicated health-check route was found. | Hosting health checks may fail or require an unsuitable endpoint. | Propose a minimal health endpoint that reveals no secrets or sensitive state. | Proposed; approval required |
 | D09-04 | Contact email defaults to console backend. | Messages may be stored without notifying the portfolio owner. | Investigate a free email API and verify sender requirements; do not claim delivery until tested. | Open |
 | D09-05 | CORS and allowed hosts default to local development values. | Public frontend requests may be rejected or host validation may fail. | Configure narrowly scoped production origins/hosts through environment variables. | Proposed; approval required |
 | D09-06 | Free Render web service has cold starts and is not recommended by Render for production. | Delayed first request and limited reliability. | Treat as a demonstration/evaluation environment only under the current $0 constraint. | Constraint accepted for evaluation only; human confirmation still required |
 | D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Prefer a validated persistent MySQL-compatible free tier with spending capped at $0; document quota and backup limits. | Provisional |
 | D09-08 | No dedicated production deployment configuration was found in the inspected files/search. | Setup may be non-reproducible. | After approval, document build/start commands, environment variables, migrations and verification. | Pending |
+
+### 5.1 Database Credential Architecture & Privilege Separation (Finding D09-02)
+
+Following review in Stage 09.3, the database credential architecture (Option A) was implemented locally across `backend/credential_vault.py`, `backend/config/settings.py`, `backend/.env.example`, and `backend/tests/test_credentials.py`.
+
+#### 1. Runtime vs. Migration Identities
+- **Runtime Identity (`portfolio_user`):**
+  - Used exclusively by the runtime web service (WSGI/ASGI), local development server (`runserver`), and read-only utilities.
+  - Demonstrated application requirements: strictly `SELECT, INSERT, UPDATE` on `portfolio_db.*` (conforming to `ContactMessage` query behavior in `backend/contact/views.py`).
+  - Prohibited privileges: `DELETE`, `CREATE`, `ALTER`, `DROP`, `REFERENCES`, `INDEX`.
+- **Migration Identity (`portfolio_migrator`):**
+  - Used exclusively for executing schema migrations via `python manage.py migrate` out-of-band from the developer workstation or dedicated migration runner.
+  - Required privileges: `SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES` on `portfolio_db.*` (subject to TiDB Cloud supported database-level grants).
+
+#### 2. Safe Credential Handling & Out-of-Band Execution
+- **Render Secret Isolation:** The Render Web Service dashboard must **never** contain `DB_MIGRATE_USER` or `DB_MIGRATE_PASSWORD`. Only runtime `DB_USER` and `DB_PASSWORD` are configured on Render.
+- **Deterministic Credential Resolution:**
+  - If either `DB_MIGRATE_USER` or `DB_MIGRATE_PASSWORD` is present in the environment, the environment is the chosen source.
+  - If incomplete, empty, or whitespace-only, the system fails closed immediately with `RuntimeError` without querying the Windows vault or falling back to `portfolio_user`.
+  - Passwords are preserved byte-for-byte (never trimmed).
+  - If neither environment variable is configured: on Windows, falls back to Windows Credential Manager (`portfolio_db_migrator`); on Linux, fails closed with `RuntimeError`.
+  - Zero secrets or password tokens are leaked into exception messages or logs.
+
+#### 3. Remote TLS Configuration
+- TiDB Cloud Serverless mandates encrypted TLS connections on port `4000` (Let's Encrypt ISRG Root X1 root certificate).
+- Environment-controlled via `DB_SSL_MODE=VERIFY_IDENTITY` and `DB_SSL_CA` in `backend/config/settings.py`. When unconfigured, local unencrypted MySQL on `127.0.0.1:3306` remains undisturbed.
+
+#### 4. Verification Status and Boundaries
+- **Completed Locally:**
+  - Automated unit test suite (`backend/tests/test_credentials.py`): 17 tests passing.
+  - Existing backend regression suite (`backend/contact/tests.py`): 14 tests passing.
+  - Frontend unit tests and production build passing.
+  - Simulated non-Windows subprocess import safety verified.
+- **Pending Verification:**
+  - Genuine Linux kernel verification (Docker was not available on the local Windows host; container verification remains pending).
+  - Remote TiDB TLS handshake, hostname verification, and gateway reachability (port 4000).
+  - Live migration execution and table creation in TiDB Cloud.
+- **Explicit Boundary:** The system is **NOT production-verified**. Live database connectivity, accounts, and external services remain unconfigured pending explicit approval.
 
 ## 6. Required Approval Before Implementation
 
