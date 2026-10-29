@@ -37,3 +37,4 @@ env/
 # Backend virtual environment and secrets
 backend/.venv/
 backend/.env
+backend/certs/
