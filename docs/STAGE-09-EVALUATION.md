@@ -1,6 +1,6 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — 09.1 recorded; 09.2 read-only audit completed (2026-10-27)  
+**Status:** Active — Database compatibility & model integrity verified (Stages 2.3–2.7); Stage 2.8 reconciliation in progress; live deployment pending explicit authorization  
 **Project:** Project 01 — Professional Engineering Portfolio  
 **Stage:** 09 of 10  
 **Governing project record:** `docs/PROJECT-01.md`
@@ -119,11 +119,24 @@ Exit condition: A written audit distinguishes confirmed facts, uncertainties, tr
 
 ### 09.3 — Deployment Preparation
 
-**Status:** Pending explicit review and approval.
+**Status:** In progress — Core configuration, platform-aware database compatibility, and model-level data integrity implemented and verified locally (2026-11-07).
 
-Activities may include approved environment/configuration changes, reproducible build and start commands, secure environment variable handling, database connectivity, migration procedure, frontend API configuration, CORS/allowed-host configuration, and deployment documentation.
+Implemented and verified locally:
+- Platform-neutral migration credential architecture (Option A) with fail-closed resolution.
+- Liveness health probe (`GET /api/health/`) executing 0 database queries.
+- Resend HTTPS API email notification integration with decoupled post-commit dispatch.
+- Cross-platform database driver architecture: Windows PyMySQL substitution to bypass Schannel TLS 1.3 decryption defects (`0x80090330`), retaining native `mysqlclient` on Linux.
+- Platform-aware TLS configuration (`ssl_mode: VERIFY_IDENTITY` on Linux; `check_hostname: True` on Windows).
+- Django LTS alignment to 5.2.18 (`Django>=5.2.18,<5.3`) to preserve compatibility with TiDB's MySQL 8.0.11 protocol version header.
+- TiDB Cloud Serverless database integrity audit: identified that `tidb_enable_check_constraint = OFF`, verified empty database baseline (0 tables).
+- Application-level data integrity: `ContactMessage.delivery_status` validation enforced at model level (`clean_delivery_status()`, `clean()`, `save()`).
+- Full backend regression test suite passing: 52/52 tests passing in in-memory SQLite isolation.
 
-Exit condition: Approved changes are implemented and verified locally; no secrets are committed; the local development workflow remains functional.
+Pending authorization & execution:
+- Controlled migration execution against TiDB Cloud (`portfolio_migrator`).
+- Production environment variable configuration on hosting providers.
+
+Exit condition: Approved changes are implemented and verified locally; no secrets are committed; the local development workflow remains functional. **Satisfied locally:** Local configuration, driver compatibility, and test suite verified; live migration and deployment remain pending explicit authorization.
 
 ### 09.4 — Public Deployment
 
@@ -219,9 +232,16 @@ These questions must be resolved before public deployment is described as ready.
 - [x] Stage 08 baseline and known deployment-relevant facts recorded.
 - [x] 09.2 read-only deployment-readiness audit completed and recorded in `docs/DEPLOYMENT.md`.
 - [x] Provisional zero-cost architecture and key limitations documented.
-- [ ] Human review and decision on the proposed architecture.
-- [ ] Resolve and approve the portable migration, health-check, production API/CORS, and contact-notification approach.
-- [ ] Begin 09.3 deployment preparation only after explicit approval.
-- [ ] Create/configure external services and deploy only after separate explicit authorization.
+- [x] Human review and decision on the proposed architecture completed.
+- [x] Portable migration credential architecture (Option A) approved, implemented, and verified locally.
+- [x] Liveness health endpoint (`GET /api/health/`) implemented and verified.
+- [x] Contact notification architecture via Resend HTTPS API implemented and verified.
+- [x] Cross-platform database driver and platform-aware TLS settings implemented (Stage 2.3).
+- [x] Django 5.2.18 LTS dependency alignment completed and verified (Stage 2.5).
+- [x] TiDB Cloud database baseline and CHECK constraint audit completed (Stage 2.6).
+- [x] Model-level data integrity for `ContactMessage` implemented and verified with 8 new unit tests (52/52 passing) (Stage 2.7).
+- [ ] Stage 2.8 GitHub reconciliation completed (in progress).
+- [ ] Controlled database migration execution against TiDB Cloud (`portfolio_migrator`).
+- [ ] Create/configure external services and deploy only after separate explicit authorization (09.4).
 
-**Current stage position:** 09.2 — Read-only audit completed; provisional architecture awaits human decision. No deployment has been performed.
+**Current stage position:** 09.3 / Stage 2.8 — Local database compatibility, integrity, and reconciliation completed; controlled database migration and live public deployment remain pending explicit authorization.

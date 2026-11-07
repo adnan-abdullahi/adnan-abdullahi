@@ -122,3 +122,61 @@ Provider references recorded in `docs/DEPLOYMENT.md`:
 ### Next step
 
 The project owner should review the provisional architecture and its limitations. Only after explicit approval should 09.3 begin with proposed implementation changes, presented for review before execution. Public deployment requires a separate explicit authorization.
+
+---
+
+## Session 03 — Database Compatibility, Integrity, and Reconciliation (Stages 2.3–2.8)
+
+**Date:** 2026-11-07  
+**Position:** Stage 09 Validation — Stages 2.3 through 2.8 (Reconciliation in Progress)
+
+### Purpose
+
+Record the verified engineering sequence for database driver compatibility, Django version alignment, database integrity auditing, model-level validation enforcement, and Git repository reconciliation.
+
+### Verified Engineering Sequence
+
+1. **Stage 2.3 — Cross-Platform Database Connectivity & TLS Compatibility:**
+   - Identified a fatal Windows Schannel TLS 1.3 decryption defect (`SEC_E_DECRYPT_FAILURE` / `0x80090330`) in native `mysqlclient` (built against MariaDB Connector/C) when connecting to TiDB Cloud Serverless over TLS.
+   - Resolved by conditionally substituting `pymysql` as `MySQLdb` in `backend/config/__init__.py` exclusively on Windows (`sys.platform == 'win32'`), utilizing Python's built-in OpenSSL stack.
+   - Retained native `mysqlclient` on Linux and Render environments.
+   - Implemented platform-aware TLS options in `backend/config/settings.py`: configured `ssl_mode: VERIFY_IDENTITY` for native `mysqlclient` on Linux, and `ssl: {'ca': ..., 'check_hostname': True}` for PyMySQL on Windows.
+
+2. **Stage 2.4 & 2.5 — Django/TiDB Version Compatibility & Controlled Alignment:**
+   - TiDB Cloud advertises MySQL protocol version string `8.0.11-TiDB-Serverless`.
+   - Django 6.1.2 rejects MySQL versions below 8.0.13 at connection initialization (`NotSupportedError: MySQL 8.0.13 or later is required (found 8.0.11)`).
+   - In Stage 2.5, aligned the Django dependency in `backend/requirements.txt` to `Django>=5.2.18,<5.3`. Django 5.2.18 LTS supports MySQL 8.0.11, resolving the initialization check without custom monkey-patching.
+   - Added conditional dependency `pymysql>=1.1.1,<2.0; sys_platform == 'win32'`.
+
+3. **Stage 2.6 — Database Integrity and Migration Compatibility Investigation:**
+   - Conducted an evidence-based audit of TiDB Cloud Serverless using an approved read-only inspection account (`portfolio_mcp`).
+   - Inspected global system variable: `tidb_enable_check_constraint = OFF`. In this TiDB configuration, `CHECK` constraints defined in DDL are parsed and stored in metadata, but are **not** enforced by the storage engine during `INSERT` or `UPDATE`.
+   - Verified the current TiDB database baseline: `portfolio_db` contains **0 tables** and **zero migration history**.
+   - Verified that `sqlmigrate contact 0001` outputs a DDL `CHECK` constraint on `delivery_status`, but due to the engine setting, raw SQL writes would bypass constraint checks.
+
+4. **Stage 2.7 — Model-Level Data Integrity Implementation and Acceptance:**
+   - Implemented application-level validation on `ContactMessage` in `backend/contact/models.py` to guard `delivery_status` against invalid values before persistence.
+   - Implemented dedicated `clean_delivery_status()` validating against `STATUS_CHOICES`.
+   - Overrode `clean()` to include delivery status validation in standard model validation workflows.
+   - Overrode `save()` with carefully scoped validation: guards full model saves (`objects.create()`, `save()`), and guards partial updates when `'delivery_status'` is present in `update_fields`. Empty `update_fields` calls are handled safely as no-ops.
+   - Added 8 dedicated unit tests in `backend/tests/test_contact_api.py` covering valid creations, valid transitions, invalid status rejection, case/whitespace boundary assertions, partial update scoping, and empty `update_fields` no-ops.
+   - Completed a strictly read-only acceptance audit: 52 out of 52 backend tests passing cleanly.
+
+5. **Stage 2.8 — Repository Inventory, Reconciliation, and Logical Commits (In Progress):**
+   - Conducted read-only inventory establishing a clean working tree with 5 modified tracked files (+217 insertions, -3 deletions) and 0 untracked files.
+   - Preserved all existing changes and divided them into logical, bisectable commits:
+     - Commit 1 (`fix(backend)`): Cross-platform database driver and TLS configuration.
+     - Commit 2 (`feat(contact)`): Model-level delivery status integrity and 8 unit tests.
+     - Commit 3 (`docs(validation)`): Documentation and journal reconciliation (active).
+   - Final regression verification and push handover to project owner remain in progress.
+
+### Evidence & Verification Summary
+
+- **Backend Test Suite:** 52 passed, 0 failures, 0 errors, 0 silenced issues (ran in ~1.1s).
+- **Test Database Isolation:** Test suite executed strictly against an isolated in-memory SQLite database (`--settings=config.settings`). Zero writes occurred against TiDB.
+- **Migration Status:** Zero migration drift detected via `makemigrations --dry-run` (`No changes detected`). No database migrations were executed; `portfolio_db` remains in an unmigrated 0-table baseline.
+- **Application Validation Boundary:** Model validation safeguards application flows utilizing model `save()`. Direct raw SQL queries, `QuerySet.update()`, and `QuerySet.bulk_create()` / `bulk_update()` bypass Django model methods and are not protected by application-level validation.
+
+### Status and Next Steps
+
+Stage 2.8 is in progress. Upon completion of documentation updates, final test suite verification will be run and the push instructions will be handed over to the project owner. Live database migration and public deployment remain unexecuted and strictly gated behind project owner authorization.

@@ -31,14 +31,17 @@ No external account has been created or configured, and no application or hostin
 
 - Django REST Framework exposes `/api/contact/`.
 - Contact submissions are persisted to a relational database before notification dispatch; the API returns HTTP 201 after the database receipt succeeds.
-- The current database engine is `django.db.backends.mysql`, configured by environment variables.
-- Dependencies include Django, Django REST Framework, django-cors-headers, `mysqlclient==2.3.0`, and python-dotenv.
+- The current database engine is `django.db.backends.mysql`, configured by environment variables, with a cross-platform driver architecture:
+  - On Windows: pure-Python `pymysql` substituted as `MySQLdb` in `backend/config/__init__.py` using Python's OpenSSL to bypass MariaDB Connector/C Schannel TLS 1.3 decryption defect (`0x80090330`).
+  - On Linux / Render: native `mysqlclient==2.3.0` retained for production runtime.
+- Platform-aware TLS options configured in `backend/config/settings.py` (`ssl_mode: VERIFY_IDENTITY` on Linux; `ca` and `check_hostname: True` on Windows).
+- Dependencies: `Django>=5.2.18,<5.3` (aligned to LTS to maintain compatibility with TiDB's MySQL 8.0.11 protocol string), `djangorestframework>=3.15,<4.0`, `django-cors-headers>=4.4,<5.0`, `gunicorn>=23.0,<24.0; sys_platform != 'win32'`, `mysqlclient==2.3.0`, `pymysql>=1.1.1,<2.0; sys_platform == 'win32'`, and `python-dotenv>=1.0,<2.0`.
 - `DJANGO_SECRET_KEY` is required at startup.
 - `DJANGO_DEBUG` defaults to false; `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` are environment-configurable.
 - CORS defaults currently list local development origins only.
 - Anonymous contact submissions are rate-limited to 5/hour.
-- No dedicated health-check route was found in the inspected URL configuration; `/api/contact/` is a POST endpoint and is not a suitable assumption for an HTTP-200 health check.
-- No deployment-specific Dockerfile, Procfile, or Render Blueprint was found in the inspected repository search.
+- Health check route: Dedicated `GET /api/health/` liveness endpoint implemented (returns HTTP 200, 0 DB queries).
+- Deployment configuration: Render WSGI startup command using Gunicorn documented for Linux.
 
 ### Migration and credential portability
 
@@ -96,7 +99,7 @@ Official service reference: https://render.com/docs/web-services
 
 ### Database — TiDB Cloud Starter, MySQL-compatible
 
-**Provisional option:** TiDB Cloud Starter in MySQL-compatible mode, subject to compatibility testing.
+**Status:** Compatibility and integrity verified locally (Stages 2.3–2.7); live database migration pending explicit authorization.
 
 Official references:
 - Free quotas and limitations: https://docs.pingcap.com/tidbcloud/serverless-limitations/
@@ -105,11 +108,12 @@ Official references:
 
 The current official docs state that the first five MySQL-compatible Starter instances per organization have a free quota of 5 GiB row-based storage, 5 GiB columnar storage, and 50 million request units per month. The free option does not require a credit card. When the free quota is reached, new connections may be restricted until the quota resets. Setting the spending limit to zero is necessary to preserve the no-spend requirement.
 
-**Advantages:** It may preserve the existing Django MySQL engine and avoid a database-engine migration.
-
-**Uncertainties to verify:** Compatibility of the current schema/migrations and `mysqlclient` driver, connection/TLS configuration, service region, quota behavior, credential handling, and whether the service terms fit the intended public contact workload.
-
-Do not create a database or migrate data during this audit.
+**Verified Compatibility Findings (Stages 2.3–2.7):**
+- **Protocol Version:** TiDB Cloud advertises `8.0.11-TiDB-Serverless`. Compatible with Django 5.2.18 LTS; incompatible with Django 6.1.2 without modification.
+- **Connection & TLS:** TiDB Cloud Serverless mandates encrypted TLS on port 4000. On Windows, native `mysqlclient` fails due to Windows Schannel TLS 1.3 decryption defects (`0x80090330`); resolved via pure-Python PyMySQL substitution. On Linux, native `mysqlclient` with `ssl_mode=VERIFY_IDENTITY` is retained.
+- **CHECK Constraints:** Global system variable `tidb_enable_check_constraint = OFF` in TiDB Cloud Serverless. DDL CHECK constraints are parsed but unenforced by the engine. Compensated by model-level application validation on `ContactMessage`.
+- **Database Baseline:** Live database `portfolio_db` verified via read-only inspection as having **zero tables** and **zero migration history**.
+- **Migration Status:** Controlled migration execution has **NOT** been performed.
 
 ### Why not Render Free Postgres?
 
@@ -138,7 +142,7 @@ The goal is no required monetary cost. The plan cannot promise permanent availab
 | D09-04 | Contact email defaults to console backend / Render blocks SMTP. | Outbound SMTP is blocked on Render free tier. | Implemented locally: Resend HTTPS API notification service (Option A post-commit decoupled dispatch, reply-to visitor, zero secret exposure). | Implemented locally; live provider verification pending |
 | D09-05 | CORS and allowed hosts default to local development values. | Public frontend requests may be rejected or host validation may fail. | Configure narrowly scoped production origins/hosts through environment variables. | Proposed; approval required |
 | D09-06 | Free Render web service has cold starts and is not recommended by Render for production. | Delayed first request and limited reliability. | Treat as a demonstration/evaluation environment only under the current $0 constraint. | Constraint accepted for evaluation only; human confirmation still required |
-| D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Prefer a validated persistent MySQL-compatible free tier with spending capped at $0; document quota and backup limits. | Provisional |
+| D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Validated TiDB Cloud Serverless with $0 spending limit; resolved driver/TLS/version compatibility; model validation compensates for unenforced CHECK constraints. | Compatibility verified; live migration pending |
 | D09-08 | No dedicated production deployment configuration was found in the inspected files/search. | Setup may be non-reproducible. | Implemented locally: Declared Gunicorn in requirements.txt with sys_platform != 'win32' marker. Documented Render build/start commands and root directory. | Implemented locally; live hosting verification pending |
 
 ### 5.1 Database Credential Architecture & Privilege Separation (Finding D09-02)
@@ -252,6 +256,39 @@ After deploying to Render with configured Resend environment variables:
 5. Check the owner's email inbox: confirm receipt of the notification containing the reference ID, visitor name, visitor email, timestamp, and message.
 6. Click "Reply" in your email client: confirm the destination address is the visitor's email address (`reply_to`), not the sender address.
 
+### 5.4 Cross-Platform Database Architecture & Integrity Verification (Stages 2.3–2.7)
+
+Following database compatibility investigations in Stages 2.3 through 2.7, the database runtime architecture was established and verified locally.
+
+#### 1. Dual-Driver Architecture Matrix
+- **Windows Runtime (Development & Migration Runner):**
+  - Uses pure-Python `pymysql` (version `>=1.1.1,<2.0`) aliased as `MySQLdb` in `backend/config/__init__.py`.
+  - Driven by Python's native OpenSSL library, cleanly bypassing Windows Schannel TLS 1.3 decryption defects (`0x80090330`).
+  - Configures TLS via `db_options['ssl'] = {'ca': db_ssl_ca, 'check_hostname': True}`.
+- **Linux Runtime (Production Web Service / Render):**
+  - Retains native C-based `mysqlclient==2.3.0` linked against system OpenSSL.
+  - Configures TLS via `db_options['ssl_mode'] = 'VERIFY_IDENTITY'`.
+
+#### 2. Framework Version Alignment
+- Aligned to `Django>=5.2.18,<5.3` (LTS).
+- Prevents connection initialization failure against TiDB Cloud's MySQL 8.0.11 protocol string.
+
+#### 3. Database Integrity & Model-Level Compensation
+- **TiDB Engine Constraint Status:** TiDB Cloud Serverless operates with `tidb_enable_check_constraint = OFF`. While `sqlmigrate` outputs `CHECK (delivery_status IN (...))`, TiDB ignores CHECK constraints during data insertion and modification.
+- **Application-Level Enforcement:** Implemented `clean_delivery_status()`, `clean()`, and `save()` overrides on `ContactMessage`. Validates `delivery_status` on full model saves and partial updates targeting `delivery_status`.
+- **Validation Boundary:** Application-level validation safeguards model operations; direct raw SQL queries and bulk operations (`bulk_create`, `bulk_update`, `QuerySet.update()`) bypass model validation and are not guarded.
+
+#### 4. Verification and Regression Baseline
+- Test suite: 52 out of 52 tests passing (including 8 dedicated model validation tests) in in-memory SQLite isolation.
+- Migration drift: `python manage.py makemigrations --dry-run` confirms zero schema drift.
+- Live database baseline: `portfolio_db` confirmed completely empty (0 tables).
+
+#### 5. Explicitly Unverified Deployment Details
+- **Controlled migration has NOT been executed:** Live tables have not been created in TiDB Cloud.
+- **Render production deployment has NOT been executed:** The application is not deployed or running on Render.
+- **Cloudflare Pages deployment has NOT been executed:** The frontend is not deployed or hosted on Cloudflare Pages.
+- **Production TLS behavior on Render has NOT been observed:** Only Windows development TLS has been locally verified.
+
 ## 6. Required Approval Before Implementation
 
 The audit does not authorize:
@@ -268,8 +305,9 @@ The next decision is whether the project owner approves the proposed architectur
 ## 7. Audit Disposition
 
 **Read-only audit:** Completed against the current GitHub source and official provider documentation on 2026-10-27.  
-**Provisional architecture:** Cloudflare Pages frontend + Render Free Django API + TiDB Cloud Starter MySQL-compatible database.  
-**Real email delivery:** Implemented locally via Resend HTTPS API (Finding D09-04); live acceptance testing pending.
+**Architecture:** Cloudflare Pages frontend + Render Free Django API + TiDB Cloud Starter MySQL-compatible database.  
+**Database compatibility & integrity:** Dual-driver runtime (PyMySQL on Windows, mysqlclient on Linux), platform-aware TLS, Django 5.2.18 LTS alignment, and model-level validation implemented and tested locally (52/52 tests passing).  
+**Real email delivery:** Implemented locally via Resend HTTPS API (Finding D09-04); live acceptance testing pending.  
+**Controlled database migration:** Not performed; live database currently at empty baseline (0 tables).  
 **Public deployment:** Not performed.  
-**Source changes:** None as part of this audit.  
-**Next stage step:** Review the findings and obtain explicit approval before 09.3 deployment preparation.
+**Next stage step:** Review reconciliation and obtain explicit authorization before executing controlled database migration and cloud deployment.
