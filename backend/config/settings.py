@@ -87,10 +87,14 @@ else:
     # Optional TLS options for remote MySQL / TiDB Cloud
     db_ssl_mode = os.getenv('DB_SSL_MODE')
     db_ssl_ca = os.getenv('DB_SSL_CA')
-    if db_ssl_mode:
-        db_options['ssl_mode'] = db_ssl_mode
     if db_ssl_ca:
         db_options['ssl'] = {'ca': db_ssl_ca}
+        if db_ssl_mode == 'VERIFY_IDENTITY':
+            db_options['ssl']['check_hostname'] = True
+
+    # Only pass ssl_mode keyword to native mysqlclient (not supported by PyMySQL)
+    if db_ssl_mode and sys.platform != 'win32':
+        db_options['ssl_mode'] = db_ssl_mode
 
     DATABASES = {
         'default': {
