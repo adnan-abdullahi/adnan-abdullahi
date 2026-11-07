@@ -4,6 +4,7 @@ Conforms strictly to docs/CONTACT-BACKEND-SPECIFICATION.md Section 6.
 """
 import uuid
 import hashlib
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -98,6 +99,58 @@ class ContactMessage(models.Model):
 
     def __str__(self) -> str:
         return f"ContactMessage({self.id}, from={self.email}, status={self.delivery_status})"
+
+    def clean_delivery_status(self) -> None:
+        """
+        Validate that delivery_status conforms to STATUS_CHOICES.
+        Provides application-level data integrity while database CHECK constraints
+        are unenforced in TiDB Serverless (tidb_enable_check_constraint = OFF).
+        """
+        valid_statuses = {choice[0] for choice in self.STATUS_CHOICES}
+        if self.delivery_status not in valid_statuses:
+            raise ValidationError({
+                'delivery_status': (
+                    f"Invalid delivery status '{self.delivery_status}'. "
+                    f"Must be one of: {sorted(valid_statuses)}."
+                )
+            })
+
+    def clean(self) -> None:
+        """Standard Django model validation entry point."""
+        super().clean()
+        self.clean_delivery_status()
+
+    def save(self, *args, **kwargs) -> None:
+        """
+        Enforce delivery_status validation before database persistence.
+        Guards both full saves (objects.create / save()) and partial updates
+        where delivery_status is explicitly listed in update_fields.
+        """
+        update_fields = kwargs.get('update_fields')
+        if update_fields is None and len(args) >= 4:
+            update_fields = args[3]
+
+        if update_fields is not None:
+            # Normalize to frozenset to safely support any iterable without multiple consumption
+            update_fields = frozenset(update_fields)
+            if 'update_fields' in kwargs:
+                kwargs['update_fields'] = update_fields
+            elif len(args) >= 4:
+                args = list(args)
+                args[3] = update_fields
+                args = tuple(args)
+
+            # If update_fields is empty, Django bails out as a no-op; do not validate
+            if not update_fields:
+                super().save(*args, **kwargs)
+                return
+
+            if 'delivery_status' in update_fields:
+                self.clean_delivery_status()
+        else:
+            self.clean_delivery_status()
+
+        super().save(*args, **kwargs)
 
     @staticmethod
     def compute_content_hash(email: str, message: str) -> str:

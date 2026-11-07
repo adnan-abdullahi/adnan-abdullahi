@@ -13,6 +13,7 @@ import uuid
 from email.message import Message
 from unittest.mock import MagicMock, patch
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import DatabaseError
 from django.test import override_settings
 from django.urls import reverse
@@ -500,3 +501,142 @@ class ContactAPITests(APITestCase):
         self.assertEqual(msg.delivery_attempts, 1)
         self.assertIsNone(msg.delivery_error)
         mock_urlopen.assert_not_called()
+
+    # -------------------------------------------------------------------------
+    # 7. Model-Level Status Validation Tests (Stage 2.7 Data Integrity)
+    # -------------------------------------------------------------------------
+
+    def test_create_with_valid_pending_status_succeeds(self):
+        """Creating a record with valid 'pending' delivery_status succeeds."""
+        msg = ContactMessage.objects.create(
+            name="Alice Candidate",
+            email="alice@example.com",
+            message="Valid inquiry message.",
+            content_hash="dummy_hash_001",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_PENDING)
+        db_record = ContactMessage.objects.get(id=msg.id)
+        self.assertEqual(db_record.delivery_status, ContactMessage.STATUS_PENDING)
+
+    def test_create_with_invalid_status_raises_validation_error(self):
+        """Creating a record with an invalid delivery_status raises ValidationError before write."""
+        initial_count = ContactMessage.objects.count()
+        with self.assertRaises(ValidationError) as ctx:
+            ContactMessage.objects.create(
+                name="Bob Invalid",
+                email="bob@example.com",
+                message="Message with invalid status.",
+                content_hash="dummy_hash_002",
+                delivery_status="corrupted_status",
+                delivery_attempts=0,
+            )
+        self.assertIn('delivery_status', ctx.exception.message_dict)
+        self.assertEqual(ContactMessage.objects.count(), initial_count)
+
+    def test_full_save_with_valid_status_transition_succeeds(self):
+        """A full save() transitioning to a valid status ('sent') succeeds."""
+        msg = ContactMessage.objects.create(
+            name="Charlie Engineer",
+            email="charlie@example.com",
+            message="Valid message for transition test.",
+            content_hash="dummy_hash_003",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        msg.delivery_status = ContactMessage.STATUS_SENT
+        msg.delivery_attempts = 1
+        msg.save()
+
+        msg.refresh_from_db()
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_SENT)
+        self.assertEqual(msg.delivery_attempts, 1)
+
+    def test_full_save_with_invalid_status_transition_raises_validation_error(self):
+        """A full save() with an invalid status raises ValidationError and preserves database state."""
+        msg = ContactMessage.objects.create(
+            name="Diana Tech",
+            email="diana@example.com",
+            message="Message before invalid update.",
+            content_hash="dummy_hash_004",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        msg.delivery_status = "malicious_status"
+        with self.assertRaises(ValidationError) as ctx:
+            msg.save()
+
+        self.assertIn('delivery_status', ctx.exception.message_dict)
+        msg.refresh_from_db()
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_PENDING)
+
+    def test_partial_update_with_valid_delivery_status_succeeds(self):
+        """Partial update containing valid delivery_status succeeds."""
+        msg = ContactMessage.objects.create(
+            name="Evan Lead",
+            email="evan@example.com",
+            message="Message for partial update test.",
+            content_hash="dummy_hash_005",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        msg.delivery_status = ContactMessage.STATUS_SIMULATED
+        msg.delivery_attempts = 1
+        msg.save(update_fields=['delivery_status', 'delivery_attempts', 'updated_at'])
+
+        msg.refresh_from_db()
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_SIMULATED)
+        self.assertEqual(msg.delivery_attempts, 1)
+
+    def test_partial_update_with_invalid_delivery_status_raises_validation_error(self):
+        """Partial update containing invalid delivery_status raises ValidationError and preserves database state."""
+        msg = ContactMessage.objects.create(
+            name="Fiona Dev",
+            email="fiona@example.com",
+            message="Message before invalid partial update.",
+            content_hash="dummy_hash_006",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        msg.delivery_status = "bogus_status"
+        with self.assertRaises(ValidationError) as ctx:
+            msg.save(update_fields=['delivery_status'])
+
+        self.assertIn('delivery_status', ctx.exception.message_dict)
+        msg.refresh_from_db()
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_PENDING)
+
+    def test_unrelated_partial_update_succeeds_without_triggering_status_validation(self):
+        """Updating an unrelated field via update_fields succeeds without validating delivery_status."""
+        msg = ContactMessage.objects.create(
+            name="George Architect",
+            email="george@example.com",
+            message="Message for unrelated partial update test.",
+            content_hash="dummy_hash_007",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        msg.delivery_status = "unpersisted_invalid_status"
+        msg.delivery_error = "Diagnostic note: delivery delayed."
+        msg.save(update_fields=['delivery_error', 'updated_at'])
+
+        msg.refresh_from_db()
+        self.assertEqual(msg.delivery_error, "Diagnostic note: delivery delayed.")
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_PENDING)
+
+    def test_empty_update_fields_is_safe_noop_and_does_not_persist_invalid_status(self):
+        """An empty update_fields iterable is a safe no-op that does not persist an invalid in-memory status."""
+        msg = ContactMessage.objects.create(
+            name="Hannah QA",
+            email="hannah@example.com",
+            message="Message for empty update_fields test.",
+            content_hash="dummy_hash_008",
+            delivery_status=ContactMessage.STATUS_PENDING,
+            delivery_attempts=0,
+        )
+        msg.delivery_status = "unpersisted_invalid_status"
+        msg.save(update_fields=[])
+
+        msg.refresh_from_db()
+        self.assertEqual(msg.delivery_status, ContactMessage.STATUS_PENDING)
