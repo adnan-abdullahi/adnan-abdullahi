@@ -4,6 +4,7 @@ precedence rules, incomplete pair rejection, command isolation, and secret redac
 """
 import os
 import sys
+import ctypes
 import subprocess
 import unittest
 from unittest import mock
@@ -240,3 +241,101 @@ class TestCommandIsolationAndSettings(SimpleTestCase):
         self.assertTrue(evaluate_test_command(['manage.py', 'test']))
         self.assertTrue(evaluate_test_command(['manage.py', 'test', 'contact']))
         self.assertFalse(evaluate_test_command(['manage.py', 'migrate', '--database=test']))
+
+
+class TestCredentialBlobDecoding(unittest.TestCase):
+    """Test safe decoding of Windows Credential Manager generic credential secret blobs."""
+
+    def test_decode_utf16le_ascii_blob(self):
+        """GUI-created generic credentials stored as UTF-16LE ASCII decode correctly."""
+        raw_password = "MigrationPass123!#"
+        blob = raw_password.encode('utf-16le')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_utf16le_unicode_blob(self):
+        """UTF-16LE blobs with unicode characters decode correctly."""
+        raw_password = "P@sswörd!#$123"
+        blob = raw_password.encode('utf-16le')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_utf8_ascii_blob(self):
+        """Programmatically stored UTF-8 ASCII credentials decode correctly."""
+        raw_password = "StandardUtf8Pass456$"
+        blob = raw_password.encode('utf-8')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_utf8_unicode_blob(self):
+        """Programmatically stored UTF-8 Unicode credentials decode correctly."""
+        raw_password = "ÜserP@sswørd_987"
+        blob = raw_password.encode('utf-8')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_utf16_with_bom(self):
+        """Blobs starting with UTF-16 BOM decode correctly."""
+        raw_password = "BomPassword789!"
+        blob = raw_password.encode('utf-16')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_utf8_with_bom(self):
+        """Blobs starting with UTF-8 BOM decode correctly."""
+        raw_password = "Utf8BomPassword_321"
+        blob = raw_password.encode('utf-8-sig')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_utf16le_trailing_null_stripped(self):
+        """C-style single trailing null character in UTF-16LE is stripped safely."""
+        raw_password = "PasswordWithTrailingNull"
+        blob = (raw_password + "\x00").encode('utf-16le')
+        self.assertEqual(credential_vault.decode_credential_blob(blob), raw_password)
+
+    def test_decode_whitespace_preserved_exactly(self):
+        """Intentional whitespace in passwords is preserved byte-for-byte across encodings."""
+        raw_password = "  leading_and_trailing_space_pw \t \n "
+        blob_utf16 = raw_password.encode('utf-16le')
+        blob_utf8 = raw_password.encode('utf-8')
+        self.assertEqual(credential_vault.decode_credential_blob(blob_utf16), raw_password)
+        self.assertEqual(credential_vault.decode_credential_blob(blob_utf8), raw_password)
+
+    def test_decode_empty_blob_fails_closed(self):
+        """Empty credential blob raises RuntimeError."""
+        with self.assertRaises(RuntimeError) as ctx:
+            credential_vault.decode_credential_blob(b"")
+        self.assertIn("credential secret blob is empty", str(ctx.exception))
+
+    def test_decode_embedded_null_fails_closed(self):
+        """Decoded password containing embedded null characters fails closed."""
+        with self.assertRaises(RuntimeError) as ctx:
+            credential_vault.decode_credential_blob(b"p\x00\x00\x00s\x00")
+        self.assertIn("embedded null characters", str(ctx.exception))
+
+    def test_decode_invalid_bytes_fails_closed_without_leaking_secret(self):
+        """Corrupted or invalid byte sequence fails closed without leaking data."""
+        with self.assertRaises(RuntimeError) as ctx:
+            credential_vault.decode_credential_blob(b"\xff\xff\xff\xff")
+        self.assertIn("Credential decoding failed", str(ctx.exception))
+        self.assertNotIn("ffff", str(ctx.exception))
+
+    def test_get_migration_credential_decodes_utf16le_vault_entry(self):
+        """get_migration_credential properly decodes UTF-16LE blob from Windows vault."""
+        if not credential_vault.IS_WINDOWS:
+            self.skipTest("Windows-specific vault structure test")
+
+        dummy_username = "test_migrator_user"
+        dummy_password = "VaultPasswordSecret123"
+        dummy_blob = dummy_password.encode('utf-16le')
+
+        cred = credential_vault.CREDENTIAL()
+        cred.UserName = dummy_username
+        blob_buf = ctypes.create_string_buffer(dummy_blob, len(dummy_blob))
+        cred.CredentialBlob = ctypes.cast(blob_buf, ctypes.c_void_p)
+        cred.CredentialBlobSize = len(dummy_blob)
+
+        with mock.patch.object(credential_vault, 'is_vault_available', return_value=True):
+            with mock.patch.object(credential_vault, 'CredReadW', return_value=True):
+                with mock.patch('ctypes.byref', side_effect=lambda x: [setattr(x, 'contents', cred), x][1]):
+                    with mock.patch.object(credential_vault, 'CredFree') as mock_free:
+                        user, password = credential_vault.get_migration_credential("dummy_target")
+                        self.assertEqual(user, dummy_username)
+                        self.assertEqual(password, dummy_password)
+                        mock_free.assert_called_once()
+

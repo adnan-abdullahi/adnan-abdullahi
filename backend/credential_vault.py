@@ -81,6 +81,67 @@ def store_migration_credential(username: str, password: str, target: str = DEFAU
         err = ctypes.GetLastError()
         raise RuntimeError(f"CredWriteW failed with error code: {err}")
 
+def decode_credential_blob(blob: bytes) -> str:
+    """
+    Safely decode a credential secret blob retrieved from Windows Credential Manager.
+
+    Windows Credential Manager entries created via the Windows GUI (Control Panel
+    Credential Manager) or standard Win32 applets store generic credential secrets as
+    UTF-16LE (wide characters). Entries created programmatically via Python or POSIX
+    tools typically store UTF-8 bytes.
+
+    Decoding strategy:
+    1. If the blob is empty, raise RuntimeError (fail closed).
+    2. Check for explicit Byte Order Marks (UTF-16 LE/BE or UTF-8 BOM).
+    3. If null bytes (b'\\x00') are present, the blob represents wide characters
+       (UTF-16LE). Decode using 'utf-16le'. Strip a single trailing C-style null
+       character if present.
+    4. If no null bytes are present, decode strictly using 'utf-8'.
+    5. Validate that the decoded password is non-empty and contains no embedded
+       null characters.
+    6. Fail closed with RuntimeError if decoding fails or produces invalid content,
+       without disclosing secret contents.
+    """
+    if not blob:
+        raise RuntimeError("Credential decoding failed: credential secret blob is empty.")
+
+    # 1. Check for explicit Byte Order Marks
+    if blob.startswith(b'\xff\xfe') or blob.startswith(b'\xfe\xff'):
+        try:
+            decoded = blob.decode('utf-16')
+        except UnicodeDecodeError:
+            raise RuntimeError("Credential decoding failed: invalid UTF-16 byte sequence.") from None
+    elif blob.startswith(b'\xef\xbb\xbf'):
+        try:
+            decoded = blob.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            raise RuntimeError("Credential decoding failed: invalid UTF-8 byte sequence.") from None
+    # 2. Null bytes indicate wide-character (UTF-16LE) encoding from Windows Credential Manager
+    elif b'\x00' in blob:
+        try:
+            decoded = blob.decode('utf-16le')
+        except UnicodeDecodeError:
+            raise RuntimeError("Credential decoding failed: invalid UTF-16LE byte sequence.") from None
+    # 3. No null bytes: standard UTF-8 encoding
+    else:
+        try:
+            decoded = blob.decode('utf-8')
+        except UnicodeDecodeError:
+            raise RuntimeError("Credential decoding failed: invalid UTF-8 byte sequence.") from None
+
+    # Strip single trailing C-style null terminator if present
+    if decoded.endswith('\x00'):
+        decoded = decoded[:-1]
+
+    # Reject passwords with embedded null characters
+    if '\x00' in decoded:
+        raise RuntimeError("Credential decoding failed: decoded password contains embedded null characters.")
+
+    if not decoded:
+        raise RuntimeError("Credential decoding failed: decoded password is empty.")
+
+    return decoded
+
 def get_migration_credential(target: str = DEFAULT_TARGET) -> tuple[str, str]:
     """Retrieve migration (username, password) tuple from Windows Credential Manager."""
     if not is_vault_available():
@@ -91,9 +152,11 @@ def get_migration_credential(target: str = DEFAULT_TARGET) -> tuple[str, str]:
         raise RuntimeError(f"CredReadW failed for target '{target}' with error code: {err}")
     cred = p_cred.contents
     username = cred.UserName
-    blob = ctypes.string_at(cred.CredentialBlob, cred.CredentialBlobSize)
-    password = blob.decode('utf-8')
-    CredFree(p_cred)
+    try:
+        blob = ctypes.string_at(cred.CredentialBlob, cred.CredentialBlobSize)
+        password = decode_credential_blob(blob)
+    finally:
+        CredFree(p_cred)
     return username, password
 
 def has_migration_credential(target: str = DEFAULT_TARGET) -> bool:
