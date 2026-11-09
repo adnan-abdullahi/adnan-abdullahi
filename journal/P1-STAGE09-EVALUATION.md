@@ -180,3 +180,199 @@ Record the verified engineering sequence for database driver compatibility, Djan
 ### Status and Next Steps
 
 Stage 2.8 is in progress. Upon completion of documentation updates, final test suite verification will be run and the push instructions will be handed over to the project owner. Live database migration and public deployment remain unexecuted and strictly gated behind project owner authorization.
+
+
+---
+
+## Session 04 — Stage 2.9: Controlled TiDB Initial Database Migration
+
+**Date:** 2026-11-08  
+**Position:** Stage 2.9 — Initial Database Migration & Least-Privilege Verification
+
+### Purpose
+
+Execute the initial database schema migration for the contact application (`contact/0001_initial`) against the live TiDB Cloud Serverless database under strict credential and privilege segregation, and verify post-migration schema integrity.
+
+### Target Database Environment
+
+- **Database Engine:** TiDB Cloud Serverless
+- **Reported Engine Version:** `8.0.11-TiDB-v8.5.3-serverless`
+- **Region:** `eu-central-1` (AWS)
+- **Gateway Endpoint:** `gateway01.eu-central-1.prod.aws.tidbcloud.com:4000`
+- **Database Name:** `portfolio_db`
+- **Pre-Migration Baseline:** Clean unmigrated database with 0 tables and zero migration history.
+- **Engine Constraint Variable:** `tidb_enable_check_constraint = 0` (Django emitted warning `models.W027` noting un-enforced DDL `CHECK` constraints).
+
+### Identity and Privilege Separation Architecture
+
+The system enforces strict least-privilege role segregation between migration operations and runtime application execution:
+
+1. **Migration Account (`2b7q2qfZv9FUWMC.migrator`):**
+   - Active Grants: `GRANT USAGE ON *.* TO '2b7q2qfZv9FUWMC.migrator'@'%'` and `GRANT SELECT, INSERT, CREATE, INDEX ON portfolio_db.* TO '2b7q2qfZv9FUWMC.migrator'@'%'`.
+   - Operational Scope: Used exclusively for running schema migrations via `manage.py migrate`.
+   - Security Boundary: Zero administrative privileges, zero `ALTER`, zero `DROP`, zero `DELETE`.
+2. **Runtime Application Account (`2b7q2qfZv9FUWMC.portfolio_user`):**
+   - Active Grants: `GRANT USAGE ON *.* TO '2b7q2qfZv9FUWMC.portfolio_user'@'%'` and `GRANT SELECT, INSERT, UPDATE ON portfolio_db.* TO '2b7q2qfZv9FUWMC.portfolio_user'@'%'`.
+   - Operational Scope: Used exclusively by the Django application server during runtime operations.
+   - Security Boundary: Zero DDL (`CREATE`, `DROP`, `ALTER`), zero administrative privileges, zero `DELETE` privilege. Runtime account can write and update contact records, but cannot modify database structure or purge records.
+
+### Windows Credential Manager Integration and Encoding Fix
+
+Migration credentials are dynamically resolved from Windows Credential Manager under the target name `portfolio_db_migrator`:
+
+- **Defect Discovery:** Windows GUI Credential Manager stores credential secrets as UTF-16LE binary blobs with byte-order marks (`\xff\xfe`). Standard UTF-8 decoding in Python failed when reading GUI-saved secrets.
+- **Implementation:** Implemented `decode_credential_blob()` in `backend/credential_vault.py` with multi-encoding fallback (UTF-16LE with BOM detection, falling back to UTF-8 and raw decoding).
+- **Test Coverage:** Verified by 29 automated unit tests in `backend/tests/test_credentials.py` (committed in `6bf376a`).
+
+### Migration Execution
+
+Under explicit owner authorization, the initial migration command was executed:
+
+```powershell
+py -3 manage.py migrate contact 0001 --noinput
+```
+
+- **Execution Timestamp:** `2026-11-08 09:33:29.087525`
+- **Exit Code:** `0`
+- **Output:** `Applying contact.0001_initial... OK`
+
+### Post-Migration Schema Verification
+
+Inspection of `portfolio_db` confirmed the presence of exactly two tables:
+
+1. `django_migrations`:
+   - Contains applied record: `app = 'contact'`, `name = '0001_initial'`, `applied = 2026-11-08 09:33:29.087525`.
+2. `contact_message`:
+   - **Application Columns (11 total):**
+     - `id`: `char(32)` (UUID primary key)
+     - `name`: `varchar(100)`
+     - `email`: `varchar(254)`
+     - `subject`: `varchar(200)`
+     - `message`: `longtext`
+     - `delivery_status`: `varchar(20)`
+     - `delivery_attempts`: `int`
+     - `last_delivery_error`: `longtext`
+     - `content_hash`: `varchar(64)`
+     - `created_at`: `datetime(6)`
+     - `updated_at`: `datetime(6)`
+   - **Secondary B-Tree Indexes (4 total):**
+     - `contact_message_created_at_idx` on `(created_at)`
+     - `contact_message_email_idx` on `(email)`
+     - `contact_message_delivery_status_idx` on `(delivery_status)`
+     - `contact_message_content_hash_idx` on `(content_hash)`
+
+### Discrepancy Investigation (Part 3C)
+
+Following migration, the automated verification script exited with code `1`:
+
+- **Root Cause:** Line 82 of the verification runner attempted cross-user grant inspection: `cursor.execute("SHOW GRANTS FOR '2b7q2qfZv9FUWMC.portfolio_user'@'%';")` while authenticated as `migrator`. In MySQL/TiDB, viewing grants of another user requires administrative `SELECT` privilege on the internal `mysql` catalog, resulting in MySQL Error `1044: Access denied for user 'migrator'@'%' to database 'mysql'`.
+- **Classification:** Verification script harness defect, not a migration failure or database defect.
+- **Remediation & Independent Proof:** Independent queries using `SHOW GRANTS FOR CURRENT_USER()` under each distinct identity confirmed that both `migrator` and `portfolio_user` retain exact documented least-privilege grants.
+
+### Status
+
+Stage 2.9 completed successfully. Database baseline established with correct schema and verified privilege boundaries. Ready for Stage 2.10 integration testing.
+
+---
+
+## Session 05 — Stage 2.10: Application and Database Integration Acceptance
+
+**Date:** 2026-11-09  
+**Position:** Stage 2.10 — Application and Database Integration Acceptance
+
+### Purpose
+
+Perform end-to-end integration acceptance testing of the Django backend against the live TiDB Cloud Serverless database, verifying Option A (Database-First) persistence, failure-safe decoupled notification handling, abuse mitigation (honeypot, CRLF injection), and formal acceptance closure.
+
+### Key Milestones and Sub-Stage Chronology
+
+#### 1. Part 1: Integration Readiness Audit
+- **Architecture Validation:** Verified Option A (Database-First) request flow: client submissions are validated and persisted to TiDB first; notification dispatch is secondary and decoupled.
+- **Runtime Identity:** Confirmed runtime configuration uses `2b7q2qfZv9FUWMC.portfolio_user` with TLS verification against `isrgrootx1.pem`.
+- **Notification Decoupling Verification:** Notification credentials intentionally left unconfigured (`RESEND_API_KEY` empty) to verify that database persistence succeeds even when external notification delivery fails.
+- **Automated Test Suite Isolation:** Audited 64 backend unit tests and 56 frontend tests; confirmed that all automated test suites execute in isolated in-memory environments (SQLite / Happy-DOM) with zero network calls and zero TiDB interaction.
+
+#### 2. Part 2: Controlled Integration Test Preparation
+- **Synthetic Test Payload Specification:**
+  - `name`: `"Controlled Integration Test"`
+  - `email`: `"test.integration@adnanabdullahi.local"`
+  - `subject`: `"Stage 2.10 Integration Verification"`
+  - `message`: `"Verification of TiDB persistence and decoupled delivery failure handling."`
+  - Computed Content Hash (SHA-256): `e27514b6946181550ce26ad99dc5da6735b8225afbd3b9d47da0fe0233616a65`
+- **Permanent Retention Policy:** Established that because `portfolio_user` lacks `DELETE` privilege, any persisted synthetic record cannot be removed via application endpoints and will be retained as permanent engineering evidence in `portfolio_db`.
+
+#### 3. Part 3: Controlled Live Contact Submission
+- **Execution:** Under explicit owner authorization, exactly ONE live POST was dispatched to `http://127.0.0.1:8000/api/contact/`.
+- **API Response:** `HTTP 201 Created` with record UUID `e767aae8-0cf2-44af-b51c-1c23a07e8642`.
+- **Live Database Persistence:** Row count in `portfolio_db.contact_message` transitioned from `0` to `1`.
+- **Decoupled Notification Handling:** The missing `RESEND_API_KEY` was handled gracefully. Record state transitioned to `delivery_status = 'failed'`, `delivery_attempts = 0`, and the missing key diagnostic was recorded in `last_delivery_error`.
+- **Client Decoupling:** The client received a clean `HTTP 201 Created` response. Zero external notification emails were dispatched.
+
+#### 4. Part 3C: Controlled Submission Runner Discrepancy Investigation
+- **Discrepancy:** The execution harness reported `Exited with code 1` post-submission.
+- **Root Cause:** The runner script invoked `django.setup()` in the parent Python verification process without defining `DJANGO_SETTINGS_MODULE=config.settings`, triggering `django.core.exceptions.ImproperlyConfigured`.
+- **Verification:** The HTTP POST, API response, and database persistence had completed prior to the runner error. A separate read-only SQL query verified record `e767aae8-0cf2-44af-b51c-1c23a07e8642` was intact, fully populated, and correctly formatted in TiDB.
+
+#### 5. Part 4A: Delivery and Error-Handling Implementation Audit
+- **Decoupled Notification Architecture:** Direct HTTPS communication via `urllib.request` to Resend API avoids blocked SMTP ports (25, 465, 587) on serverless/container hosts.
+- **State Machine:** Robust delivery tracking across `pending`, `sent`, `failed`, and `simulated` states.
+- **Honeypot Protection:** Hidden `website` field; non-empty submissions are immediately rejected with `HTTP 400 Bad Request` (`{"status": "error", "message": "Invalid submission."}`).
+- **CRLF & Header Injection Defense:** Strict newline validation on `name` and `subject` prevents email header injection attacks.
+- **Duplicate Prevention:** SHA-256 content hashing enforces a 60-second duplicate suppression window.
+- **Rate Limiting:** Django REST Framework `AnonRateThrottle` limits unauthenticated requests to 5 requests / hour per IP.
+
+#### 6. Part 4B: Controlled Integration Test Planning
+- Risk-classified remaining test vectors and formulated minimal-impact test sequence:
+  - Approved: T-01 (read-only baseline check), T-02 (honeypot rejection), T-03 (CRLF rejection).
+  - Deferred: Duplicate submission test (avoided creating a second permanent database row), rate-limit exhaustion test (avoided 60-minute local IP lockout), live Resend email delivery (deferred to Stage 09.4 production deployment).
+
+#### 7. Part 4C: Controlled Execution of T-01, T-02, and T-03
+Under explicit owner authorization, the three approved tests were executed:
+
+- **T-01 (Live TiDB Baseline Integrity):**
+  - Confirmed baseline row count of `1`.
+  - Confirmed synthetic record `e767aae8-0cf2-44af-b51c-1c23a07e8642` intact with SHA-256 hash `e27514b6...`.
+- **T-02 (Honeypot Rejection):**
+  - Dispatched POST with populated `website: "https://spam.example.com"`.
+  - Result: `HTTP 400 Bad Request` with payload `{"status": "error", "message": "Invalid submission."}`.
+  - Zero database writes; zero emails dispatched; TiDB row count remained `1`.
+- **T-03 (Input Validation & CRLF Rejection):**
+  - Dispatched POST with newline in name: `name: "Test\nName"`.
+  - Result: `HTTP 400 Bad Request` with payload `{"status": "error", "errors": {"name": ["Name cannot contain newline characters."]}}`.
+  - Zero database writes; zero emails dispatched; TiDB row count remained `1`.
+- **Post-Execution Database Audit:**
+  - Live TiDB row count strictly remained at `1`.
+  - Zero phantom records created; original synthetic record intact.
+
+### Acceptance Assessment Matrix
+
+| Dimension | Evaluation Criteria | Result | Evidence & Basis |
+| :--- | :--- | :--- | :--- |
+| **1. Database Schema & Migration** | Migration applied; tables and indexes present in TiDB. | **ACCEPTED** | `contact.0001_initial` applied; `django_migrations` and `contact_message` (11 cols, 4 indexes) verified. |
+| **2. Privilege Segregation** | Separation between migrator and runtime accounts. | **ACCEPTED** | `migrator` restricted to DDL/insert; `portfolio_user` restricted to DML (no DDL, no DELETE). |
+| **3. Option A Persistence** | Database-first persistence with decoupled notification failure. | **ACCEPTED** | Synthetic record `e767aae8...` persisted; unconfigured email handled cleanly; client received HTTP 201. |
+| **4. Abuse & Edge Defense** | Honeypot, CRLF injection, and validation safeguards active. | **ACCEPTED** | T-02 and T-03 confirmed HTTP 400 rejections; zero writes to database. |
+| **5. Test Isolation & Coverage** | Automated test suites execute in isolation without live writes. | **ACCEPTED** | 64 backend unit tests and 56 frontend tests pass in isolated in-memory harnesses. |
+| **6. Evidence Preservation** | Synthetic test record preserved; zero database pollution. | **ACCEPTED** | Record `e767aae8...` retained as permanent engineering evidence; total row count strictly 1. |
+| **7. Operational Boundaries** | Known limitations and edge conditions documented. | **ACCEPTED** | All 6 known operational boundaries documented in engineering records. |
+
+### Documented Operational Boundaries and Limitations
+
+1. **TiDB Engine CHECK Constraints (`tidb_enable_check_constraint = 0`):**
+   - TiDB Cloud Serverless parses but does not enforce DDL `CHECK` constraints at the storage engine layer. Data integrity for `delivery_status` is enforced strictly at the Django application model layer (`ContactMessage.clean()` and `save()`). Direct raw SQL statements bypass model validation.
+2. **Phase 1 Notification Retry Mechanism:**
+   - In Phase 1, contact submissions record failed notification attempts with `delivery_status = 'failed'`. There is no automated background retry worker or queue scheduler (Celery/Redis); failed notifications require manual operational review or a dedicated retry script.
+3. **Deferred Live Email Delivery:**
+   - Real end-to-end email transmission via Resend HTTPS API was deliberately deferred to Stage 09.4 deployment to avoid prematurely consuming monthly free-tier email quotas.
+4. **Rate Limiting Concurrency in Multi-Worker Environments:**
+   - Django REST Framework's default throttling utilizes Django's local memory cache (`LocMemCache`). In multi-worker production deployments without a shared cache (e.g., Redis), rate-limiting counters are tracked per-worker process.
+5. **Duplicate Submission Window Concurrency Heuristic:**
+   - The 60-second duplicate prevention heuristic performs an application-level pre-save query against `content_hash`. Highly concurrent simultaneous submissions within milliseconds could theoretically race.
+6. **Permanent Retention of Synthetic Record:**
+   - Test record `e767aae8-0cf2-44af-b51c-1c23a07e8642` remains permanently in `portfolio_db.contact_message` as immutable verification evidence, consistent with `portfolio_user` lacking `DELETE` permissions.
+
+### Closure Recommendation
+
+Stage 2.10 has successfully satisfied all documented acceptance criteria and verified the robustness of the application/database integration pipeline.
+
+**Verdict: READY TO CLOSE WITH RECORDED LIMITATIONS**
