@@ -2,10 +2,10 @@
 
 ## Project Identity
 
-**Project:** Professional Engineering Portfolio  
-**Project Number:** 01  
-**Repository:** `adnan-abdullahi/adnan-abdullahi`  
-**Status:** Active  
+**Project:** Professional Engineering Portfolio
+**Project Number:** 01
+**Repository:** `adnan-abdullahi/adnan-abdullahi`
+**Status:** Active
 **Purpose:** Professional engineering project
 
 ---
@@ -179,24 +179,33 @@ The recorded verification baseline is:
 
 The mobile skip is limited to the desktop-header navigation test when running under the mobile Playwright project; mobile navigation is covered by separate tests. Manual assistive-technology evaluation and further performance evaluation remain appropriate topics for Stage 09.
 
-**Stage 09 — Evaluation: Started (2026-10-27; planning and baseline phase).**
+**Stage 09 — Evaluation: Active (Started 2026-10-27; Deployment Preparation & Reconciliation Phase).**
 
-Stage 09 has formally started with boundary definition and evaluation planning. Its scope integrates evaluation of the implemented portfolio with preparation for, zero-cost deployment of, and evidence-based evaluation of the public system.
+Stage 09 formally started with boundary definition and evaluation planning. Its scope integrates evaluation of the implemented portfolio with preparation for, candidate hosting evaluation, and evidence-based evaluation of the public system.
 
-The stage will proceed sequentially through:
-1. Evaluation plan and baseline.
-2. Zero-cost deployment feasibility and read-only readiness audit.
-3. Deployment preparation after review and explicit approval of proposed changes.
-4. Public deployment after explicit authorization.
-5. Live-system evaluation.
-6. Findings, approved remediation, verification, and closure decision.
+The stage progresses sequentially through:
+1. Evaluation plan and baseline (09.1 — recorded).
+2. Deployment feasibility and read-only readiness audit (09.2 — completed; updated with Stage 3.2A findings).
+3. Deployment preparation and backend hardening (09.3 — completed locally and verified against TiDB):
+   - Portable migration credential architecture (`credential_vault.py`) with environment variable precedence.
+   - Dedicated stateless liveness health probe (`GET /api/health/`).
+   - Contact notification service using Resend HTTPS API (`notifications.py`) with decoupled post-commit dispatch.
+   - Django 5.2.18 LTS dependency alignment to support TiDB's MySQL 8.0.11 protocol string.
+   - Model-level data integrity for `ContactMessage` compensating for TiDB's disabled CHECK constraints.
+   - Controlled initial schema migration (`contact.0001_initial`) executed against TiDB Cloud Serverless (Stage 2.9).
+   - Live application/database integration acceptance with synthetic record `e767aae8...` and abuse mitigation (Stage 2.10).
+   - Hosting architecture investigation (Stage 3.1) and Render Starter ($7/month) readiness assessment (Stage 3.2A).
+   - Universal pure-Python PyMySQL implementation across Windows and Linux, eliminating `mysqlclient` (Stage 3.2B).
+   - Fail-closed remote database TLS guards enforcing CA certificate existence and `VERIFY_IDENTITY` mode (Stage 3.2D).
+   - Consolidated local Git commit `279d41c75df82d663bc35c4a4a89f6ed34ed2f86` created and synchronized to GitHub.
+   - Documentation reconciliation across engineering journal, deployment record, and lifecycle plans (Stage 3.3).
+4. Public deployment after explicit owner authorization (09.4 — pending).
+5. Live-system evaluation (09.5 — pending).
+6. Findings, approved remediation, verification, and closure decision (09.6 — pending).
 
-The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record is **`journal/P1-STAGE09-EVALUATION.md`**. The read-only deployment feasibility and readiness audit is recorded in **`docs/DEPLOYMENT.md`**.
+The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record is **`journal/P1-STAGE09-EVALUATION.md`**. The deployment architecture and candidate evaluation record is **`docs/DEPLOYMENT.md`**.
 
-**09.1 — Evaluation Plan and Baseline:** Recorded.  
-**09.2 — Zero-Cost Deployment Feasibility and Readiness Audit:** Read-only source and provider-plan review completed on 2026-10-27. A provisional option is Cloudflare Pages for the static frontend, Render Free for the Django API as an evaluation/demo service, and TiDB Cloud Starter in MySQL-compatible mode for persistent contact records. Important blockers remain: portable Linux migration credentials, production API/CORS configuration, a health-check endpoint, and real email notification delivery.
-
-**Current position:** 09.2 audit completed; architecture review and explicit human decision are required before 09.3 — Deployment Preparation. No deployment, hosting-account creation/configuration, database creation or migration, paid service, domain purchase, or application-code change has been performed or authorized. Stage 09 remains subject to proposal → human decision → authorization → execution → verification controls.
+**Current position:** 09.3 deployment preparation, live TiDB schema migration, integration acceptance, universal driver implementation, and documentation reconciliation completed. Codebase is hardened and verified across 80 backend tests and 160 frontend tests (commit `279d41c`). The application is **not** yet deployed or publicly accessible. The next step is project owner review and authorization to proceed with Stage 09.4 deployment preparation.
 
 ## Repository Structure
 
@@ -261,16 +270,16 @@ The repository should preserve sufficient history to understand how the project 
 
 ## Current Status
 
-**Workspace:** Established  
-**GitHub repository:** Connected  
-**Local working directory:** Established  
-**Project structure:** Established  
-**Stage 04:** Accepted — Design Foundations in Penpot  
-**Stage 05:** Closed — Portfolio Screens / Portfolio Orientation  
-**Stage 06:** Accepted and Closed — Prototype  
-**Stage 07:** Accepted and Closed — Validation  
-**Stage 08:** Closed — Engineering Implementation  
-**Stage 09:** Active — 09.1 baseline recorded; 09.2 read-only deployment audit completed; architecture decision pending
+**Workspace:** Established
+**GitHub repository:** Connected
+**Local working directory:** Established
+**Project structure:** Established
+**Stage 04:** Accepted — Design Foundations in Penpot
+**Stage 05:** Closed — Portfolio Screens / Portfolio Orientation
+**Stage 06:** Accepted and Closed — Prototype
+**Stage 07:** Accepted and Closed — Validation
+**Stage 08:** Closed — Engineering Implementation
+**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`) completed; Stage 3.3 documentation reconciliation completed; live deployment preparation pending owner authorization
 
 Stage 08 closure is documented in:
 
@@ -285,5 +294,5 @@ Stage 09's governing plan, chronological journal, and deployment-readiness recor
 - `journal/P1-STAGE09-EVALUATION.md`
 - `docs/DEPLOYMENT.md`
 
-The next step is to review the provisional zero-cost architecture and audit findings. Deployment preparation cannot begin until the proposed material changes are reviewed and explicitly authorized. No external service has been configured and no public deployment has been performed. Stage 09 is not considered complete until the available evidence supports a documented closure decision.
+The next step is project owner review and authorization to proceed with Stage 09.4 deployment preparation. No external hosting service has been provisioned and no public deployment has been performed. Stage 09 remains subject to observation → investigation → proposal → human decision → authorization → execution → verification controls.
 

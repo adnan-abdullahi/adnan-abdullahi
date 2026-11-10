@@ -1,9 +1,10 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — Database compatibility & model integrity verified (Stages 2.3–2.7); Stage 2.8 reconciliation in progress; live deployment pending explicit authorization  
-**Project:** Project 01 — Professional Engineering Portfolio  
-**Stage:** 09 of 10  
+**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened and committed in `279d41c` (Stages 3.1–3.2D); Stage 3.3 documentation reconciliation complete; deployment preparation pending owner authorization
+**Project:** Project 01 — Professional Engineering Portfolio
+**Stage:** 09 of 10
 **Governing project record:** `docs/PROJECT-01.md`
+**Governing Baseline Commit:** `279d41c75df82d663bc35c4a4a89f6ed34ed2f86`
 
 ## 1. Purpose
 
@@ -11,7 +12,7 @@ Stage 09 evaluates the implemented portfolio as an engineering product and, subj
 
 The stage connects deployment with evaluation. Deployment is a means of creating a real environment in which to evaluate the portfolio; a hosting provider reporting a successful deployment is not, by itself, evidence that the product works correctly.
 
-The stage must establish what is already supported by Stage 08 evidence, identify remaining uncertainties, investigate a zero-cost deployment path, evaluate the deployed system if deployment is authorized and feasible, and produce a defensible findings and closure record.
+The stage must establish what is already supported by Stage 08 evidence, identify remaining uncertainties, investigate deployment paths, evaluate the deployed system if deployment is authorized and feasible, and produce a defensible findings and closure record.
 
 ## 2. Starting Baseline
 
@@ -27,18 +28,7 @@ Governing evidence:
 - `docs/STAGE-08-ENGINEERING-IMPLEMENTATION.md`
 - `journal/P1-STAGE08-ENGINEERING-IMPLEMENTATION.md`
 
-These results are the recorded Stage 08 baseline, not proof of production deployment or live-system behavior. Stage 09 should reuse this evidence where appropriate and rerun checks when changes, environment differences, or evaluation questions make it necessary.
-
-Known deployment-relevant facts requiring investigation:
-- The frontend is a Vue 3 / TypeScript / Vite application.
-- The Django REST backend provides the contact endpoint at `/api/contact/`.
-- Local development uses the Vite proxy to `http://127.0.0.1:8000`; a production frontend must not depend on that local address.
-- The backend currently uses MySQL configuration.
-- Django migration execution uses a credential retrieved from Windows Credential Manager, which requires investigation before a cloud deployment workflow can be considered portable.
-- The email backend defaults to Django's console email backend, which logs messages rather than delivering real email.
-- Current backend host, CORS, secret, database and debug settings must be evaluated for a production environment.
-
-These are investigation inputs, not authorization to change the implementation or migrate the database.
+These results are the recorded Stage 08 baseline, not proof of production deployment or live-system behavior. Stage 09 reuses this evidence where appropriate and reruns checks when changes, environment differences, or evaluation questions make it necessary.
 
 ## 3. Stage Boundary
 
@@ -47,9 +37,9 @@ These are investigation inputs, not authorization to change the implementation o
 1. Establish an evaluation protocol and a traceable baseline.
 2. Review the existing Stage 08 evidence and identify material uncertainties without needlessly repeating accepted tests.
 3. Conduct a read-only deployment-readiness audit.
-4. Compare feasible hosting and database options under the strict zero-cost constraint.
+4. Compare feasible hosting and database options under cost and reliability constraints.
 5. Propose the smallest justified changes required for a secure, reproducible deployment.
-6. After explicit approval, prepare and deploy the frontend and backend using free plans and provider subdomains.
+6. After explicit approval, prepare and deploy the frontend and backend using provider infrastructure.
 7. After deployment is authorized and available, test the public application and its integration.
 8. Evaluate usability, responsive behavior, accessibility, performance, compatibility, security configuration, contact-form behavior, reliability, and evidence integrity in proportion to the system.
 9. Record findings, limitations, approved remediation, verification results, and a human closure decision.
@@ -58,17 +48,14 @@ These are investigation inputs, not authorization to change the implementation o
 
 Stage 09 does not authorize:
 
-- Any paid hosting, paid plan, subscription, domain purchase, or other spend.
+- Any unapproved spending, paid plan, domain purchase, or subscription.
 - Creating accounts or changing settings on external services without explicit approval.
 - Deployment or publication without explicit approval.
 - Repository or application changes merely because an audit identifies a possible improvement.
-- A database migration before investigation and explicit approval.
-- Unnecessary architecture, multi-region infrastructure, premature scaling, or new product features.
+- Unnecessary architecture, multi-region infrastructure, premature scaling, or speculative product features.
 - Claims of production readiness, security, accessibility conformance, reliability, or successful email delivery without corresponding evidence.
 - Reopening accepted prior-stage decisions without material evidence.
 - Committing, pushing, merging, tagging, or changing GitHub configuration without explicit authorization.
-
-Free hosting is subject to provider limits and terms. The target is zero required monetary cost, not a promise of unlimited capacity or permanent availability.
 
 ## 4. Sequential Work Structure
 
@@ -78,75 +65,48 @@ Free hosting is subject to provider limits and terms. The target is zero require
 
 The boundary, Stage 08 baseline, sequence, acceptance criteria, and authorization controls are recorded in this document and the Stage 09 journal.
 
-Activities:
-- Record this stage boundary and evaluation sequence.
-- Identify the accepted Stage 08 baseline and its evidence.
-- Separate verified facts from unknowns and proposed work.
-- Establish evaluation categories and acceptance criteria.
-
 Exit condition: The stage boundary, baseline, and acceptance criteria are recorded and reviewed.
 
-### 09.2 — Zero-Cost Deployment Feasibility and Readiness Audit
+### 09.2 — Deployment Feasibility and Readiness Audit
 
-**Status:** Completed — read-only audit (2026-10-27). Detailed findings: `docs/DEPLOYMENT.md`.
+**Status:** Completed — read-only audit (2026-10-27). Reconciled with Stage 3.2A findings (2026-11-10). Detailed record: `docs/DEPLOYMENT.md`.
 
-The audit provisionally recommends:
-- Cloudflare Pages for the static Vue/Vite frontend.
-- Render Free Web Service for the Django API only as a zero-cost evaluation/demo service, with documented cold-start and reliability limitations.
-- TiDB Cloud Starter in MySQL-compatible mode for persistent contact records, subject to driver/schema/migration compatibility verification and zero-spend configuration.
+The audit evaluated candidates:
+- Cloudflare Pages for the static Vue/Vite frontend (Free tier).
+- Render Web Service for the Django API: evaluated Render Free ($0) initially, then conducted Stage 3.2A readiness assessment recommending Render Starter ($7/month) to eliminate cold starts and spin-down.
+- TiDB Cloud Serverless in MySQL-compatible mode for persistent contact records.
 
-Material findings:
-- Production API configuration must be separated from the Vite localhost development proxy.
-- Migration credential retrieval depends on Windows Credential Manager; Linux migration execution is expected to fail unless a portable, secret-safe path is approved.
-- No dedicated health-check endpoint was found in the inspected URL configuration.
-- CORS and allowed hosts require production environment values.
-- The default console email backend does not deliver real notifications, and Render Free blocks standard outbound SMTP ports.
-- Free Render Postgres expires after 30 days, so it is not recommended as the contact database.
-
-No source code, database, external account, or hosting configuration was changed during the audit.
-
-Activities:
-- Inspect deployment-related frontend and backend configuration read-only.
-- Determine frontend build and routing requirements.
-- Determine the production API URL and CORS requirements.
-- Investigate MySQL hosting compatibility and alternatives without changing databases.
-- Investigate how migrations and secrets can be handled without a dependency on the developer's local Windows Credential Manager.
-- Review persistence, backup, cold-start, free-tier and service-limit implications.
-- Determine how contact submissions should be delivered and whether an appropriate free email API exists.
-- Compare options and recommend the smallest viable architecture.
-
-Exit condition: A written audit distinguishes confirmed facts, uncertainties, trade-offs, free-tier constraints, and proposed changes. **Satisfied:** `docs/DEPLOYMENT.md` records the audit and official provider references. No implementation or external-service change was made during the audit.
+Exit condition: A written audit distinguishes confirmed facts, uncertainties, trade-offs, constraints, and proposed changes. **Satisfied:** `docs/DEPLOYMENT.md` records the audit, findings, and official provider references.
 
 ### 09.3 — Deployment Preparation
 
-**Status:** In progress — Core configuration, platform-aware database compatibility, and model-level data integrity implemented and verified locally (2026-11-07).
+**Status:** Hardening, live database migration, integration acceptance, and universal driver implementation completed; documentation reconciled (2026-11-10).
 
-Implemented and verified locally:
-- Platform-neutral migration credential architecture (Option A) with fail-closed resolution.
-- Liveness health probe (`GET /api/health/`) executing 0 database queries.
-- Resend HTTPS API email notification integration with decoupled post-commit dispatch.
-- Cross-platform database driver architecture: Windows PyMySQL substitution to bypass Schannel TLS 1.3 decryption defects (`0x80090330`), retaining native `mysqlclient` on Linux.
-- Platform-aware TLS configuration (`ssl_mode: VERIFY_IDENTITY` on Linux; `check_hostname: True` on Windows).
-- Django LTS alignment to 5.2.18 (`Django>=5.2.18,<5.3`) to preserve compatibility with TiDB's MySQL 8.0.11 protocol version header.
-- TiDB Cloud Serverless database integrity audit: identified that `tidb_enable_check_constraint = OFF`, verified empty database baseline (0 tables).
-- Application-level data integrity: `ContactMessage.delivery_status` validation enforced at model level (`clean_delivery_status()`, `clean()`, `save()`).
-- Full backend regression test suite passing: 52/52 tests passing in in-memory SQLite isolation.
+Implemented, verified, and committed:
+- **Migration Credential Architecture:** Platform-neutral `backend/credential_vault.py` with deterministic precedence (`DB_MIGRATE_*` environment variables -> Windows Credential Manager -> fail closed). Verified by 29 unit tests.
+- **Liveness Health Probe:** Dedicated stateless endpoint `GET /api/health/` returning HTTP 200 in 0 database queries. Verified by 3 unit tests.
+- **Contact Notification Dispatcher:** Resend HTTPS API via `urllib.request` in `backend/contact/notifications.py`, bypassing blocked SMTP ports. Post-commit decoupled dispatch ensures message persistence is primary.
+- **Universal PyMySQL Architecture (Stage 3.2B):** Replaced native `mysqlclient` with pure-Python `pymysql>=1.1.1,<2.0` across Windows and Linux, eliminating C-extension compilation dependencies on Render.
+- **Fail-Closed Remote Database TLS (Stage 3.2D):** `backend/config/settings.py` enforces that remote connections require `DB_SSL_CA` pointing to an existing file on disk and enforce `DB_SSL_MODE='VERIFY_IDENTITY'`. Local loopback connections retain clean unencrypted baseline.
+- **Live Database Migration (Stage 2.9):** Executed `contact.0001_initial` against live TiDB Cloud Serverless cluster (`gateway01.eu-central-1.prod.aws.tidbcloud.com:4000`, `portfolio_db`). Schema verified with `django_migrations` and `contact_message` (11 columns, 4 secondary indexes).
+- **Integration Acceptance (Stage 2.10):** Dispatched live submission; verified Option A persistence with permanent synthetic record `e767aae8-0cf2-44af-b51c-1c23a07e8642`. Verified honeypot rejection (T-02) and CRLF rejection (T-03).
+- **Regression Suite:** **80 backend unit tests** and **160 frontend tests** (240 total) passing cleanly.
+- **Consolidated Git Commit:** Created and pushed commit `279d41c75df82d663bc35c4a4a89f6ed34ed2f86` (`feat(backend): enforce secure cross-platform database connectivity`).
+- **Documentation Reconciliation (Stage 3.3):** Reconciled engineering journal, deployment record, stage evaluation plan, and lifecycle record.
 
 Pending authorization & execution:
-- Controlled migration execution against TiDB Cloud (`portfolio_migrator`).
-- Production environment variable configuration on hosting providers.
+- Project owner provisioning of Render Starter Web Service ($7/month).
+- Out-of-band environment variable configuration on Render dashboard.
 
-Exit condition: Approved changes are implemented and verified locally; no secrets are committed; the local development workflow remains functional. **Satisfied locally:** Local configuration, driver compatibility, and test suite verified; live migration and deployment remain pending explicit authorization.
+Exit condition: Approved changes are implemented, tested, and reconciled; no secrets are committed; the local development workflow remains functional. **Satisfied:** Codebase is hardened and reconciled; deployment execution awaits owner authorization.
 
 ### 09.4 — Public Deployment
 
 **Status:** Pending explicit authorization.
 
-Activities may include creating or configuring the selected free hosting services, deploying the frontend and backend, configuring a free database option, and connecting the public frontend to the API.
+Activities will include provisioning the evaluated Render Starter Web Service, configuring Cloudflare Pages for static frontend hosting, establishing environment variables, and connecting the public frontend to the backend API.
 
-Use provider-provided subdomains; do not purchase a custom domain.
-
-Exit condition: Public URLs and the exact deployed source revision are recorded, basic health checks succeed, and actual costs remain zero.
+Exit condition: Public URLs and the exact deployed source revision are recorded, basic health checks succeed, and costs align with owner decisions.
 
 ### 09.5 — Live-System Evaluation
 
@@ -156,12 +116,12 @@ Evaluation areas:
 - Public route loading, direct navigation, refresh and hash routing.
 - Primary and secondary navigation, including mobile navigation.
 - Responsive layouts and visual fidelity.
-- Accessibility, including an appropriate manual assistive-technology review where available.
-- Contact form validation, API integration, success/error states and actual delivery behavior.
-- Production configuration, exposed-secret checks, allowed hosts, CORS, throttling and error handling.
-- Production build, browser compatibility, performance and cold-start behavior.
+- Accessibility, including manual assistive-technology review where available.
+- Contact form validation, API integration, success/error states, and live Resend email delivery.
+- Production configuration, exposed-secret checks, allowed hosts, CORS, throttling, and error handling.
+- Production build, browser compatibility, performance, and uptime behavior.
 - Database persistence and documented limitations.
-- Correspondence between the evaluated deployed revision and the recorded source revision.
+- Correspondence between evaluated deployed revision and recorded source revision.
 
 Exit condition: Results distinguish pass, fail, partial, not tested, and not applicable; each material finding links to evidence.
 
@@ -184,20 +144,18 @@ Exit condition: The record supports a clear closure decision or explicitly state
 Stage 09 can be proposed for closure only when applicable criteria have evidence and unresolved limitations are explicitly accepted or remain blockers:
 
 1. **Traceability:** Stage 08 baseline and Stage 09 results are linked to their records and source revision.
-2. **Feasibility:** A zero-cost deployment architecture and its constraints are documented.
-3. **Local integrity:** Approved deployment preparation preserves the local development workflow and existing quality baseline.
+2. **Feasibility:** Deployment architecture, candidate hosting plans, and constraints are documented.
+3. **Local integrity:** Deployment preparation preserves local development workflow and existing quality baseline.
 4. **Public availability:** If deployment is authorized and feasible, frontend and backend are reachable through public HTTPS URLs.
 5. **Functional behavior:** Applicable routes, navigation, interactions and refresh behavior work in the evaluated environment.
 6. **Integration:** The deployed frontend communicates with the backend using production configuration.
 7. **Contact behavior:** Form validation and API outcomes are verified; email delivery is claimed only if an actual delivery test succeeds.
 8. **Accessibility and responsiveness:** Automated results and appropriate human/manual checks are recorded without unsupported conformance claims.
 9. **Security:** Production settings and secret-handling risks are reviewed and material findings are addressed or explicitly accepted.
-10. **Reliability and operations:** Persistence, free-tier limitations, cold starts, logs and backup limitations are documented.
-11. **Cost:** No paid service, domain, or subscription is required or introduced.
+10. **Reliability and operations:** Persistence, hosting tier limitations, uptime, logs, and backup limitations are documented.
+11. **Cost:** Cost boundaries align strictly with approved owner decisions.
 12. **Evidence integrity:** Findings, fixes, limitations, and the deployed revision are accurately documented.
 13. **Human closure:** Stage 09 is not marked closed solely by an automated result or agent recommendation.
-
-If public deployment proves infeasible within the zero-cost boundary, Stage 09 must document the evidence and the remaining gap; it must not describe the application as publicly deployed.
 
 ## 6. Decision and Authorization Controls
 
@@ -209,39 +167,34 @@ In particular:
 - A readiness audit is read-only.
 - A recommendation is not authorization.
 - Stage 09 being active is not blanket authorization to deploy.
-- No paid service or domain is permitted under the project's stated constraint.
 - No external account, repository setting, deployment, or production change is made without explicit approval.
 
-## 7. Remaining Questions After the Readiness Audit
-
-The read-only audit narrowed the architecture but does not establish a final deployment decision:
-
-- Can the existing `mysqlclient` driver, schema, migrations, and TLS configuration connect successfully to a TiDB Cloud Starter MySQL-compatible instance?
-- What portable migration credential process preserves least privilege without depending on Windows Credential Manager or exposing secrets?
-- What minimal health-check endpoint and production security configuration should be proposed?
-- Can a free email API deliver contact notifications without requiring a purchased domain, payment method, or paid plan?
-- What service terms, region choices, quota behavior, and data-handling requirements apply at account setup?
-- What manual assistive-technology and performance checks are practical with the available tools?
-
-These questions must be resolved before public deployment is described as ready.
-
-## 8. Current Progress
+## 7. Current Progress
 
 - [x] Stage 09 marked as started in `docs/PROJECT-01.md`.
 - [x] Stage 09 purpose, boundary, sequence, and acceptance criteria recorded.
 - [x] Stage 08 baseline and known deployment-relevant facts recorded.
 - [x] 09.2 read-only deployment-readiness audit completed and recorded in `docs/DEPLOYMENT.md`.
-- [x] Provisional zero-cost architecture and key limitations documented.
+- [x] Provisional architecture and key limitations documented.
 - [x] Human review and decision on the proposed architecture completed.
 - [x] Portable migration credential architecture (Option A) approved, implemented, and verified locally.
 - [x] Liveness health endpoint (`GET /api/health/`) implemented and verified.
 - [x] Contact notification architecture via Resend HTTPS API implemented and verified.
-- [x] Cross-platform database driver and platform-aware TLS settings implemented (Stage 2.3).
 - [x] Django 5.2.18 LTS dependency alignment completed and verified (Stage 2.5).
 - [x] TiDB Cloud database baseline and CHECK constraint audit completed (Stage 2.6).
-- [x] Model-level data integrity for `ContactMessage` implemented and verified with 8 new unit tests (52/52 passing) (Stage 2.7).
-- [ ] Stage 2.8 GitHub reconciliation completed (in progress).
-- [ ] Controlled database migration execution against TiDB Cloud (`portfolio_migrator`).
-- [ ] Create/configure external services and deploy only after separate explicit authorization (09.4).
+- [x] Model-level data integrity for `ContactMessage` implemented and verified (Stage 2.7).
+- [x] Stage 2.8 repository reconciliation and logical commits completed (`6bf376a`).
+- [x] Controlled database migration execution against TiDB Cloud (`contact.0001_initial` in Stage 2.9).
+- [x] Live application and database integration acceptance testing with synthetic record (Stage 2.10).
+- [x] Read-only hosting architecture investigation (Stage 3.1).
+- [x] Render Starter Web Service readiness assessment ($7/month candidate) (Stage 3.2A).
+- [x] Universal PyMySQL implementation across Windows and Linux, removing `mysqlclient` (Stage 3.2B).
+- [x] Independent security and implementation review (Stage 3.2C).
+- [x] Fail-closed database TLS guard and test strengthening to 80 backend unit tests (Stage 3.2D).
+- [x] Consolidated local Git commit `279d41c` created and synchronized with GitHub.
+- [x] Stage 3.3 documentation reconciliation audit and update completed.
+- [ ] Project owner authorization and provisioning of Render Starter Web Service.
+- [ ] Production environment variable configuration on hosting providers (09.4).
+- [ ] Public deployment and live verification (09.4 & 09.5).
 
-**Current stage position:** 09.3 / Stage 2.8 — Local database compatibility, integrity, and reconciliation completed; controlled database migration and live public deployment remain pending explicit authorization.
+**Current stage position:** 09.3 / Stage 3.3 — Codebase hardened, database migrated, integration accepted, and documentation reconciled; deployment preparation pending explicit owner authorization.

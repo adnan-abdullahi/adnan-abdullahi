@@ -1,313 +1,264 @@
-# Deployment — Zero-Cost Feasibility and Readiness Record
+# Deployment Architecture, Readiness, and Candidate Evaluation Record
 
-**Project:** Project 01 — Professional Engineering Portfolio  
-**Stage:** 09 — Evaluation  
-**Status:** Provisional architecture recommendation; no deployment performed  
-**Audit date:** 2026-10-27  
-**Governing stage plan:** `docs/STAGE-09-EVALUATION.md`
+**Project:** Project 01 — Professional Engineering Portfolio
+**Stage:** 09 — Evaluation (Stage 3.3 Reconciliation)
+**Status:** Reconciled Architecture Candidate Record; Live Deployment Pending Owner Authorization
+**Initial Audit Date:** 2026-10-27
+**Reconciled Date:** 2026-11-10
+**Governing Stage Plan:** `docs/STAGE-09-EVALUATION.md`
+**Governing Baseline Commit:** `279d41c75df82d663bc35c4a4a89f6ed34ed2f86`
 
-## 1. Objective and Cost Constraint
+---
 
-Identify a viable path to make the Vue/Vite portfolio and Django contact API publicly reachable while keeping required monetary cost at zero.
+## 1. Objective and Cost Constraint Evolution
 
-The proposal must not require a paid hosting plan, purchased domain, paid database, paid email subscription, or payment-card-backed spending. Free services have limits and may suspend or restrict use when quotas are exhausted; this is not equivalent to unlimited production availability.
+### 1.1 Initial Zero-Cost Baseline (Stage 09.2 Audit — 2026-10-27)
+The initial evaluation audit identified a zero-cost path to make the Vue/Vite portfolio and Django contact API publicly reachable without requiring payment cards, paid domains, or paid subscriptions. Under that baseline:
+- Frontend: Cloudflare Pages ($0 free tier).
+- Backend: Render Free Web Service ($0 free tier).
+- Database: TiDB Cloud Serverless Starter ($0 free tier quota).
+- Notifications: Resend HTTPS API ($0 free tier).
 
-No external account has been created or configured, and no application or hosting change has been made as part of this audit.
+### 1.2 Evaluation of Render Starter Web Service (Stage 3.2A — 2026-11-10)
+During Stage 3.2A, a dedicated readiness assessment evaluated whether the Render Free Web Service was suitable for a professional engineering portfolio. The assessment established that Render Free introduces severe operational limitations:
+- **Inactivity Spin-Down:** Free instances spin down after 15 minutes of inactivity.
+- **Cold-Start Latency:** Subsequent incoming HTTP requests incur a 50–60+ second cold-start delay, creating unacceptable friction for visitors submitting contact inquiries.
+- **Monthly Hour Limits:** Free instances are capped at 750 free instance hours per month across an account, risking mid-month suspension.
 
-## 2. Read-Only Repository Findings
+To eliminate these failure modes, the project owner authorized evaluating the **Render Starter Web Service** ($7/month published base price) as the preferred backend hosting candidate. The Starter tier provides:
+- 100% continuous instance uptime (never spins down; zero cold-start delay).
+- 512 MB dedicated RAM and 0.5 shared CPU.
+- Custom domain support and automated managed TLS.
 
-### Frontend
+**Current Cost Boundary:**
+- **Frontend:** Cloudflare Pages (Free, $0/month).
+- **Backend:** Render Starter Web Service ($7/month evaluated candidate; awaiting owner provisioning).
+- **Database:** TiDB Cloud Serverless (Existing cluster, $0/month within free tier quota).
+- **Email:** Resend HTTPS API (Free tier, 3,000 emails/month, 100 emails/day, $0/month).
 
-- Application: Vue 3, TypeScript, Vite.
-- Build script: `npm run build` in the `app` workspace; runs `vue-tsc -b && vite build`.
-- Root package defines an npm workspace for `app`, with root scripts delegating build and tests.
-- Vite output is expected at `app/dist` under the current default Vite configuration.
-- Local development proxy: `/api` → `http://127.0.0.1:8000`.
-- Contact submission uses relative URL `/api/contact/`.
+*Operating Rule:* Render Starter is an evaluated candidate, **not** an already provisioned or deployed service. No external hosting account has been configured, and no live deployment has been executed.
 
-**Implication:** A static host can serve the frontend, but a separate API origin requires an explicit production API base URL or an equivalent routing arrangement. The development proxy must remain for local development and must not be mistaken for a production API route. A production change should preserve current tests and local behavior.
+---
 
-### Backend
+## 2. Verified Source Code Architecture
 
-- Django REST Framework exposes `/api/contact/`.
-- Contact submissions are persisted to a relational database before notification dispatch; the API returns HTTP 201 after the database receipt succeeds.
-- The current database engine is `django.db.backends.mysql`, configured by environment variables, with a cross-platform driver architecture:
-  - On Windows: pure-Python `pymysql` substituted as `MySQLdb` in `backend/config/__init__.py` using Python's OpenSSL to bypass MariaDB Connector/C Schannel TLS 1.3 decryption defect (`0x80090330`).
-  - On Linux / Render: native `mysqlclient==2.3.0` retained for production runtime.
-- Platform-aware TLS options configured in `backend/config/settings.py` (`ssl_mode: VERIFY_IDENTITY` on Linux; `ca` and `check_hostname: True` on Windows).
-- Dependencies: `Django>=5.2.18,<5.3` (aligned to LTS to maintain compatibility with TiDB's MySQL 8.0.11 protocol string), `djangorestframework>=3.15,<4.0`, `django-cors-headers>=4.4,<5.0`, `gunicorn>=23.0,<24.0; sys_platform != 'win32'`, `mysqlclient==2.3.0`, `pymysql>=1.1.1,<2.0; sys_platform == 'win32'`, and `python-dotenv>=1.0,<2.0`.
-- `DJANGO_SECRET_KEY` is required at startup.
-- `DJANGO_DEBUG` defaults to false; `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` are environment-configurable.
-- CORS defaults currently list local development origins only.
-- Anonymous contact submissions are rate-limited to 5/hour.
-- Health check route: Dedicated `GET /api/health/` liveness endpoint implemented (returns HTTP 200, 0 DB queries).
-- Deployment configuration: Render WSGI startup command using Gunicorn documented for Linux.
+### 2.1 Frontend (`app/`)
+- **Technology Stack:** Vue 3 (Composition API), TypeScript 5.x, Vite.
+- **Routing Topography:** Hash-based routing (`createWebHashHistory()`) implemented in `app/src/router/index.ts`. All public routes are hash-anchored (`/#/orientation`, `/#/project-01`, `/#/approach`, `/#/record`, `/#/deep-engineering`, `/#/about`, `/#/contact`).
+- **Static Host Compatibility:** Hash routing guarantees 100% compatibility with static edge hosts like Cloudflare Pages. The web server serves `index.html` on root, and client-side JavaScript handles view resolution without server rewrite rules or `_redirects`.
+- **API Contact Dispatch:** Dispatches `POST` requests to relative endpoint `/api/contact/`.
+- **Build Output:** Produced at `app/dist` via root script `npm run build` (`vue-tsc -b && vite build`).
 
-### Migration and credential portability
+### 2.2 Backend (`backend/`)
+- **Technology Stack:** Python 3.14, Django 5.2.18 LTS, Django REST Framework 3.15+.
+- **Database Driver Architecture (Universal PyMySQL):**
+  - Completely pure-Python driver strategy implemented in commit `279d41c`. Native `mysqlclient==2.3.0` was eliminated to prevent Linux C-extension compilation failures (`gcc`, `python3-dev`, `libmysqlclient-dev`).
+  - `backend/requirements.txt` declares `pymysql>=1.1.1,<2.0` universally across all platforms.
+  - `backend/config/__init__.py` universally aliases `pymysql` as `MySQLdb` via `pymysql.install_as_MySQLdb()` and sets `pymysql.version_info = (2, 2, 1, 'final', 0)` to satisfy Django's MySQL engine requirements.
+- **Fail-Closed Remote Database TLS (`backend/config/settings.py`):**
+  - Database configuration is built via `build_database_config(env=None, base_dir=None, is_migrate=False)`.
+  - **Host Classification:** Canonical local loopback hosts (`127.0.0.1`, `localhost`, `::1`) are recognized via `LOCAL_DATABASE_HOSTS = frozenset({'127.0.0.1', 'localhost', '::1'})`. Canonical local connections permit clean, unencrypted communication for local development.
+  - **Fail-Closed CA Enforcement:** Any non-local host (including `gateway01.eu-central-1.prod.aws.tidbcloud.com`) strictly requires `DB_SSL_CA`. If missing or empty, raises `RuntimeError`.
+  - **Filesystem CA Verification:** Validates that the CA bundle exists on disk via `ca_path.is_file()`. Supports rooted POSIX paths (`/etc/ssl/certs/ca-certificates.crt`) as well as relative paths (`certs/isrgrootx1.pem`). Missing files raise `RuntimeError`.
+  - **Strict Mode Enforcement:** Remote connections strictly enforce `DB_SSL_MODE='VERIFY_IDENTITY'` (or default to it when omitted). Any weaker mode (`VERIFY_CA`, `REQUIRED`, `DISABLED`) or unsupported value raises `RuntimeError`.
+  - **PyMySQL TLS Mapping:** Generates `ssl={'ca': ca_output, 'check_hostname': True}`. The unsupported native `mysqlclient` keyword `ssl_mode` is never passed.
+  - **Test Runner Isolation:** `is_test_command` routes test invocations to in-memory SQLite (`:memory:`), guaranteeing that automated test suites run in hermetic isolation with zero database network calls.
+- **Active Dependencies (`backend/requirements.txt`):**
+  ```text
+  Django>=5.2.18,<5.3
+  djangorestframework>=3.15,<4.0
+  django-cors-headers>=4.4,<5.0
+  gunicorn>=23.0,<24.0; sys_platform != 'win32'
+  pymysql>=1.1.1,<2.0
+  python-dotenv>=1.0,<2.0
+  ```
+- **Liveness Health Endpoint:** Dedicated stateless probe at `GET /api/health/` returning HTTP 200 OK (`{"status": "healthy"}`) in 0 database queries.
+- **Contact API Endpoint:** `POST /api/contact/` implementing Option A (Database-First) persistence, honeypot anti-spam (`website` field), 60-second SHA-256 duplicate suppression heuristic, and DRF `AnonRateThrottle` (5 requests/hour per IP).
+- **Contact Notifications:** Resend HTTPS API via `urllib.request` in `backend/contact/notifications.py`. Bypasses blocked SMTP ports (25, 465, 587). Post-commit decoupled dispatch guarantees that notification failures never invalidate or roll back committed contact records.
+- **Migration & Credential Portability:** `backend/credential_vault.py` provides deterministic resolution: environment variables (`DB_MIGRATE_USER`, `DB_MIGRATE_PASSWORD`) take precedence; on Windows, falls back to Windows Credential Manager (`portfolio_db_migrator`); on Linux, fails closed. Runtime web service strictly uses `portfolio_user` from environment.
 
-The settings module detects migration commands and then imports `credential_vault.py` to retrieve a migration identity from Windows Credential Manager. That module initializes Windows-only `ctypes.windll` APIs at import time.
+---
 
-**Finding:** The existing migration path is Windows-specific. A Linux-hosted deployment cannot safely assume that this path will work; in the current code, importing the module on a non-Windows runtime is expected to fail before the `ImportError` handler can handle it. This is a deployment blocker to resolve through an approved portable credential/migration design. Do not weaken the database's least-privilege intent or put secrets in source control to work around it.
+## 3. Architecture Candidates & Infrastructure Status
 
-### Contact notifications
+```
++-------------------------------------------------------------+
+|                      VISITOR BROWSER                        |
+|                                                             |
+|   +-----------------------------------------------------+   |
+|   |         Cloudflare Pages (Static Frontend)          |   |
+|   |  - Vue 3 + TypeScript + Vite (/app/dist)            |   |
+|   |  - Hash routing (createWebHashHistory)              |   |
+|   |  - Free tier (500 builds/mo, edge CDN)              |   |
+|   +--------------------------+--------------------------+   |
++------------------------------|------------------------------+
+                               |
+                               | HTTPS POST /api/contact/
+                               | JSON Payload: { name, email, message, website }
+                               v
++-------------------------------------------------------------+
+|               RENDER STARTER WEB SERVICE (Backend)          |
+|              (Evaluated Candidate — $7/month)               |
+|                                                             |
+|   +-----------------------------------------------------+   |
+|   |   Gunicorn (1 worker, 2 threads) + Django 5.2.18    |   |
+|   |  - Continuous uptime (Zero cold-start delay)        |   |
+|   |  - 512 MB RAM, 0.5 CPU, Ephemeral Linux FS          |   |
+|   |  - Liveness Health Probe: GET /api/health/          |   |
+|   |  - DRF Throttling & Honeypot Validation             |   |
+|   +--------------------------+--------------------------+   |
+|                              |                              |
+|                              | TLS 1.3 (Port 4000)          |
+|                              | PyMySQL (OpenSSL verify)     |
+|                              | User: portfolio_user (DML)   |
+|                              v                              |
+|   +-----------------------------------------------------+   |
+|   |         TiDB CLOUD SERVERLESS (Existing DB)         |   |
+|   |  - Endpoint: gateway01.eu-central-1...:4000         |   |
+|   |  - Database: portfolio_db (Migrated in Stage 2.9)   |   |
+|   |  - Tables: django_migrations, contact_message       |   |
+|   |  - 1 Permanent Synthetic Record (Stage 2.10)        |   |
+|   +--------------------------+--------------------------+   |
+|                              |                              |
+|                              | Post-Commit Decoupled HTTPS  |
+|                              v                              |
+|   +-----------------------------------------------------+   |
+|   |               RESEND HTTPS EMAIL API                |   |
+|   |  - Endpoint: https://api.resend.com/emails          |   |
+|   |  - Free tier (3,000 emails/mo, 100/day)             |   |
+|   |  - Reply-To: visitor's validated email              |   |
+|   +-----------------------------------------------------+   |
++-------------------------------------------------------------+
+```
 
-- Django defaults to `django.core.mail.backends.console.EmailBackend`.
-- That backend logs email content rather than delivering a real email.
-- Render's free web services block outbound SMTP on ports 25, 465, and 587.
+### 3.1 Frontend — Cloudflare Pages (Evaluated Candidate)
+- **Candidate Status:** Recommended static frontend host; build and preview pending owner account authorization.
+- **Build Configuration:**
+  - Build Command: `npm run build`
+  - Build Output Directory: `app/dist`
+  - Root Directory: Repository root (npm workspace root).
+- **Limits:** 500 builds/month, 1 concurrent build, unlimited bandwidth.
+- **Routing:** Supported natively via `createWebHashHistory()`.
 
-**Finding:** Real notification delivery is not established. A successful HTTP 201 currently means the database receipt succeeded; it must not be described as proof that an email was delivered. A suitable free email API, its sender-verification requirements, limits, and compatibility with the zero-cost constraint remain to be investigated. Do not claim the live contact workflow is fully operational until an actual delivery test succeeds or the user approves a clearly documented alternative.
+### 3.2 Backend — Render Starter Web Service (Evaluated Candidate)
+- **Candidate Status:** Evaluated candidate; awaiting owner provisioning decision.
+- **Compute Sizing:** 512 MB RAM, 0.5 shared CPU.
+- **Process Model:** 1 Gunicorn worker with 2 threads (`--timeout 60`).
+- **Filesystem:** Ephemeral. Application is strictly stateless; zero persistent data written to local disk.
+- **Health Checks:** Probes `/api/health/`.
+- **Superseded Option:** Render Free Web Service ($0) was superseded due to 15-minute spin-down, 50–60 second cold starts, and 750-hour monthly account limit.
+- **Rejected Option:** Render Free PostgreSQL was rejected because instances expire and delete data after 30 days.
 
-### Data persistence and operational needs
+### 3.3 Database — TiDB Cloud Serverless (Existing Verified Cluster)
+- **Status:** **MIGRATED & INTEGRATION ACCEPTED**.
+- **Cluster Endpoint:** `gateway01.eu-central-1.prod.aws.tidbcloud.com:4000` (AWS Frankfurt).
+- **Database:** `portfolio_db`.
+- **Migration History (Stage 2.9 — 2026-11-08):**
+  - Initial migration `contact.0001_initial` applied successfully via out-of-band `portfolio_migrator` execution.
+  - Tables present: `django_migrations` and `contact_message`.
+  - Columns: 11 total (`id`, `name`, `email`, `subject`, `message`, `delivery_status`, `delivery_attempts`, `last_delivery_error`, `content_hash`, `created_at`, `updated_at`).
+  - Indexes: 4 secondary B-Tree indexes on `created_at`, `email`, `delivery_status`, `content_hash`.
+- **Live Integration State (Stage 2.10 — 2026-11-09):**
+  - Synthetic test submission verified live Option A persistence: record `e767aae8-0cf2-44af-b51c-1c23a07e8642` (content hash `e27514b6...`) is permanently retained as engineering verification evidence.
+  - Total database row count: strictly **1**.
+  - Controlled abuse tests (T-01 baseline, T-02 honeypot HTTP 400 rejection, T-03 CRLF HTTP 400 rejection) confirmed zero extraneous writes.
+- **CHECK Constraint Notice:** TiDB Cloud Serverless runs with `tidb_enable_check_constraint = OFF`. DDL `CHECK` constraints are parsed but unenforced by the engine. Data integrity for `delivery_status` is enforced at the Django application model layer (`ContactMessage.clean()` and `save()`).
 
-The contact API stores visitor name, email, message, and delivery diagnostics. A production database must therefore be persistent, protected, and appropriate for personal data. An ephemeral local SQLite database or the backend service's local filesystem is not an acceptable persistent store for this workflow.
+---
 
-## 3. Provisional Zero-Cost Architecture
+## 4. Audit Findings and Reconciliation Matrix
 
-### Frontend — Cloudflare Pages
+| ID | Finding | Initial Risk / Impact (2026-10-27) | Resolved Implementation & Status (2026-11-10) | Current Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **D09-01** | Production frontend cannot rely on Vite's localhost proxy. | Contact submissions fail or target wrong origin. | Hash routing deployed; production API base URL / CORS origins to be configured at deployment. | **Ready for Configuration** |
+| **D09-02** | Migration credentials depended on Windows Credential Manager. | Linux deployment would crash on import. | Implemented platform-neutral `credential_vault.py` with environment variable precedence (`DB_MIGRATE_*`), Windows fallback, and fail-closed resolution. Verified by 29 tests. | **Resolved Locally & Verified** |
+| **D09-03** | No dedicated health-check route existed. | Hosting probes would hit contact endpoint or fail. | Implemented `GET /api/health/` returning HTTP 200 in 0 DB queries. Verified by automated tests. | **Resolved Locally & Verified** |
+| **D09-04** | Email defaulted to console backend; Render blocks SMTP. | Outbound notifications fail on serverless/container hosts. | Implemented Resend HTTPS API dispatcher (`backend/contact/notifications.py`) using `urllib.request`. Decoupled from persistence. | **Resolved Locally & Verified** |
+| **D09-05** | CORS and allowed hosts defaulted to localhost. | Production cross-origin requests rejected. | Environment-configurable via `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` in `settings.py`. | **Ready for Configuration** |
+| **D09-06** | Free Render web service suffers 15-minute spin-down and cold starts. | 50–60s latency, request timeouts, poor UX. | Evaluated Render Starter Web Service ($7/mo) in Stage 3.2A. Continuous 24/7 uptime eliminates cold starts. | **Evaluated Candidate** |
+| **D09-07** | Free database quotas and migration compatibility unverified. | Incompatible protocol strings or unmigrated schema. | Django LTS 5.2.18 aligned; TiDB migration executed in Stage 2.9; integration accepted in Stage 2.10. | **Migrated & Verified** |
+| **D09-08** | Native `mysqlclient` required C compilation headers on Linux. | Build failures on Render due to missing `libmysqlclient-dev`. | Implemented universal pure-Python PyMySQL across Windows and Linux; removed `mysqlclient` in commit `279d41c`. | **Resolved & Committed** |
+| **D09-09** | Remote database TLS was permissive (fail-open) if CA was missing. | Unencrypted remote connection attempts if misconfigured. | Implemented fail-closed TLS guards in `settings.py`: requires `DB_SSL_CA` file on disk and enforces `DB_SSL_MODE='VERIFY_IDENTITY'`. | **Resolved & Committed** |
 
-**Recommendation:** Use Cloudflare Pages for the static Vue/Vite frontend, subject to account authorization and a successful build preview.
+---
 
-Official references:
-- Vue deployment guide: https://developers.cloudflare.com/pages/framework-guides/deploy-a-vue-site/
-- Pages limits: https://developers.cloudflare.com/pages/platform/limits/
+## 5. Technical Specifications & Deployment Guidance
 
-The current Cloudflare Pages Free limits page reports 500 builds per month, one concurrent build, and a 20-minute build timeout. Static assets are distributed through Cloudflare's network. Use the provider's `pages.dev` subdomain and avoid purchasing a domain.
+### 5.1 Credential Architecture & Out-of-Band Migration Security Rule
 
-Initial build configuration to validate:
-- Repository root: repository root, because the root package declares the npm workspace.
-- Build command: `npm run build`.
-- Output directory: `app/dist`.
+1. **Role Separation:**
+   - **Runtime Identity (`portfolio_user`):** Used exclusively by the Render web service. Grants strictly limited to DML: `SELECT, INSERT, UPDATE` on `portfolio_db.*`. Has zero DDL privileges and zero `DELETE` privilege.
+   - **Migration Identity (`portfolio_migrator`):** Used exclusively for executing schema migrations out-of-band via `python manage.py migrate`. Grants include `CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE`.
+2. **CRITICAL SECURITY RULE FOR RENDER:**
+   - The Render Web Service dashboard must **NEVER** contain `DB_MIGRATE_USER` or `DB_MIGRATE_PASSWORD`.
+   - Migrations are never executed automatically during Render container build or startup.
+   - Migrations are executed strictly out-of-band by the authorized operator from a secure workstation.
 
-This is a proposal, not yet tested against a live Cloudflare build. The repository is private; Git-provider integration permissions must be reviewed and explicitly authorized.
+### 5.2 Render Starter Configuration Specification
 
-### Backend — Render Free Web Service
-
-**Provisional option:** Render Free Web Service for the Django API, using a provider subdomain.
-
-Official reference: https://render.com/docs/free
-
-Current documented limitations include:
-- The service spins down after 15 minutes without inbound traffic and can take about a minute to start again.
-- The local filesystem is ephemeral.
-- Free services may restart and have usage limits.
-- Free web services cannot send outbound SMTP on ports 25, 465, or 587.
-- Render explicitly positions free instances for testing, hobby projects, and previews rather than production applications.
-
-**Interpretation:** Render may be acceptable for a no-cost public portfolio evaluation or demonstration, but its free backend should not be represented as production-grade or continuously available. If the project later requires dependable production contact handling, uptime, or persistent operational guarantees, a paid service may be necessary; that would be outside the current zero-cost constraint and must not be introduced without a new decision.
-
-Official service reference: https://render.com/docs/web-services
-
-### Database — TiDB Cloud Starter, MySQL-compatible
-
-**Status:** Compatibility and integrity verified locally (Stages 2.3–2.7); live database migration pending explicit authorization.
-
-Official references:
-- Free quotas and limitations: https://docs.pingcap.com/tidbcloud/serverless-limitations/
-- Plan selection and spending limit: https://docs.pingcap.com/tidbcloud/select-cluster-tier/
-- MySQL compatibility: https://docs.pingcap.com/tidbcloud/mysql-compatibility/
-
-The current official docs state that the first five MySQL-compatible Starter instances per organization have a free quota of 5 GiB row-based storage, 5 GiB columnar storage, and 50 million request units per month. The free option does not require a credit card. When the free quota is reached, new connections may be restricted until the quota resets. Setting the spending limit to zero is necessary to preserve the no-spend requirement.
-
-**Verified Compatibility Findings (Stages 2.3–2.7):**
-- **Protocol Version:** TiDB Cloud advertises `8.0.11-TiDB-Serverless`. Compatible with Django 5.2.18 LTS; incompatible with Django 6.1.2 without modification.
-- **Connection & TLS:** TiDB Cloud Serverless mandates encrypted TLS on port 4000. On Windows, native `mysqlclient` fails due to Windows Schannel TLS 1.3 decryption defects (`0x80090330`); resolved via pure-Python PyMySQL substitution. On Linux, native `mysqlclient` with `ssl_mode=VERIFY_IDENTITY` is retained.
-- **CHECK Constraints:** Global system variable `tidb_enable_check_constraint = OFF` in TiDB Cloud Serverless. DDL CHECK constraints are parsed but unenforced by the engine. Compensated by model-level application validation on `ContactMessage`.
-- **Database Baseline:** Live database `portfolio_db` verified via read-only inspection as having **zero tables** and **zero migration history**.
-- **Migration Status:** Controlled migration execution has **NOT** been performed.
-
-### Why not Render Free Postgres?
-
-Render's official free-plan documentation says free Postgres databases expire 30 days after creation and have no backups. That is unsuitable as the default persistent database for the contact form. A different persistent free database option must be validated before deployment.
-
-## 4. Zero-Cost Constraint Controls
-
-Before any external setup:
-- Confirm that every selected service is explicitly on a $0/free tier.
-- Where a spending limit exists, set it to zero.
-- Do not add a payment method merely to enable a service.
-- Confirm whether the service suspends, throttles, or deletes data when its free quota or lifetime limit is reached.
-- Use free provider subdomains only.
-- Do not accept a trial that later automatically converts to a paid plan.
-- Record the relevant provider terms and date checked.
-
-The goal is no required monetary cost. The plan cannot promise permanent availability, unlimited usage, or unchanged provider terms.
-
-## 5. Audit Findings and Proposed Responses
-
-| ID | Finding | Risk / impact | Proposed response | Status |
-|---|---|---|---|---|
-| D09-01 | Production frontend cannot rely on Vite's localhost API proxy. | Contact submissions will target the wrong origin or fail. | Introduce a production API base URL or approved equivalent while retaining the local proxy. | Proposed; approval required |
-| D09-02 | Migration credentials depend on Windows Credential Manager. | Linux migration execution is expected to fail. | Implemented Option A: platform-neutral credential_vault with fail-closed precedence (DB_MIGRATE_* -> Windows vault -> fail closed) and out-of-band TLS migration execution. | Implemented locally; live database connectivity unverified |
-| D09-03 | No dedicated health-check route was found. | Hosting health checks may fail or require an unsuitable endpoint. | Implemented locally: GET /api/health/ process liveness endpoint (unauthenticated, 0 DB queries, 0 secrets). | Implemented locally; live hosting verification pending |
-| D09-04 | Contact email defaults to console backend / Render blocks SMTP. | Outbound SMTP is blocked on Render free tier. | Implemented locally: Resend HTTPS API notification service (Option A post-commit decoupled dispatch, reply-to visitor, zero secret exposure). | Implemented locally; live provider verification pending |
-| D09-05 | CORS and allowed hosts default to local development values. | Public frontend requests may be rejected or host validation may fail. | Configure narrowly scoped production origins/hosts through environment variables. | Proposed; approval required |
-| D09-06 | Free Render web service has cold starts and is not recommended by Render for production. | Delayed first request and limited reliability. | Treat as a demonstration/evaluation environment only under the current $0 constraint. | Constraint accepted for evaluation only; human confirmation still required |
-| D09-07 | Free database quotas can restrict connections; some free database plans expire. | Contact form may become unavailable or data may be lost. | Validated TiDB Cloud Serverless with $0 spending limit; resolved driver/TLS/version compatibility; model validation compensates for unenforced CHECK constraints. | Compatibility verified; live migration pending |
-| D09-08 | No dedicated production deployment configuration was found in the inspected files/search. | Setup may be non-reproducible. | Implemented locally: Declared Gunicorn in requirements.txt with sys_platform != 'win32' marker. Documented Render build/start commands and root directory. | Implemented locally; live hosting verification pending |
-
-### 5.1 Database Credential Architecture & Privilege Separation (Finding D09-02)
-
-Following review in Stage 09.3, the database credential architecture (Option A) was implemented locally across `backend/credential_vault.py`, `backend/config/settings.py`, `backend/.env.example`, and `backend/tests/test_credentials.py`.
-
-#### 1. Runtime vs. Migration Identities
-- **Runtime Identity (`portfolio_user`):**
-  - Used exclusively by the runtime web service (WSGI/ASGI), local development server (`runserver`), and read-only utilities.
-  - Demonstrated application requirements: strictly `SELECT, INSERT, UPDATE` on `portfolio_db.*` (conforming to `ContactMessage` query behavior in `backend/contact/views.py`).
-  - Prohibited privileges: `DELETE`, `CREATE`, `ALTER`, `DROP`, `REFERENCES`, `INDEX`.
-- **Migration Identity (`portfolio_migrator`):**
-  - Used exclusively for executing schema migrations via `python manage.py migrate` out-of-band from the developer workstation or dedicated migration runner.
-  - Required privileges: `SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES` on `portfolio_db.*` (subject to TiDB Cloud supported database-level grants).
-
-#### 2. Safe Credential Handling & Out-of-Band Execution
-- **Render Secret Isolation:** The Render Web Service dashboard must **never** contain `DB_MIGRATE_USER` or `DB_MIGRATE_PASSWORD`. Only runtime `DB_USER` and `DB_PASSWORD` are configured on Render.
-- **Deterministic Credential Resolution:**
-  - If either `DB_MIGRATE_USER` or `DB_MIGRATE_PASSWORD` is present in the environment, the environment is the chosen source.
-  - If incomplete, empty, or whitespace-only, the system fails closed immediately with `RuntimeError` without querying the Windows vault or falling back to `portfolio_user`.
-  - Passwords are preserved byte-for-byte (never trimmed).
-  - If neither environment variable is configured: on Windows, falls back to Windows Credential Manager (`portfolio_db_migrator`); on Linux, fails closed with `RuntimeError`.
-  - Zero secrets or password tokens are leaked into exception messages or logs.
-
-#### 3. Remote TLS Configuration
-- TiDB Cloud Serverless mandates encrypted TLS connections on port `4000` (Let's Encrypt ISRG Root X1 root certificate).
-- Environment-controlled via `DB_SSL_MODE=VERIFY_IDENTITY` and `DB_SSL_CA` in `backend/config/settings.py`. When unconfigured, local unencrypted MySQL on `127.0.0.1:3306` remains undisturbed.
-
-#### 4. Verification Status and Boundaries
-- **Completed Locally:**
-  - Automated unit test suite (`backend/tests/test_credentials.py`): 17 tests passing.
-  - Existing backend regression suite (`backend/contact/tests.py`): 14 tests passing.
-  - Frontend unit tests and production build passing.
-  - Simulated non-Windows subprocess import safety verified.
-- **Pending Verification:**
-  - Genuine Linux kernel verification (Docker was not available on the local Windows host; container verification remains pending).
-  - Remote TiDB TLS handshake, hostname verification, and gateway reachability (port 4000).
-  - Live migration execution and table creation in TiDB Cloud.
-- **Explicit Boundary:** The system is **NOT production-verified**. Live database connectivity, accounts, and external services remain unconfigured pending explicit approval.
-
-### 5.2 Deployment Hardening & Startup Architecture (Findings D09-03, D09-08)
-
-Following Stage 09.3-A specification and approval, deployment hardening was implemented locally across `backend/config/urls.py`, `backend/contact/views.py`, `backend/requirements.txt`, and `backend/tests/test_health.py`.
-
-#### 1. Liveness Health Endpoint (`GET /api/health/`)
-- **Purpose:** Stateless, unauthenticated process liveness probe for the hosting platform (Render).
-- **Behavior:** Returns HTTP 200 OK with `application/json` payload `{"status": "healthy"}`.
-- **Strict Boundary:** Executes zero database queries (`assertNumQueries(0)`) and makes zero external network calls.
-- **Limitations:** A successful response confirms that Gunicorn and Django routing are responsive; it does **not** establish database readiness, contact-form persistence, or email delivery. If the database is unreachable, `/api/health/` still returns 200 while `/api/contact/` returns sanitized HTTP 500 without restarting the container.
-
-#### 2. Backend Production Startup Configuration (Render)
+- **Service Type:** Web Service (Python)
 - **Root Directory:** `backend`
-- **Build Command:** `pip install -r requirements.txt`
-- **WSGI Dependency:** Declared as `gunicorn>=23.0,<24.0; sys_platform != 'win32'` in `backend/requirements.txt`. On Linux (Render), Gunicorn is installed; on Windows development machines, Gunicorn is skipped cleanly.
-- **Startup Command:**
+- **Build Command:**
+  ```bash
+  pip install -r requirements.txt
+  ```
+- **Start Command:**
   ```bash
   gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 60
   ```
-- **Resource Sizing:** 1 worker with 2 threads is chosen for Render's 512 MB RAM / 0.1 CPU free container to avoid memory pressure while handling concurrent health probes and contact submissions.
-- **Production Environment Rules:**
-  - `DJANGO_DEBUG=False` must be configured in Render dashboard environment variables.
-  - `DJANGO_SECRET_KEY` must be configured with a secure random key on Render and never committed.
-  - **Zero Startup Migrations:** Startup must **never** run `python manage.py migrate`. Migrations are executed out-of-band via Option A architecture.
+- **Health Check Path:** `/api/health/`
+- **Instance Type:** Starter (512 MB RAM, 0.5 CPU, $7/month)
+- **Auto-Deploy:** Optional (manual deploy recommended for initial release)
+- **Proposed Linux CA Bundle Path:** `/etc/ssl/certs/ca-certificates.crt`
+  *(Note: This is Ubuntu's standard system CA bundle path. Its existence must be verified in the actual Render Linux container environment.)*
 
-#### 3. Frontend Static Hosting Architecture (Cloudflare Pages)
-- **Router Configuration:** Retains `createWebHashHistory()` in `app/src/router/index.ts`.
-- **Public URL Topology:** Visitor-facing routes are hash-based (`/#/orientation`, `/#/project-01`, `/#/approach`, `/#/record`, `/#/deep-engineering`, `/#/about`, `/#/contact`).
-- **Static Compatibility:** Static hosts serve `index.html` on root, and client-side hash routing resolves views natively in the browser without server rewrite rules or `_redirects`.
+#### Proposed Render Environment Variable Matrix
 
-#### 4. Unverified Deployment Assumptions
-- Live Render `$PORT` binding, container initialization, and edge TLS proxy forwarding remain unverified until deployment.
-- Live Gunicorn startup on a genuine Linux host remains unverified locally (Windows development uses `runserver`).
-- Live TiDB Cloud Serverless connectivity, TLS handshake (port 4000), and account permissions remain unverified.
-- Live Resend HTTPS API reachability and domain verification remain unverified until external account configuration and live acceptance testing.
+| Variable Name | Required Value / Description | Sensitivity |
+| :--- | :--- | :--- |
+| `DJANGO_SECRET_KEY` | High-entropy random string (>= 50 chars) | Secret |
+| `DJANGO_DEBUG` | `False` | Configuration |
+| `ALLOWED_HOSTS` | Render internal host and custom domain (comma-separated) | Configuration |
+| `CORS_ALLOWED_ORIGINS` | Cloudflare Pages production URL and custom domain | Configuration |
+| `DB_NAME` | `portfolio_db` | Configuration |
+| `DB_USER` | `portfolio_user` (TiDB runtime username) | Configuration |
+| `DB_PASSWORD` | Runtime database user password | Secret |
+| `DB_HOST` | `gateway01.eu-central-1.prod.aws.tidbcloud.com` | Configuration |
+| `DB_PORT` | `4000` | Configuration |
+| `DB_SSL_MODE` | `VERIFY_IDENTITY` | Configuration |
+| `DB_SSL_CA` | `/etc/ssl/certs/ca-certificates.crt` | Configuration |
+| `RESEND_API_KEY` | Resend API secret key (`re_...`) | Secret |
+| `CONTACT_NOTIFICATION_TO` | Portfolio owner email address | Secret |
+| `CONTACT_NOTIFICATION_FROM` | Authorized sender identity (e.g. `Portfolio Contact <onboarding@resend.dev>`) | Configuration |
 
-### 5.3 Contact Email Notification Architecture (Finding D09-04)
+*Prohibited on Render:* `DB_MIGRATE_USER`, `DB_MIGRATE_PASSWORD`, `EMAIL_SIMULATION_ALLOWED`.
 
-Following Stage 09.3-F implementation, production email notifications use the **Resend HTTPS API** rather than SMTP, bypassing Render's outbound SMTP restrictions.
+### 5.3 Resend Notification Architecture & Email Acceptance Criteria
 
-#### 1. Decoupled Persistence vs. Email Delivery (Option A)
-- **Database is Primary Source of Truth:** Visitor submissions are validated and committed to MySQL/TiDB in an atomic transaction before any notification attempt.
-- **Truthful Visitor Receipt:** The visitor receives HTTP 201 Created and their UUID receipt confirmation immediately upon successful database commit.
-- **Fault-Isolated Dispatch:** If the Resend API call fails (HTTP 4xx/5xx, network timeout, DNS failure, or missing configuration), the database record is **never** rolled back or deleted. The system logs a server-side warning and marks `delivery_status='failed'` with a sanitized diagnostic string on the database record. The visitor is never told the message was unsaved.
-- **Zero Diagnostic Leakage:** Neither the Resend API key nor raw visitor message contents are ever stored in `delivery_error` or leaked to error responses.
+1. **Decoupled Operation:** Message persistence to MySQL/TiDB is primary. A downstream notification failure marks `delivery_status='failed'` on the database record, but returns HTTP 201 Created and the UUID receipt to the visitor.
+2. **Sender Domain Rules:**
+   - Testing sender identity: `onboarding@resend.dev` delivers notifications strictly to the email registered with the Resend account.
+   - Production domain: Sending from a custom domain (e.g., `contact@adnanabdullahi.com`) requires configuring SPF and DKIM DNS records at the domain registrar.
+3. **Reply-To Integrity:** The visitor's submitted email is supplied in the `reply_to` field. The `from` address is never spoofed as the visitor.
+4. **Live Verification Status:** End-to-end email transmission to an external inbox was deliberately not executed during Stage 2.10 to preserve free quota limits. Live notification delivery will be verified during Stage 09.4 post-deployment acceptance testing.
 
-#### 2. Resend Account & Sender Domain Requirements
-- **Cost Constraint:** Resend's free tier provides 3,000 emails/month and 100 emails/day, requiring no credit card and strictly satisfying the zero-cost requirement.
-- **Domain Verification:** In production, sending from a custom domain (e.g., `contact@yourdomain.com`) requires configuring SPF and DKIM DNS records in your domain registrar per Resend instructions.
-- **Testing Sender Identity:** For initial deployment or testing prior to domain verification, Resend provides `onboarding@resend.dev` to deliver notifications exclusively to the email address registered with the Resend account.
-- **Reply-To Integrity:** The visitor's validated email address is supplied as the `reply_to` parameter in the Resend payload. The sender (`from`) is never spoofed as the visitor, ensuring strict DMARC/SPF compliance and allowing the portfolio owner to click "Reply" directly in their email client.
+---
 
-#### 3. Required Environment Variables
-The following environment variables must be configured:
-- `RESEND_API_KEY`: Secret API token generated in the Resend dashboard (`re_...`). In local development (`DEBUG=True`), setting this to `simulate` logs notification dispatch without making outbound HTTP calls. In production (`DEBUG=False`), `simulate` is prohibited and fails closed unless `EMAIL_SIMULATION_ALLOWED=True` is explicitly configured.
-- `EMAIL_SIMULATION_ALLOWED`: Optional override flag defaulting to `False`. Must remain `False` in production.
-- `CONTACT_NOTIFICATION_TO`: Portfolio owner's email address designated to receive visitor notifications.
-- `CONTACT_NOTIFICATION_FROM`: Authorized sender identity (e.g. `Portfolio Contact <contact@yourdomain.com>` or `Portfolio Contact <onboarding@resend.dev>`).
+## 6. Explicitly Unverified Deployment Details (What Has NOT Been Done)
 
-#### 4. Secure API-Key Configuration in Render
-- In the Render Dashboard, navigate to the Backend Web Service > **Environment**.
-- Add `RESEND_API_KEY`, `CONTACT_NOTIFICATION_TO`, and `CONTACT_NOTIFICATION_FROM`.
-- Render automatically treats custom environment variables as secure secrets.
-- **CRITICAL:** Never commit `RESEND_API_KEY` or personal email addresses to Git or `backend/.env.example`.
+To preserve engineering accuracy and avoid false claims of operational readiness:
 
-#### 5. Live Email Delivery Acceptance Test
-After deploying to Render with configured Resend environment variables:
-1. Open the portfolio contact form at the live Cloudflare Pages URL (or send `POST /api/contact/` via curl to Render).
-2. Submit a test inquiry with a valid name, your personal test email, and message.
-3. Verify the frontend displays the confirmation receipt message with a valid UUID.
-4. Verify in the database (or Render application logs) that `delivery_status` transitioned to `sent` and `delivery_attempts` is `1`.
-5. Check the owner's email inbox: confirm receipt of the notification containing the reference ID, visitor name, visitor email, timestamp, and message.
-6. Click "Reply" in your email client: confirm the destination address is the visitor's email address (`reply_to`), not the sender address.
+1. **No External Hosting Provisioned:** No Render Web Service has been created or provisioned. No Cloudflare Pages project has been configured.
+2. **Live Render-to-TiDB Handshake Unobserved:** While local Windows PyMySQL connectivity to TiDB Cloud over TLS port 4000 was verified in Stages 2.9 and 2.10, connectivity originating from a live Render Linux container to TiDB Cloud has not yet been executed or observed.
+3. **Render CA Bundle Path Unverified on Host:** `/etc/ssl/certs/ca-certificates.crt` is the standard Linux path tested locally via mocking and path normalization; its presence on the specific Render container image must be verified upon container startup.
+4. **Live Email Delivery Unverified:** Live delivery of a visitor notification email to the owner's personal inbox via Resend HTTPS API has not yet been tested.
+5. **Cross-Origin DNS and Browser Negotiation Unverified:** Live cross-origin communication between a Cloudflare Pages domain and a Render domain has not yet been tested in a live browser.
 
-### 5.4 Cross-Platform Database Architecture & Integrity Verification (Stages 2.3–2.7)
+---
 
-Following database compatibility investigations in Stages 2.3 through 2.7, the database runtime architecture was established and verified locally.
+## 7. Audit Disposition & Progression
 
-#### 1. Dual-Driver Architecture Matrix
-- **Windows Runtime (Development & Migration Runner):**
-  - Uses pure-Python `pymysql` (version `>=1.1.1,<2.0`) aliased as `MySQLdb` in `backend/config/__init__.py`.
-  - Driven by Python's native OpenSSL library, cleanly bypassing Windows Schannel TLS 1.3 decryption defects (`0x80090330`).
-  - Configures TLS via `db_options['ssl'] = {'ca': db_ssl_ca, 'check_hostname': True}`.
-- **Linux Runtime (Production Web Service / Render):**
-  - Retains native C-based `mysqlclient==2.3.0` linked against system OpenSSL.
-  - Configures TLS via `db_options['ssl_mode'] = 'VERIFY_IDENTITY'`.
-
-#### 2. Framework Version Alignment
-- Aligned to `Django>=5.2.18,<5.3` (LTS).
-- Prevents connection initialization failure against TiDB Cloud's MySQL 8.0.11 protocol string.
-
-#### 3. Database Integrity & Model-Level Compensation
-- **TiDB Engine Constraint Status:** TiDB Cloud Serverless operates with `tidb_enable_check_constraint = OFF`. While `sqlmigrate` outputs `CHECK (delivery_status IN (...))`, TiDB ignores CHECK constraints during data insertion and modification.
-- **Application-Level Enforcement:** Implemented `clean_delivery_status()`, `clean()`, and `save()` overrides on `ContactMessage`. Validates `delivery_status` on full model saves and partial updates targeting `delivery_status`.
-- **Validation Boundary:** Application-level validation safeguards model operations; direct raw SQL queries and bulk operations (`bulk_create`, `bulk_update`, `QuerySet.update()`) bypass model validation and are not guarded.
-
-#### 4. Verification and Regression Baseline
-- Test suite: 52 out of 52 tests passing (including 8 dedicated model validation tests) in in-memory SQLite isolation.
-- Migration drift: `python manage.py makemigrations --dry-run` confirms zero schema drift.
-- Live database baseline: `portfolio_db` confirmed completely empty (0 tables).
-
-#### 5. Explicitly Unverified Deployment Details
-- **Controlled migration has NOT been executed:** Live tables have not been created in TiDB Cloud.
-- **Render production deployment has NOT been executed:** The application is not deployed or running on Render.
-- **Cloudflare Pages deployment has NOT been executed:** The frontend is not deployed or hosted on Cloudflare Pages.
-- **Production TLS behavior on Render has NOT been observed:** Only Windows development TLS has been locally verified.
-
-## 6. Required Approval Before Implementation
-
-The audit does not authorize:
-- Changing source code or tests.
-- Changing database engines or schema.
-- Changing database privileges or migration credentials.
-- Creating/configuring Cloudflare, Render, TiDB, or email-provider accounts.
-- Deploying or making the site public.
-- Setting external service environment variables.
-- Adding any paid service, payment method, domain purchase, or subscription.
-
-The next decision is whether the project owner approves the proposed architecture for a **zero-cost public evaluation/demo**, understanding that the free backend has cold starts and is not a production reliability commitment. If approved, implementation proposals should be presented individually before any material change is executed.
-
-## 7. Audit Disposition
-
-**Read-only audit:** Completed against the current GitHub source and official provider documentation on 2026-10-27.  
-**Architecture:** Cloudflare Pages frontend + Render Free Django API + TiDB Cloud Starter MySQL-compatible database.  
-**Database compatibility & integrity:** Dual-driver runtime (PyMySQL on Windows, mysqlclient on Linux), platform-aware TLS, Django 5.2.18 LTS alignment, and model-level validation implemented and tested locally (52/52 tests passing).  
-**Real email delivery:** Implemented locally via Resend HTTPS API (Finding D09-04); live acceptance testing pending.  
-**Controlled database migration:** Not performed; live database currently at empty baseline (0 tables).  
-**Public deployment:** Not performed.  
-**Next stage step:** Review reconciliation and obtain explicit authorization before executing controlled database migration and cloud deployment.
+- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, and verified by 80 backend unit tests and 160 frontend tests (commit `279d41c`).
+- **Database State:** `portfolio_db` is migrated (Stage 2.9) and integration-accepted (Stage 2.10) with 1 permanent synthetic record.
+- **Evaluated Architecture:** Cloudflare Pages (Frontend, $0) + Render Starter (Backend, $7/month candidate) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
+- **Next Required Step:** Project owner review and authorization to proceed with Stage 09.4 deployment preparation.
