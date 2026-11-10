@@ -1,7 +1,7 @@
 """
 Django settings for portfolio backend contact service.
 Loads runtime settings from backend/.env.
-Integrates least-privilege runtime MySQL connection (portfolio_user)
+Integrates universal PyMySQL driver, least-privilege runtime MySQL connection (portfolio_user)
 and dynamic migration credentials (portfolio_migrator) via Windows Credential Manager.
 """
 import os
@@ -51,6 +51,151 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration
 
+# Canonical local loopback host definitions (IPv4, IPv6, localhost hostname)
+LOCAL_DATABASE_HOSTS = frozenset({'127.0.0.1', 'localhost', '::1'})
+
+
+def is_local_database_host(host: str) -> bool:
+    """
+    Return True if the specified database host is a recognized local loopback address.
+
+    Canonical local loopback addresses:
+    - '127.0.0.1': Standard IPv4 loopback address (RFC 5735). Default local development address.
+    - 'localhost': Standard loopback domain name (RFC 6761).
+    - '::1': Standard IPv6 loopback address (RFC 4291).
+
+    All other hostnames and IP addresses are strictly classified as remote and require TLS.
+    """
+    if not host:
+        return True  # Default '127.0.0.1' is local
+    return host.strip().lower() in LOCAL_DATABASE_HOSTS
+
+
+def build_database_config(env=None, base_dir=None, is_migrate=False) -> dict:
+    """
+    Construct the database configuration dictionary with fail-closed TLS guards for remote hosts.
+
+    Security Invariants:
+    1. Local hosts ('127.0.0.1', 'localhost', '::1') permit unencrypted connections for local dev.
+    2. Remote hosts strictly require an explicit, existing CA certificate path (DB_SSL_CA).
+    3. Remote hosts strictly require DB_SSL_MODE='VERIFY_IDENTITY' (or omitted, defaulting to VERIFY_IDENTITY).
+       Any weaker mode (e.g. 'VERIFY_CA', 'REQUIRED', 'DISABLED') or unsupported mode is rejected.
+    4. TLS options configure PyMySQL via 'ssl': {'ca': ..., 'check_hostname': True}.
+       The native mysqlclient 'ssl_mode' keyword is never passed.
+    """
+    if env is None:
+        env = os.environ
+    if base_dir is None:
+        base_dir = BASE_DIR
+
+    db_name = env.get('DB_NAME', 'portfolio_db')
+    db_user = env.get('DB_USER', 'portfolio_user')
+    db_password = env.get('DB_PASSWORD', '')
+    db_host = env.get('DB_HOST', '127.0.0.1')
+    db_port = env.get('DB_PORT', '3306')
+
+    if is_migrate:
+        try:
+            from credential_vault import get_migration_database_credentials
+            db_user, db_password = get_migration_database_credentials()
+        except (RuntimeError, ImportError) as e:
+            raise RuntimeError(f"Database migration aborted: {e}") from None
+
+    db_options = {
+        'charset': 'utf8mb4',
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+    }
+
+    db_ssl_ca = env.get('DB_SSL_CA', '').strip()
+    db_ssl_mode = env.get('DB_SSL_MODE', '').strip()
+
+    is_local = is_local_database_host(db_host)
+
+    if not is_local:
+        # Remote database connection: Fail-closed security validation
+        if not db_ssl_ca:
+            raise RuntimeError(
+                f"DB_SSL_CA is required for remote database connections (DB_HOST={db_host!r}). "
+                "Plaintext remote database connections are strictly prohibited."
+            )
+
+        db_ssl_ca_str = db_ssl_ca.strip()
+        is_rooted = (
+            db_ssl_ca_str.startswith('/')
+            or db_ssl_ca_str.startswith('\\')
+            or Path(db_ssl_ca_str).is_absolute()
+        )
+        if is_rooted:
+            ca_path = Path(db_ssl_ca_str)
+            ca_output = ca_path.as_posix() if db_ssl_ca_str.startswith('/') else str(ca_path)
+        else:
+            ca_path = base_dir / db_ssl_ca_str
+            ca_output = str(ca_path)
+
+        if not ca_path.is_file():
+            raise RuntimeError(
+                f"Configured DB_SSL_CA certificate file not found: {db_ssl_ca} "
+                f"(resolved to {ca_path}). A valid existing CA bundle is required for remote connections."
+            )
+
+        # Enforce supported TLS mode for remote database
+        # Default when omitted is VERIFY_IDENTITY (fail-secure default)
+        normalized_mode = (db_ssl_mode or 'VERIFY_IDENTITY').upper()
+        if normalized_mode != 'VERIFY_IDENTITY':
+            raise RuntimeError(
+                f"Unsupported or insecure DB_SSL_MODE={db_ssl_mode!r} for remote database host. "
+                "Remote database connections strictly require DB_SSL_MODE='VERIFY_IDENTITY'. "
+                "Weaker or unverified SSL modes are prohibited."
+            )
+
+        db_options['ssl'] = {
+            'ca': ca_output,
+            'check_hostname': True,
+        }
+    else:
+        # Local development database connection
+        if db_ssl_ca:
+            db_ssl_ca_str = db_ssl_ca.strip()
+            is_rooted = (
+                db_ssl_ca_str.startswith('/')
+                or db_ssl_ca_str.startswith('\\')
+                or Path(db_ssl_ca_str).is_absolute()
+            )
+            if is_rooted:
+                ca_path = Path(db_ssl_ca_str)
+                ca_output = ca_path.as_posix() if db_ssl_ca_str.startswith('/') else str(ca_path)
+            else:
+                ca_path = base_dir / db_ssl_ca_str
+                ca_output = str(ca_path)
+
+            if not ca_path.is_file():
+                raise RuntimeError(
+                    f"Configured DB_SSL_CA certificate file not found: {db_ssl_ca} "
+                    f"(resolved to {ca_path})."
+                )
+            normalized_mode = (db_ssl_mode or 'VERIFY_IDENTITY').upper()
+            if normalized_mode != 'VERIFY_IDENTITY':
+                raise RuntimeError(
+                    f"Unsupported DB_SSL_MODE={db_ssl_mode!r}. Only 'VERIFY_IDENTITY' is supported."
+                )
+            db_options['ssl'] = {
+                'ca': ca_output,
+                'check_hostname': True,
+            }
+
+    return {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+            'OPTIONS': db_options,
+        }
+    }
+
+
 # 1. Test runner isolation: Always evaluate first
 # Supported test invocation: manage.py test [options]
 is_test_command = len(sys.argv) > 1 and sys.argv[1] == 'test'
@@ -62,51 +207,9 @@ if is_test_command:
         }
     }
 else:
-    # 2. Runtime baseline: Least-privilege application account (portfolio_user)
-    DB_NAME = os.getenv('DB_NAME', 'portfolio_db')
-    DB_USER = os.getenv('DB_USER', 'portfolio_user')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-    DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
-    DB_PORT = os.getenv('DB_PORT', '3306')
-
-    # 3. Elevated migration identity: Gated strictly to the 'migrate' subcommand
+    # 2. Runtime / Migration baseline
     is_migrate_command = len(sys.argv) > 1 and sys.argv[1] == 'migrate'
-    if is_migrate_command:
-        try:
-            from credential_vault import get_migration_database_credentials
-            DB_USER, DB_PASSWORD = get_migration_database_credentials()
-        except (RuntimeError, ImportError) as e:
-            raise RuntimeError(f"Database migration aborted: {e}") from None
-
-    # Base MySQL connection options
-    db_options = {
-        'charset': 'utf8mb4',
-        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-    }
-
-    # Optional TLS options for remote MySQL / TiDB Cloud
-    db_ssl_mode = os.getenv('DB_SSL_MODE')
-    db_ssl_ca = os.getenv('DB_SSL_CA')
-    if db_ssl_ca:
-        db_options['ssl'] = {'ca': db_ssl_ca}
-        if db_ssl_mode == 'VERIFY_IDENTITY':
-            db_options['ssl']['check_hostname'] = True
-
-    # Only pass ssl_mode keyword to native mysqlclient (not supported by PyMySQL)
-    if db_ssl_mode and sys.platform != 'win32':
-        db_options['ssl_mode'] = db_ssl_mode
-
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': DB_NAME,
-            'USER': DB_USER,
-            'PASSWORD': DB_PASSWORD,
-            'HOST': DB_HOST,
-            'PORT': DB_PORT,
-            'OPTIONS': db_options,
-        }
-    }
+    DATABASES = build_database_config(is_migrate=is_migrate_command)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
