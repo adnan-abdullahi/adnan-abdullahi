@@ -65,3 +65,10 @@ class HealthCheckEndpointTests(APITestCase):
         ]
         for key in disallowed_keys:
             self.assertNotIn(key, data)
+
+    def test_health_exempt_from_rate_throttling(self):
+        """Health check endpoint is exempt from rate throttling and never returns HTTP 429."""
+        for _ in range(10):
+            response = self.client.get(self.url)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.json(), {"status": "healthy"})

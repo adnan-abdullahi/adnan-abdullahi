@@ -574,3 +574,54 @@ Create one consolidated local Git commit containing the approved Stage 3.2B and 
    - Full backend test suite re-verified: 80/80 passed cleanly.
    - Commit was synchronized to remote tracking branch `origin/main` on GitHub.
    - Baseline established for Stage 3.3 documentation reconciliation.
+
+---
+
+## Session 12 — Stage 3.4: Render Deployment Readiness Audit, Proxy-Aware Rate Limiting, and Verification
+
+**Date:** 2026-11-10 to 2026-11-11
+**Position:** Stage 3.4 Deployment Readiness Audit, Investigation, Implementation, and Documentation Reconciliation
+**Mode:** Controlled Investigation, Implementation, Review, and Commit Preparation
+
+### Purpose
+
+Resolve the reverse-proxy visitor identification defect discovered during the Stage 3.4A Render deployment audit, investigate Cloudflare ingress identity headers, implement fail-closed rate-limiting logic, verify full regression test coverage, and reconcile all governing engineering documents.
+
+### Context & Discovery (Stage 3.4A & 3.4B)
+
+1. **The Reverse-Proxy Collusion Defect:**
+   - In Stage 3.4A, audit of the proposed Render Starter deployment revealed that the existing DRF throttle (`ContactAnonRateThrottle`) relied strictly on `request.META['REMOTE_ADDR']`.
+   - In Render's container architecture, incoming requests from public visitors pass through Render's reverse-proxy/load-balancer infrastructure.
+   - Consequently, `REMOTE_ADDR` reflects Render's internal proxy IP (e.g., `10.x.x.x`), causing all public visitors to share a single throttle identity.
+   - Under the approved limit of 5 requests per hour, five total submissions across all visitors globally would exhaust the contact endpoint for the remainder of the hour.
+2. **Investigation of Ingress Headers:**
+   - The Stage 3.4B investigation compared `REMOTE_ADDR`, `X-Forwarded-For`, and Cloudflare's `CF-Connecting-IP`.
+   - `X-Forwarded-For` is susceptible to client spoofing unless an explicit, complex upstream proxy whitelist is configured.
+   - Because the frontend is hosted on Cloudflare Pages (with traffic routed through Cloudflare edge), Cloudflare automatically overwrites and injects the authentic client IP in `CF-Connecting-IP`.
+   - The project owner approved adopting `CF-Connecting-IP` as the sole production identity source, enforcing fail-closed HTTP 400 validation on missing, empty, multi-valued, or malformed headers, with no fallback to `REMOTE_ADDR` or `X-Forwarded-For` in production (`DEBUG=False`).
+   - For local development (`DEBUG=True`), safe fallback to `REMOTE_ADDR` (defaulting to `127.0.0.1`) was approved to preserve local developer workflows.
+
+### Controlled Implementation & Review (Stage 3.4C)
+
+1. **Implementation across Authorized Targets:**
+   - `backend/contact/throttling.py`: Implemented the dual-mode visitor identity algorithm:
+     - `DEBUG=True`: Extracts `REMOTE_ADDR`, normalizes via `ipaddress.ip_address()`, defaults to `'127.0.0.1'`.
+     - `DEBUG=False`: Reads `HTTP_CF_CONNECTING_IP`. Fails closed by raising `rest_framework.exceptions.ValidationError` on missing, whitespace-only, comma-separated (multi-valued), or malformed values. Valid IP strings are parsed through `ipaddress.ip_address()` and returned in canonical form (`str(parsed_ip)`), guaranteeing shared counters for equivalent IPv6 representations.
+   - `backend/tests/test_contact_api.py`:
+     - Configured `self.client.defaults['HTTP_CF_CONNECTING_IP'] = '203.0.113.195'` in `setUp()` so existing 29 business-logic tests simulate normal Cloudflare-proxied requests.
+     - Added 12 new targeted unit test methods covering: quota independence, 6th-request rejection (HTTP 429), IPv4 compatibility, IPv6 compatibility, IPv6 canonical normalization, `X-Forwarded-For` spoofing immunity, missing header fail-closed (HTTP 400), whitespace header fail-closed (HTTP 400), malformed header fail-closed (HTTP 400), multi-value header fail-closed (HTTP 400), lack of production fallback to `REMOTE_ADDR` (HTTP 400), and development fallback when `DEBUG=True` (HTTP 201).
+   - `backend/tests/test_health.py`:
+     - Added `test_health_exempt_from_rate_throttling` verifying that 10 sequential requests succeed with HTTP 200 without headers or rate-limit blocks.
+2. **Process and Cache Architecture:**
+   - Evaluated the decision to retain Django's default `LocMemCache` with Gunicorn running 1 worker and 2 threads (`--workers 1 --threads 2`).
+   - Confirmed `LocMemCache` utilizes internal thread locks (`threading.Lock()`), safely synchronizing rate-limit state across both worker threads without requiring external Redis infrastructure.
+   - Acknowledged that worker process restarts reset in-memory counters (acceptable fail-open behavior for a personal portfolio) and that multi-worker or multi-instance scaling would require a centralized cache if introduced in the future.
+3. **Unresolved Ingress Trust Boundary:**
+   - Identified that direct traffic targeting Render's `*.onrender.com` URL bypassing Cloudflare could supply arbitrary `CF-Connecting-IP` headers.
+   - Noted this direct hostname trust risk as an accepted deployment limitation to be addressed via Cloudflare Authenticated Origin Pulls, custom headers, or Cloudflare WAF/proxy rules upon live deployment.
+4. **Verification Evidence:**
+   - `python manage.py check`: 0 issues (0 silenced).
+   - Full backend test suite (`python manage.py test backend/tests`): **93/93 tests passed** in 1.666s in hermetic SQLite (`:memory:`) isolation with zero network calls to TiDB or Resend.
+   - `git diff --check`: 0 whitespace issues.
+5. **Documentation Reconciliation:**
+   - Reconciled `docs/CONTACT-BACKEND-SPECIFICATION.md`, `docs/DEPLOYMENT.md`, `docs/STAGE-09-EVALUATION.md`, `docs/PROJECT-01.md`, and this journal.

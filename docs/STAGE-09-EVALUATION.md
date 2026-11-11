@@ -1,10 +1,10 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened and committed in `279d41c` (Stages 3.1–3.2D); Stage 3.3 documentation reconciliation complete; deployment preparation pending owner authorization
+**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); Stage 3.4 rate-limiting reverse-proxy identity correction implemented, verified by 93 backend tests, and reconciled; deployment preparation pending owner authorization
 **Project:** Project 01 — Professional Engineering Portfolio
 **Stage:** 09 of 10
 **Governing project record:** `docs/PROJECT-01.md`
-**Governing Baseline Commit:** `279d41c75df82d663bc35c4a4a89f6ed34ed2f86`
+**Governing Baseline Commit:** `884904d8ada8c35d35bbd2a99033ce40307fc768`
 
 ## 1. Purpose
 
@@ -90,9 +90,12 @@ Implemented, verified, and committed:
 - **Fail-Closed Remote Database TLS (Stage 3.2D):** `backend/config/settings.py` enforces that remote connections require `DB_SSL_CA` pointing to an existing file on disk and enforce `DB_SSL_MODE='VERIFY_IDENTITY'`. Local loopback connections retain clean unencrypted baseline.
 - **Live Database Migration (Stage 2.9):** Executed `contact.0001_initial` against live TiDB Cloud Serverless cluster (`gateway01.eu-central-1.prod.aws.tidbcloud.com:4000`, `portfolio_db`). Schema verified with `django_migrations` and `contact_message` (11 columns, 4 secondary indexes).
 - **Integration Acceptance (Stage 2.10):** Dispatched live submission; verified Option A persistence with permanent synthetic record `e767aae8-0cf2-44af-b51c-1c23a07e8642`. Verified honeypot rejection (T-02) and CRLF rejection (T-03).
-- **Regression Suite:** **80 backend unit tests** and **160 frontend tests** (240 total) passing cleanly.
-- **Consolidated Git Commit:** Created and pushed commit `279d41c75df82d663bc35c4a4a89f6ed34ed2f86` (`feat(backend): enforce secure cross-platform database connectivity`).
-- **Documentation Reconciliation (Stage 3.3):** Reconciled engineering journal, deployment record, stage evaluation plan, and lifecycle record.
+- **Render Deployment Readiness Audit (Stage 3.4A):** Analyzed deployment readiness for Render Starter, discovering reverse-proxy IP collusion risks under `REMOTE_ADDR`.
+- **Rate-Limiting Investigation (Stage 3.4B):** Evaluated reverse-proxy visitor identification strategies and approved Cloudflare `CF-Connecting-IP` fail-closed architecture.
+- **Proxy-Aware Rate Limiting Implementation (Stage 3.4C):** Implemented production visitor identity via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback.
+- **Regression Suite:** **93 backend unit tests** (in isolated SQLite test environment) and **160 frontend tests** (253 total) passing cleanly.
+- **Consolidated Git Commit:** Created and pushed commit `279d41c75df82d663bc35c4a4a89f6ed34ed2f86` (`feat(backend): enforce secure cross-platform database connectivity`) and commit `884904d` (`docs(stage-09): reconcile deployment evaluation records`).
+- **Documentation Reconciliation (Stage 3.3 & Stage 3.4C):** Reconciled engineering journal, deployment record, stage evaluation plan, and contact specification.
 
 Pending authorization & execution:
 - Project owner provisioning of Render Starter Web Service ($7/month).
@@ -192,9 +195,12 @@ In particular:
 - [x] Independent security and implementation review (Stage 3.2C).
 - [x] Fail-closed database TLS guard and test strengthening to 80 backend unit tests (Stage 3.2D).
 - [x] Consolidated local Git commit `279d41c` created and synchronized with GitHub.
-- [x] Stage 3.3 documentation reconciliation audit and update completed.
+- [x] Stage 3.3 documentation reconciliation audit and update completed (`884904d`).
+- [x] Stage 3.4A Render deployment preparation audit completed.
+- [x] Stage 3.4B read-only rate-limiting and reverse-proxy investigation completed.
+- [x] Stage 3.4C proxy-aware rate-limiting implementation, independent review, and test expansion to 93 backend unit tests completed.
 - [ ] Project owner authorization and provisioning of Render Starter Web Service.
 - [ ] Production environment variable configuration on hosting providers (09.4).
 - [ ] Public deployment and live verification (09.4 & 09.5).
 
-**Current stage position:** 09.3 / Stage 3.3 — Codebase hardened, database migrated, integration accepted, and documentation reconciled; deployment preparation pending explicit owner authorization.
+**Current stage position:** 09.3 / Stage 3.4C — Codebase hardened, database migrated, integration accepted, proxy-aware rate limiting implemented and verified by 93 backend unit tests, and documentation reconciled; deployment preparation pending explicit owner authorization.

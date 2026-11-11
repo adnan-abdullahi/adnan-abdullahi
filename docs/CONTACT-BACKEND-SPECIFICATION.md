@@ -31,6 +31,7 @@ The portfolio previously evaluated a third-party form delivery mechanism before 
 +------------------------------|------------------------------+
                                |
                                | HTTPS POST /api/contact/
+                               | Headers: CF-Connecting-IP (in production)
                                | JSON Payload: { name, email, message, website }
                                v
 +-------------------------------------------------------------+
@@ -42,7 +43,7 @@ The portfolio previously evaluated a third-party form delivery mechanism before 
 |   |  - Serializer validation & header sanitization      |   |
 |   |  - Honeypot enforcement (rejects bot spam with 400) |   |
 |   |  - Duplicate-suppression heuristic (60s SHA-256)    |   |
-|   |  - Rate limiting (AnonRateThrottle)                 |   |
+|   |  - Rate limiting (ContactAnonRateThrottle: 5/hr)    |   |
 |   +--------------------------+--------------------------+   |
 |                              |                              |
 |                              | Step 1: Commit Record First  |
@@ -454,6 +455,23 @@ For messages that enter the `failed` state (or remain in an interrupted `pending
   }
   ```
 
+#### 2B. Network Identity Error Response (Missing or Invalid Visitor IP)
+- **Status**: `400 Bad Request`
+- **Condition**: In production (`DEBUG=False`), request lacks `CF-Connecting-IP`, contains whitespace-only or multi-valued (comma-separated) headers, or provides a malformed IP address.
+- **Headers**: `Content-Type: application/json`
+- **Payload**:
+  ```json
+  {
+    "status": "error",
+    "errors": {
+      "network": [
+        "Missing required CF-Connecting-IP header."
+      ]
+    }
+  }
+  ```
+- **Operational Guarantee**: Rejected fail-closed by DRF rate-throttle identity resolution before view dispatch; zero database records created, zero notifications dispatched, zero throttle counter increments.
+
 #### 3. Honeypot Rejection Response
 - **Status**: `400 Bad Request`
 - **Condition**: Honeypot field `website` is populated.
@@ -481,8 +499,8 @@ For messages that enter the `failed` state (or remain in an interrupted `pending
 
 #### 5. Rate Limit Exceeded Response
 - **Status**: `429 Too Many Requests`
-- **Condition**: Client IP exceeds anonymous throttle limit.
-- **Headers**: `Content-Type: application/json`, `Retry-After: 60`
+- **Condition**: Client IP exceeds anonymous throttle limit of 5 requests per hour.
+- **Headers**: `Content-Type: application/json`, `Retry-After: <seconds>`
 - **Payload**:
   ```json
   {
@@ -490,6 +508,10 @@ For messages that enter the `failed` state (or remain in an interrupted `pending
     "message": "Submission rate limit exceeded. Please wait a few moments before trying again."
   }
   ```
+- **Visitor Identification Contract**:
+  - **Production (`DEBUG=False`)**: Visitor identity is extracted exclusively from Cloudflare's `CF-Connecting-IP` header, validated, and normalized using Python's standard `ipaddress` module to canonical lowercase representation (e.g. uncompressed `2001:0db8:...:0001` and compressed `2001:db8::1` share the identical throttle counter). `REMOTE_ADDR` and `HTTP_X_FORWARDED_FOR` are strictly ignored.
+  - **Local Development (`DEBUG=True`)**: Falls back cleanly to `REMOTE_ADDR` (defaulting to `127.0.0.1`), without inspecting forwarded headers.
+  - **Liveness Health Endpoint Exemption**: `GET /api/health/` explicitly sets `throttle_classes = []` and is completely exempt from rate limiting and visitor IP requirements.
 
 ---
 
@@ -563,7 +585,7 @@ The database schema represents the minimum record necessary for message fidelity
    Newline characters (`\r`, `\n`) in the `name` or `email` fields are stripped or rejected to prevent SMTP/HTTP header injection.
 2. **Denial of Service / Spam Mitigation**:  
    - Maximum body length enforced at 5000 characters.
-   - Rate limiting via Django REST Framework `AnonRateThrottle` (e.g. max 5 submissions per 10 minutes per client IP).
+   - Rate limiting via Django REST Framework `ContactAnonRateThrottle` enforced at exactly 5 submissions per hour per canonical visitor IP (`CF-Connecting-IP` in production, validated and normalized via standard `ipaddress`; fail-closed HTTP 400 on missing or invalid headers).
    - Honeypot rejection returning HTTP `400 Bad Request` without database insertion.
 3. **Secret Hygiene**:  
    Database passwords, email provider API keys, and Django's `SECRET_KEY` are stored exclusively in `backend/.env`. Zero secrets exist in source code, client builds, or Git commits.

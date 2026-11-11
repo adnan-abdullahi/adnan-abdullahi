@@ -279,7 +279,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 06:** Accepted and Closed — Prototype
 **Stage 07:** Accepted and Closed — Validation
 **Stage 08:** Closed — Engineering Implementation
-**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`) completed; Stage 3.3 documentation reconciliation completed; live deployment preparation pending owner authorization
+**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction verified by 93 backend tests; live deployment preparation pending owner authorization
 
 Stage 08 closure is documented in:
 

@@ -34,6 +34,7 @@ class ContactAPITests(APITestCase):
         super().setUp()
         cache.clear()
         self.url = reverse('contact-submit')
+        self.client.defaults['HTTP_CF_CONNECTING_IP'] = '203.0.113.195'
         self.valid_payload = {
             "name": "Jane Visitor",
             "email": "jane.visitor@example.com",
@@ -223,13 +224,14 @@ class ContactAPITests(APITestCase):
 
     def test_rate_throttling_enforced_at_five_submissions(self):
         """Submitting > 5 requests from same client IP triggers HTTP 429."""
+        ip = '203.0.113.100'
         for i in range(5):
             payload = {
                 "name": f"Visitor {i}",
                 "email": f"visitor{i}@example.com",
                 "message": f"Inquiry message number {i}"
             }
-            res = self.client.post(self.url, payload, format='json', REMOTE_ADDR='192.168.1.100')
+            res = self.client.post(self.url, payload, format='json', HTTP_CF_CONNECTING_IP=ip)
             self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
         throttled_payload = {
@@ -237,12 +239,288 @@ class ContactAPITests(APITestCase):
             "email": "visitor6@example.com",
             "message": "Inquiry message number 6"
         }
-        res6 = self.client.post(self.url, throttled_payload, format='json', REMOTE_ADDR='192.168.1.100')
+        res6 = self.client.post(self.url, throttled_payload, format='json', HTTP_CF_CONNECTING_IP=ip)
         self.assertEqual(res6.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         data6 = res6.json()
         self.assertEqual(data6.get("status"), "error")
         self.assertEqual(data6.get("message"), "Submission rate limit exceeded. Please wait a few moments before trying again.")
         self.assertIn("Retry-After", res6.headers)
+
+    def test_rate_throttling_independent_for_distinct_ips(self):
+        """Visitor A and Visitor B maintain independent rate-limiting quotas."""
+        # Visitor A exhausts quota of 5 submissions
+        for i in range(5):
+            payload = {
+                "name": f"Visitor A {i}",
+                "email": f"visitora{i}@example.com",
+                "message": f"Message from Visitor A {i}"
+            }
+            res_a = self.client.post(
+                self.url,
+                payload,
+                format='json',
+                HTTP_CF_CONNECTING_IP='203.0.113.195'
+            )
+            self.assertEqual(res_a.status_code, status.HTTP_201_CREATED)
+
+        # Visitor B can submit successfully without being affected by Visitor A
+        payload_b = {
+            "name": "Visitor B",
+            "email": "visitorb@example.com",
+            "message": "Message from Visitor B"
+        }
+        res_b = self.client.post(
+            self.url,
+            payload_b,
+            format='json',
+            HTTP_CF_CONNECTING_IP='198.51.100.17'
+        )
+        self.assertEqual(res_b.status_code, status.HTTP_201_CREATED)
+
+    def test_rate_throttling_rejects_sixth_submission(self):
+        """Sixth submission from the same IP within an hour returns HTTP 429 with Retry-After header."""
+        ip = '203.0.113.210'
+        for i in range(5):
+            payload = {
+                "name": f"Rate Visitor {i}",
+                "email": f"ratevisitor{i}@example.com",
+                "message": f"Rate inquiry message {i}"
+            }
+            res = self.client.post(self.url, payload, format='json', HTTP_CF_CONNECTING_IP=ip)
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        res6 = self.client.post(
+            self.url,
+            {
+                "name": "Rate Visitor 6",
+                "email": "ratevisitor6@example.com",
+                "message": "Rate inquiry message 6"
+            },
+            format='json',
+            HTTP_CF_CONNECTING_IP=ip
+        )
+        self.assertEqual(res6.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        data6 = res6.json()
+        self.assertEqual(data6.get("status"), "error")
+        self.assertEqual(
+            data6.get("message"),
+            "Submission rate limit exceeded. Please wait a few moments before trying again."
+        )
+        self.assertIn("Retry-After", res6.headers)
+        self.assertTrue(int(res6.headers["Retry-After"]) > 0)
+
+    def test_rate_throttling_ipv4_support(self):
+        """Valid IPv4 addresses are accepted and enforce rate limiting at 5 submissions."""
+        ip = '198.51.100.25'
+        for i in range(5):
+            payload = {
+                "name": f"IPv4 User {i}",
+                "email": f"ipv4user{i}@example.com",
+                "message": f"IPv4 message {i}"
+            }
+            res = self.client.post(self.url, payload, format='json', HTTP_CF_CONNECTING_IP=ip)
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        res6 = self.client.post(
+            self.url,
+            {"name": "IPv4 User 6", "email": "ipv4user6@example.com", "message": "IPv4 message 6"},
+            format='json',
+            HTTP_CF_CONNECTING_IP=ip
+        )
+        self.assertEqual(res6.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_rate_throttling_ipv6_support(self):
+        """Valid IPv6 addresses are accepted and enforce rate limiting at 5 submissions."""
+        ip = '2001:db8::1'
+        for i in range(5):
+            payload = {
+                "name": f"IPv6 User {i}",
+                "email": f"ipv6user{i}@example.com",
+                "message": f"IPv6 message {i}"
+            }
+            res = self.client.post(self.url, payload, format='json', HTTP_CF_CONNECTING_IP=ip)
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        res6 = self.client.post(
+            self.url,
+            {"name": "IPv6 User 6", "email": "ipv6user6@example.com", "message": "IPv6 message 6"},
+            format='json',
+            HTTP_CF_CONNECTING_IP=ip
+        )
+        self.assertEqual(res6.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_rate_throttling_ipv6_normalization(self):
+        """Uncompressed and compressed IPv6 representations share the identical rate-limiting quota."""
+        uncompressed_ip = '2001:0db8:0000:0000:0000:0000:0000:0001'
+        compressed_ip = '2001:db8::1'
+
+        # 3 submissions using uncompressed representation
+        for i in range(3):
+            payload = {
+                "name": f"User A{i}",
+                "email": f"usera{i}@example.com",
+                "message": f"Message uncompressed {i}"
+            }
+            res = self.client.post(
+                self.url,
+                payload,
+                format='json',
+                HTTP_CF_CONNECTING_IP=uncompressed_ip
+            )
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        # 2 submissions using compressed representation (reaching quota of 5)
+        for i in range(2):
+            payload = {
+                "name": f"User B{i}",
+                "email": f"userb{i}@example.com",
+                "message": f"Message compressed {i}"
+            }
+            res = self.client.post(
+                self.url,
+                payload,
+                format='json',
+                HTTP_CF_CONNECTING_IP=compressed_ip
+            )
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        # 6th submission using compressed representation must be throttled
+        res6 = self.client.post(
+            self.url,
+            {
+                "name": "User B3",
+                "email": "userb3@example.com",
+                "message": "Message compressed 6th"
+            },
+            format='json',
+            HTTP_CF_CONNECTING_IP=compressed_ip
+        )
+        self.assertEqual(res6.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_rate_throttling_spoofed_x_forwarded_for_ignored(self):
+        """Varying HTTP_X_FORWARDED_FOR headers cannot bypass throttling for a given CF-Connecting-IP."""
+        ip = '203.0.113.88'
+        for i in range(5):
+            payload = {
+                "name": f"Spoof User {i}",
+                "email": f"spoof{i}@example.com",
+                "message": f"Spoof message {i}"
+            }
+            res = self.client.post(
+                self.url,
+                payload,
+                format='json',
+                HTTP_CF_CONNECTING_IP=ip,
+                HTTP_X_FORWARDED_FOR=f"10.0.0.{i}, 172.16.0.{i}"
+            )
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        res6 = self.client.post(
+            self.url,
+            {"name": "Spoof User 6", "email": "spoof6@example.com", "message": "Spoof message 6"},
+            format='json',
+            HTTP_CF_CONNECTING_IP=ip,
+            HTTP_X_FORWARDED_FOR="1.2.3.4, 5.6.7.8"
+        )
+        self.assertEqual(res6.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_rate_throttling_missing_cf_header_in_production_fails_closed(self):
+        """Missing CF-Connecting-IP header fails closed with HTTP 400 Bad Request."""
+        client = self.client_class()
+        initial_count = ContactMessage.objects.count()
+        response = client.post(self.url, self.valid_payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertIn("network", data.get("errors", {}))
+        self.assertIn("Missing required CF-Connecting-IP header.", data["errors"]["network"])
+        self.assertEqual(ContactMessage.objects.count(), initial_count)
+
+    def test_rate_throttling_empty_cf_header_in_production_fails_closed(self):
+        """Empty or whitespace-only CF-Connecting-IP fails closed with HTTP 400 Bad Request."""
+        initial_count = ContactMessage.objects.count()
+        response = self.client.post(
+            self.url,
+            self.valid_payload,
+            format='json',
+            HTTP_CF_CONNECTING_IP='   '
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertIn("network", data.get("errors", {}))
+        self.assertIn("Missing required CF-Connecting-IP header.", data["errors"]["network"])
+        self.assertEqual(ContactMessage.objects.count(), initial_count)
+
+    def test_rate_throttling_malformed_cf_header_in_production_fails_closed(self):
+        """Malformed CF-Connecting-IP fails closed with HTTP 400 Bad Request."""
+        initial_count = ContactMessage.objects.count()
+        response = self.client.post(
+            self.url,
+            self.valid_payload,
+            format='json',
+            HTTP_CF_CONNECTING_IP='not-an-ip-address'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertIn("network", data.get("errors", {}))
+        self.assertIn("Malformed or invalid CF-Connecting-IP address.", data["errors"]["network"])
+        self.assertEqual(ContactMessage.objects.count(), initial_count)
+
+    def test_rate_throttling_multivalue_cf_header_in_production_fails_closed(self):
+        """Multiple comma-separated values in CF-Connecting-IP fail closed with HTTP 400 Bad Request."""
+        initial_count = ContactMessage.objects.count()
+        response = self.client.post(
+            self.url,
+            self.valid_payload,
+            format='json',
+            HTTP_CF_CONNECTING_IP='203.0.113.1, 198.51.100.2'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertIn("network", data.get("errors", {}))
+        self.assertIn("Multiple values in CF-Connecting-IP header are prohibited.", data["errors"]["network"])
+        self.assertEqual(ContactMessage.objects.count(), initial_count)
+
+    def test_rate_throttling_production_does_not_fallback_to_remote_addr(self):
+        """In production (DEBUG=False), absent CF-Connecting-IP never falls back to REMOTE_ADDR."""
+        client = self.client_class()
+        initial_count = ContactMessage.objects.count()
+        response = client.post(
+            self.url,
+            self.valid_payload,
+            format='json',
+            REMOTE_ADDR='127.0.0.1'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertIn("network", data.get("errors", {}))
+        self.assertIn("Missing required CF-Connecting-IP header.", data["errors"]["network"])
+        self.assertEqual(ContactMessage.objects.count(), initial_count)
+
+    @override_settings(DEBUG=True)
+    def test_rate_throttling_local_development_fallback_when_debug_true(self):
+        """In local development (DEBUG=True), absent CF header falls back cleanly to REMOTE_ADDR."""
+        client = self.client_class()
+        initial_count = ContactMessage.objects.count()
+        response = client.post(
+            self.url,
+            self.valid_payload,
+            format='json',
+            REMOTE_ADDR='127.0.0.1'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ContactMessage.objects.count(), initial_count + 1)
+
 
     # -------------------------------------------------------------------------
     # 6. Resend HTTPS API Email Notification Tests (Stage 09.3-F)

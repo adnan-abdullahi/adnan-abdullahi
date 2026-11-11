@@ -179,6 +179,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 | **D09-07** | Free database quotas and migration compatibility unverified. | Incompatible protocol strings or unmigrated schema. | Django LTS 5.2.18 aligned; TiDB migration executed in Stage 2.9; integration accepted in Stage 2.10. | **Migrated & Verified** |
 | **D09-08** | Native `mysqlclient` required C compilation headers on Linux. | Build failures on Render due to missing `libmysqlclient-dev`. | Implemented universal pure-Python PyMySQL across Windows and Linux; removed `mysqlclient` in commit `279d41c`. | **Resolved & Committed** |
 | **D09-09** | Remote database TLS was permissive (fail-open) if CA was missing. | Unencrypted remote connection attempts if misconfigured. | Implemented fail-closed TLS guards in `settings.py`: requires `DB_SSL_CA` file on disk and enforces `DB_SSL_MODE='VERIFY_IDENTITY'`. | **Resolved & Committed** |
+| **D09-10** | Default `REMOTE_ADDR` rate throttling colludes all visitors behind Render's reverse proxy (`10.x.x.x`). | 5 submissions from any visitor exhausts hourly quota application-wide. | Implemented production visitor identity extraction via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified locally by 13 new unit tests. | **Resolved Locally & Verified** |
 
 ---
 
@@ -233,6 +234,16 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 
 *Prohibited on Render:* `DB_MIGRATE_USER`, `DB_MIGRATE_PASSWORD`, `EMAIL_SIMULATION_ALLOWED`.
 
+#### 5.2.1 Reverse-Proxy, Rate-Limiting, and Cache Architecture
+- **Visitor Identification:** Public requests route through Cloudflare Pages/DNS to Render. Cloudflare injects the trusted `CF-Connecting-IP` header. Django extracts and normalizes this header to enforce the 5 requests/hour quota.
+- **Fail-Closed Security:** In production (`DEBUG=False`), requests missing `CF-Connecting-IP`, containing whitespace-only or multi-valued headers, or presenting malformed addresses return HTTP 400 Bad Request without writing to TiDB or invoking Resend. `REMOTE_ADDR` and `HTTP_X_FORWARDED_FOR` are strictly ignored.
+- **Cache & Concurrency Model:** Gunicorn runs with 1 worker and 2 threads (`--workers 1 --threads 2`). Django's default `LocMemCache` uses an internal `threading.Lock()`, safely sharing rate-limit state between threads without external Redis infrastructure.
+- **Known Cache Limitations:**
+  - *Worker Restarts:* Because `LocMemCache` resides in process memory, restarting Gunicorn (due to deploys, health recycles, or server restarts) clears accumulated rate-limit counters. For this portfolio, this fail-open-on-restart behavior is acceptable.
+  - *Multi-Worker / Multi-Instance Scaling:* If workers are scaled (`--workers > 1`) or multiple Render instances are deployed, in-memory caches will diverge, multiplying the effective limit by the worker/instance count. A centralized cache (such as Redis) would be required only at that future scale.
+- **Unresolved Ingress Trust Boundary:** Direct requests to `*.onrender.com` that bypass Cloudflare can present arbitrary `CF-Connecting-IP` headers. This direct hostname trust risk is an accepted initial limitation; in production, direct access should ideally be restricted via Cloudflare Authenticated Origin Pulls, custom headers, or Cloudflare WAF/proxy rules.
+- **Private Service-to-Service Limitation:** Any non-Cloudflare traffic (internal probes, direct webhooks) hitting `/api/contact/` lacks `CF-Connecting-IP` and will receive HTTP 400. (Health probes at `/api/health/` explicitly bypass throttling and are unaffected).
+
 ### 5.3 Resend Notification Architecture & Email Acceptance Criteria
 
 1. **Decoupled Operation:** Message persistence to MySQL/TiDB is primary. A downstream notification failure marks `delivery_status='failed'` on the database record, but returns HTTP 201 Created and the UUID receipt to the visitor.
@@ -253,12 +264,14 @@ To preserve engineering accuracy and avoid false claims of operational readiness
 3. **Render CA Bundle Path Unverified on Host:** `/etc/ssl/certs/ca-certificates.crt` is the standard Linux path tested locally via mocking and path normalization; its presence on the specific Render container image must be verified upon container startup.
 4. **Live Email Delivery Unverified:** Live delivery of a visitor notification email to the owner's personal inbox via Resend HTTPS API has not yet been tested.
 5. **Cross-Origin DNS and Browser Negotiation Unverified:** Live cross-origin communication between a Cloudflare Pages domain and a Render domain has not yet been tested in a live browser.
+6. **Live Reverse-Proxy Header Propagation Unverified:** Delivery and preservation of `CF-Connecting-IP` across Cloudflare edge to Render Gunicorn backend has been verified via isolated unit tests, but not yet observed on live provisioned infrastructure.
+7. **Direct Render Hostname Restriction Unverified:** Configuration to restrict or block direct access to `*.onrender.com` (bypassing Cloudflare) has not been implemented or verified on Render.
 
 ---
 
 ## 7. Audit Disposition & Progression
 
-- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, and verified by 80 backend unit tests and 160 frontend tests (commit `279d41c`).
+- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, and verified by **93 backend unit tests** (in isolated SQLite test environment) and 160 frontend tests (commit `884904d`).
 - **Database State:** `portfolio_db` is migrated (Stage 2.9) and integration-accepted (Stage 2.10) with 1 permanent synthetic record.
 - **Evaluated Architecture:** Cloudflare Pages (Frontend, $0) + Render Starter (Backend, $7/month candidate) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
 - **Next Required Step:** Project owner review and authorization to proceed with Stage 09.4 deployment preparation.
