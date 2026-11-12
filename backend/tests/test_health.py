@@ -4,6 +4,7 @@ Verifies status 200 OK, JSON content type, exact payload, anonymous access,
 zero database queries, rejection of unsupported HTTP methods (405),
 and absence of sensitive diagnostics.
 """
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -41,17 +42,41 @@ class HealthCheckEndpointTests(APITestCase):
             response = self.client.get(self.url)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_health_rejects_unsupported_methods(self):
-        """Methods other than GET (POST, PUT, PATCH, DELETE) must return HTTP 405."""
+    @override_settings(CF_ORIGIN_SECRET='test-health-secret')
+    def test_health_rejects_unsupported_methods_with_valid_secret(self):
+        """Methods other than GET/HEAD with valid origin secret pass middleware and return HTTP 405."""
+        unsupported_methods = ['post', 'put', 'patch', 'delete']
+        for method in unsupported_methods:
+            client_method = getattr(self.client, method)
+            response = client_method(
+                self.url,
+                data={},
+                format='json',
+                HTTP_X_ORIGIN_SECRET='test-health-secret'
+            )
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_405_METHOD_NOT_ALLOWED,
+                f"Expected HTTP 405 for method {method.upper()} with secret, got {response.status_code}"
+            )
+
+    @override_settings(CF_ORIGIN_SECRET='test-health-secret')
+    def test_health_rejects_unsupported_methods_without_secret_with_403(self):
+        """Methods other than GET/HEAD without origin secret are rejected with HTTP 403."""
         unsupported_methods = ['post', 'put', 'patch', 'delete']
         for method in unsupported_methods:
             client_method = getattr(self.client, method)
             response = client_method(self.url, data={}, format='json')
             self.assertEqual(
                 response.status_code,
-                status.HTTP_405_METHOD_NOT_ALLOWED,
-                f"Expected HTTP 405 for method {method.upper()}, got {response.status_code}"
+                status.HTTP_403_FORBIDDEN,
+                f"Expected HTTP 403 for method {method.upper()} without secret, got {response.status_code}"
             )
+
+    def test_health_head_method_exempt_without_secret(self):
+        """HEAD /api/health/ succeeds with HTTP 200 without requiring X-Origin-Secret."""
+        response = self.client.head(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_health_contains_no_sensitive_diagnostics(self):
         """Response payload must only contain the status key and no sensitive data."""

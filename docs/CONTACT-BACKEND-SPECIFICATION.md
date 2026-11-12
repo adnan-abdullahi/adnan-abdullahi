@@ -3,7 +3,7 @@
 **Project:** Professional Engineering Portfolio (Project 01)  
 **Document ID:** `DOCS-CONTACT-BACKEND-SPEC`  
 **Location:** `docs/CONTACT-BACKEND-SPECIFICATION.md`  
-**Status:** Architecture Specification (Final Verified Revision) — Awaiting Owner Approval  
+**Status:** Architecture Specification (Reconciled Deployment Revision — Stages 3.5C/3.5E/3.5G)
 **Operating Boundary:** Specification only. No application code, database migrations, or infrastructure mutations are authorized by this document.
 
 ---
@@ -23,23 +23,27 @@ The portfolio previously evaluated a third-party form delivery mechanism before 
 |                      VISITOR BROWSER                        |
 |                                                             |
 |   +-----------------------------------------------------+   |
-|   |         Vue 3 Client (app/src/views/ContactView)    |   |
+|   |   Vue 3 Client (Cloudflare Pages: adnanabdullahi.com) |   |
 |   |  - Controlled inputs (name, email, message)         |   |
 |   |  - Client-side validation & accessible state         |   |
 |   |  - Anti-spam honeypot field ("website")             |   |
 |   +--------------------------+--------------------------+   |
 +------------------------------|------------------------------+
                                |
-                               | HTTPS POST /api/contact/
-                               | Headers: CF-Connecting-IP (in production)
-                               | JSON Payload: { name, email, message, website }
+                               | HTTPS POST https://api.adnanabdullahi.com/api/contact/
+                               | (Cloudflare DNS Proxied CNAME -> Render Web Service)
+                               | Cloudflare Ingress Edge:
+                               |  - Validates client connection
+                               |  - Injects CF-Connecting-IP (canonical visitor IP)
+                               |  - Injects X-Origin-Secret (via Transform Rule)
                                v
 +-------------------------------------------------------------+
-|                     APPLICATION BACKEND                     |
+|             RENDER STARTER WEB SERVICE (Backend)            |
 |                                                             |
 |   +-----------------------------------------------------+   |
 |   |       Django REST Framework API (backend/)          |   |
-|   |  - Origin validation (django-cors-headers)          |   |
+|   |  - CloudflareOriginSecretMiddleware (X-Origin-Secret) |   |
+|   |  - CORS validation: https://adnanabdullahi.com      |   |
 |   |  - Serializer validation & header sanitization      |   |
 |   |  - Honeypot enforcement (rejects bot spam with 400) |   |
 |   |  - Duplicate-suppression heuristic (60s SHA-256)    |   |
@@ -47,34 +51,34 @@ The portfolio previously evaluated a third-party form delivery mechanism before 
 |   +--------------------------+--------------------------+   |
 |                              |                              |
 |                              | Step 1: Commit Record First  |
-|                              | django.db.backends.mysql     |
-|                              | (mysqlclient 2.3.0)          |
+|                              | TLS 1.3 / VERIFY_IDENTITY    |
+|                              | Pure-Python PyMySQL          |
 |                              v                              |
 |   +-----------------------------------------------------+   |
-|   |         MySQL 8.4.11 LTS (127.0.0.1:3306)           |   |
+|   |         TiDB CLOUD SERVERLESS (AWS Frankfurt)       |   |
 |   |  - Dedicated DB: portfolio_db                       |   |
-|   |  - Restricted user: portfolio_user                  |   |
+|   |  - Restricted user: portfolio_user (DML only)       |   |
 |   |  - Primary persistence: ContactMessage committed    |   |
 |   +--------------------------+--------------------------+   |
 |                              |                              |
 |                              | Step 2: Attempt Dispatch     |
-|                              | (Record committed in MySQL)  |
+|                              | (Record committed in TiDB)   |
 |                              v                              |
 |   +-----------------------------------------------------+   |
 |   |             Notification Dispatcher                 |   |
 |   |  - Synchronous attempt with strict short timeout    |   |
 |   |  - Updates delivery_status (pending/sent/failed)    |   |
-|   |  - Tracks attempts & diagnostic error in MySQL      |   |
+|   |  - Tracks attempts & diagnostic error in TiDB       |   |
 |   |  - Bounded best-effort delivery (max 4 attempts)    |   |
 |   +--------------------------+--------------------------+   |
 +------------------------------|------------------------------+
                                |
                                | Step 3: Outbound Notification
-                               | HTTPS API / SMTP
+                               | HTTPS API (urllib.request)
                                v
 +-------------------------------------------------------------+
-|                EXTERNAL EMAIL SERVICE PROVIDER              |
-|              (Provider Selection To Be Decided)             |
+|                     RESEND HTTPS EMAIL API                  |
+|                (https://api.resend.com/emails)              |
 |                                                             |
 |      Recipient: abdullahiadnan550@gmail.com (Server-only)   |
 +-------------------------------------------------------------+
@@ -472,6 +476,32 @@ For messages that enter the `failed` state (or remain in an interrupted `pending
   ```
 - **Operational Guarantee**: Rejected fail-closed by DRF rate-throttle identity resolution before view dispatch; zero database records created, zero notifications dispatched, zero throttle counter increments.
 
+#### 2C. Origin Secret Verification Error Response (Unauthorized Direct Ingress)
+- **Status**: `403 Forbidden`
+- **Condition**: In production (`DEBUG=False`), request lacks `X-Origin-Secret`, presents an invalid secret, or backend has no valid `CF_ORIGIN_SECRET` configured.
+- **Headers**: `Content-Type: application/json`
+- **Payload**:
+  ```json
+  {
+    "detail": "Forbidden: invalid origin secret."
+  }
+  ```
+- **Operational Guarantee & Middleware Execution**:
+  - Enforced by `CloudflareOriginSecretMiddleware` positioned immediately after `CorsMiddleware` in Django's middleware pipeline.
+  - Compares incoming `HTTP_X_ORIGIN_SECRET` against configured candidate secrets in `CF_ORIGIN_SECRET` using `hmac.compare_digest` across all candidates without short-circuiting to eliminate timing side-channels.
+  - Fails closed: In production (`DEBUG=False`), if `CF_ORIGIN_SECRET` is unset, whitespace-only, or empty, all incoming requests to protected endpoints return HTTP 403 Forbidden.
+  - Development bypass: In local development (`DEBUG=True`), origin-secret verification is completely bypassed to support direct local API testing.
+  - Health check exemption: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are strictly exempt from origin secret requirements, permitting external liveness probes.
+  - Health check method restriction: Unsupported HTTP methods (e.g. `POST`, `PUT`, `DELETE`) on `/api/health` return HTTP `403 Forbidden` if unauthenticated (no valid secret), and HTTP `405 Method Not Allowed` if authenticated with a valid origin secret.
+
+##### Zero-Downtime Secret Rotation Procedure
+When rotating the shared origin secret between Cloudflare and Render:
+1. **Initial State**: Render has `CF_ORIGIN_SECRET=secret_v1`, Cloudflare Transform Rule injects `X-Origin-Secret: secret_v1`.
+2. **Add Candidate Secret**: Update Render environment variable to comma-separated list: `CF_ORIGIN_SECRET=secret_v2,secret_v1`. Render redeploys and accepts either secret.
+3. **Switch Cloudflare Rule**: Update Cloudflare Request Header Transform Rule to inject `X-Origin-Secret: secret_v2`.
+4. **Verify Traffic**: Inspect Render request logs to confirm incoming requests succeed with `secret_v2`.
+5. **Prune Deprecated Secret**: Update Render environment variable to `CF_ORIGIN_SECRET=secret_v2`. Render redeploys with only the new secret active.
+
 #### 3. Honeypot Rejection Response
 - **Status**: `400 Bad Request`
 - **Condition**: Honeypot field `website` is populated.
@@ -534,8 +564,8 @@ For messages that enter the `failed` state (or remain in an interrupted `pending
 - **Development Origin**:  
   `http://localhost:5173` (Vite development server for the Vue client).
 - **Production Origin**:  
-  Must be explicitly declared in `backend/.env` under `CORS_ALLOWED_ORIGINS` (e.g. `https://adnanabdullahi.com`).  
-  *Rule*: Wildcard `CORS_ALLOW_ALL_ORIGINS = True` is strictly prohibited. Production origins will be specified when the hosting target is finalized.
+  Must be explicitly declared in `backend/.env` under `CORS_ALLOWED_ORIGINS` (canonical production origin: `https://adnanabdullahi.com`).
+  *Rule*: Wildcard `CORS_ALLOW_ALL_ORIGINS = True` is strictly prohibited. Production API subdomain `https://api.adnanabdullahi.com` serves backend endpoints.
 
 ---
 
@@ -649,12 +679,12 @@ To ensure engineering clarity, decisions are explicitly categorized by authority
 - **Proposed Retry Defaults**: `MAX_RETRIES = 3` (for `MAX_TOTAL_ATTEMPTS = 4`) and 15-minute minimum retry cooldown window.
 
 ### 8.3 Open Questions & Deferred Decisions (Do Not Assume)
-1. **Email Service Provider**: Selection of the specific transaction provider (e.g. Postmark, SendGrid, Amazon SES, Mailgun, or standard SMTP), including evaluation of whether the selected provider supports API idempotency keys.
+1. **Email Service Provider**: RESOLVED (Stage 09.3 / Commit `279d41c`). Selection finalized as Resend HTTPS API (`https://api.resend.com/emails`), utilizing decoupled post-commit dispatch via `urllib.request`. Provider idempotency keys (e.g. Resend `Idempotency-Key`) remain a future hardening topic.
 2. **Database Concurrency & Idempotency Hardening**: The concrete database-level mechanism for preventing duplicate records during highly concurrent requests (e.g., unique database constraint with time-bucketed hashing vs. advisory locks vs. application-level transaction isolation) is explicitly unresolved and deferred to implementation.
-3. **Provider-Specific Idempotency Mechanism**: Whether the selected email provider supports idempotency keys (e.g. Postmark `X-Entity-Ref-ID`) to prevent duplicate email dispatches during ambiguous timeouts is explicitly unresolved.
+3. **Provider-Specific Idempotency Mechanism**: Whether the selected email provider supports idempotency keys to prevent duplicate email dispatches during ambiguous timeouts is explicitly unresolved.
 4. **Retry Alerting Mechanism**: Operational alerting mechanism when a record exhausts `MAX_TOTAL_ATTEMPTS = 4` without successful delivery.
 5. **Data Retention Policy**: The formal retention period for stored messages in MySQL (e.g., 90 days, 180 days, or indefinite) and the automated purging schedule.
-6. **Production Hosting Environment & CORS Origin**: The target production domain, hosting architecture (VPS, container, serverless), and final production CORS allowed origin list.
+6. **Production Hosting Environment & CORS Origin**: RESOLVED (Stage 3.5B / Stage 3.5C). Approved architecture: Cloudflare Pages (`https://adnanabdullahi.com`) for the static Vue 3 frontend, Render Starter Web Service for the backend API mapped to Cloudflare-proxied CNAME `https://api.adnanabdullahi.com`, and TiDB Cloud Serverless (`portfolio_db`) with strict TLS `VERIFY_IDENTITY`.
 
 ---
 

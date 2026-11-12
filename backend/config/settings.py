@@ -31,6 +31,9 @@ ALLOWED_HOSTS = [
     h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()
 ]
 
+# Cloudflare Origin Secret Configuration (Origin Protection)
+CF_ORIGIN_SECRET = os.getenv('CF_ORIGIN_SECRET', '').strip()
+
 # Application definition
 INSTALLED_APPS = [
     'rest_framework',
@@ -40,6 +43,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'contact.middleware.CloudflareOriginSecretMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
 ]

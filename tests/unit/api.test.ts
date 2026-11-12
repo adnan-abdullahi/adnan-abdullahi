@@ -251,5 +251,30 @@ describe('API Configuration & URL Resolution Helper (resolveApiUrl)', () => {
         .toBe('https://api.example.com/api/search?q=hello%20world');
     });
   });
+
+  describe('Stage 3.5C Decision 02: api.adnanabdullahi.com Subdomain Resolution', () => {
+    const portfolioProdOptions = {
+      baseUrl: 'https://api.adnanabdullahi.com',
+      isProduction: true,
+    };
+
+    it('resolves /api/contact/ correctly against https://api.adnanabdullahi.com', () => {
+      const result = resolveApiUrl('/api/contact/', portfolioProdOptions);
+      expect(result).toBe('https://api.adnanabdullahi.com/api/contact/');
+    });
+
+    it('resolves /api/contact/ correctly when base URL has trailing slash', () => {
+      const result = resolveApiUrl('/api/contact/', {
+        baseUrl: 'https://api.adnanabdullahi.com/',
+        isProduction: true,
+      });
+      expect(result).toBe('https://api.adnanabdullahi.com/api/contact/');
+    });
+
+    it('resolves /api/health/ correctly against https://api.adnanabdullahi.com', () => {
+      const result = resolveApiUrl('/api/health/', portfolioProdOptions);
+      expect(result).toBe('https://api.adnanabdullahi.com/api/health/');
+    });
+  });
 });
 

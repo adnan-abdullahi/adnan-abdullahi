@@ -625,3 +625,157 @@ Resolve the reverse-proxy visitor identification defect discovered during the St
    - `git diff --check`: 0 whitespace issues.
 5. **Documentation Reconciliation:**
    - Reconciled `docs/CONTACT-BACKEND-SPECIFICATION.md`, `docs/DEPLOYMENT.md`, `docs/STAGE-09-EVALUATION.md`, `docs/PROJECT-01.md`, and this journal.
+
+---
+
+## Session 13 — Stage 3.5B: Architecture Decision Validation and Technical Baseline
+
+**Date:** 2026-11-12
+**Position:** Stage 3.5B — Architecture Decision Validation
+**Mode:** Strictly Read-Only Architecture Validation
+
+### Purpose
+
+Validate three key deployment architecture decisions before committing to implementation, addressing findings from the Stage 3.5 investigation regarding origin ingress protection, frontend-to-backend API routing, and TiDB Cloud Serverless database network access.
+
+### Architecture Decisions Evaluated & Approved
+
+1. **Cloudflare-to-Render Origin Protection:**
+   - Evaluated Cloudflare Authenticated Origin Pulls (mTLS) vs. Cloudflare Workers vs. custom shared header (`X-Origin-Secret`) with Django middleware.
+   - Render does not terminate client mTLS certificates on standard web service endpoints.
+   - Approved Decision: Implement `CloudflareOriginSecretMiddleware` validating `X-Origin-Secret` injected by a Cloudflare Request Header Transform Rule. Fails closed (HTTP 403 Forbidden) in production (`DEBUG=False`), supports comma-separated secrets for zero-downtime rotation, and exempts health probes.
+2. **Cloudflare API Routing Topology:**
+   - Evaluated single-domain route proxying (`adnanabdullahi.com/api/*`) via Cloudflare Pages Functions/Workers vs. dedicated API subdomain (`api.adnanabdullahi.com`).
+   - Approved Decision: Dedicated proxied CNAME subdomain `api.adnanabdullahi.com` pointing to Render, with client routing dynamically via `resolveApiUrl()` in `app/src/services/api.ts` and `VITE_API_BASE_URL`. Preserves Vite local proxy when unset.
+3. **TiDB Cloud Serverless Network Access:**
+   - Evaluated configuring specific egress IP CIDR blocks vs. retaining default public access (`0.0.0.0/0`).
+   - Render Starter Web Services use dynamic egress IPs that change across deploys and recycles; static outbound IPs are not available on Starter.
+   - Approved Decision: Retain default 0.0.0.0/0 IP access for initial release, relying on fail-closed TLS `VERIFY_IDENTITY` (`check_hostname=True`, mandatory physical CA verification) and least-privilege runtime credentials (`portfolio_user` restricted strictly to DML: `SELECT`, `INSERT`, `UPDATE`). Migration credentials isolated out-of-band.
+
+### Owner Approvals
+
+The project owner reviewed and explicitly approved all three architecture decisions.
+
+---
+
+## Session 14 — Stage 3.5C: Integrated Deployment Architecture Implementation
+
+**Date:** 2026-11-12
+**Position:** Stage 3.5C — Integrated Deployment Architecture Implementation
+**Mode:** Controlled Implementation and Local Verification
+
+### Purpose
+
+Implement the three approved architecture decisions across the backend and frontend codebases in a single coordinated engineering change.
+
+### Implementation Details
+
+1. **Origin Protection Middleware (`backend/contact/middleware.py`):**
+   - Implemented `CloudflareOriginSecretMiddleware`.
+   - Reads `CF_ORIGIN_SECRET` from settings; parses comma-separated candidates for rotation.
+   - Compares incoming `HTTP_X_ORIGIN_SECRET` header using constant-time `hmac.compare_digest`.
+   - Fails closed with HTTP 403 Forbidden in production (`DEBUG=False`) if secret is missing, mismatched, or if `CF_ORIGIN_SECRET` is unset/empty.
+   - Bypasses check in local development (`DEBUG=True`).
+   - Exempts liveness probe at `/api/health` and `/api/health/`.
+2. **Settings Registration (`backend/config/settings.py`):**
+   - Registered `contact.middleware.CloudflareOriginSecretMiddleware` immediately after `corsheaders.middleware.CorsMiddleware`.
+   - Configured `CF_ORIGIN_SECRET = os.getenv('CF_ORIGIN_SECRET', '').strip()`.
+3. **Test Suite Expansion:**
+   - Created `backend/tests/test_origin_secret.py` with 28 targeted unit tests covering valid secrets, missing secrets, invalid secrets, rotation with multiple secrets, health check exemptions, and bypass prevention.
+   - Updated `backend/tests/test_contact_api.py` to supply `HTTP_X_ORIGIN_SECRET` in test client defaults.
+   - Verified `tests/unit/api.test.ts` (163 frontend tests passing).
+4. **Verification Evidence:**
+   - Backend test suite grew from 93 to 124 passing unit tests in hermetic `:memory:` SQLite isolation.
+
+---
+
+## Session 15 — Stage 3.5D: Independent Engineering Audit of Integrated Deployment Architecture
+
+**Date:** 2026-11-12
+**Position:** Stage 3.5D — Independent Engineering Audit
+**Mode:** Strictly Read-Only Independent Audit
+
+### Purpose
+
+Conduct an independent engineering audit of the Stage 3.5C implementation across origin protection, API routing, database security, test coverage, and deployment readiness.
+
+### Audit Verdict
+
+**APPROVED WITH MINOR FINDINGS**
+
+The audit confirmed that the implementation satisfies all approved architecture requirements, maintains hermetic isolation, and introduces no regressions. Two minor (LOW) findings were identified for correction:
+
+1. **LOW-01: Health Endpoint Exemption is Method-Agnostic:**
+   - The health check exemption in `CloudflareOriginSecretMiddleware` exempted all HTTP methods on `/api/health` and `/api/health/`. While `HealthCheckView` only implemented `GET`, unsupported methods (e.g. `POST`, `PUT`, `DELETE`) without a secret reached the view and returned HTTP 405 rather than being blocked at the middleware boundary.
+2. **LOW-02: Origin-Secret Verification Loop Short-Circuits:**
+   - The candidate secret loop used `if hmac.compare_digest(candidate, secret): return self.get_response(request)` (or `break`). In multi-secret rotation scenarios, early termination introduces micro-timing variations depending on whether the matching secret is the first or second candidate.
+
+---
+
+## Session 16 — Stage 3.5E: LOW Findings Corrections and Verification
+
+**Date:** 2026-11-12
+**Position:** Stage 3.5E — LOW Findings Corrections and Verification
+**Mode:** Narrowly Scoped Corrective Implementation
+
+### Implementation Details
+
+1. **LOW-01 Correction (`backend/contact/middleware.py`):**
+   - Restricted the health check path exemption strictly to safe read-only methods:
+     ```python
+     if request.path in EXEMPT_PATHS:
+         if request.method in ("GET", "HEAD"):
+             return self.get_response(request)
+     ```
+   - Requests using unsupported HTTP methods (e.g. `POST`, `PUT`, `DELETE`) without a valid origin secret are rejected at the middleware boundary with HTTP 403 Forbidden.
+   - Requests with a valid origin secret pass through to `HealthCheckView` and receive HTTP 405 Method Not Allowed.
+2. **LOW-02 Correction (`backend/contact/middleware.py`):**
+   - Modified secret evaluation to iterate all candidate secrets without early termination:
+     ```python
+     secret_valid = False
+     for candidate in configured_secrets:
+         if hmac.compare_digest(candidate, secret):
+             secret_valid = True
+     if secret_valid:
+         return self.get_response(request)
+     ```
+   - Guarantees constant-time comparison across all configured secrets regardless of candidate position.
+3. **Test Strengthening:**
+   - Updated `backend/tests/test_origin_secret.py` with 2 additional tests for non-short-circuit rotation and method-restricted health exemption (30 tests total).
+   - Updated `backend/tests/test_health.py` with tests for GET/HEAD exemption and unsupported method handling (9 tests total).
+4. **Verification Evidence:**
+   - Backend unit tests: **125/125 passed** in 1.956s in hermetic SQLite (`:memory:`) isolation.
+   - Frontend unit tests: **163/163 passed** across 10 test suites.
+   - Frontend production build (`npm run build`): passed with 0 errors.
+   - Django system check (`python manage.py check`): 0 issues (0 silenced).
+
+---
+
+## Session 17 — Stage 3.5F & Stage 3.5G: Documentation Reconciliation and Local Commit
+
+**Date:** 2026-11-12
+**Position:** Stage 3.5F Proposal & Stage 3.5G Reconciliation Implementation
+**Mode:** Authorized Documentation Reconciliation, Staging, and Local Commit
+
+### Purpose
+
+Inspect all governing documentation, submit a formal update proposal (Stage 3.5F), obtain owner authorization, reconcile the 7 identified documentation and configuration files, stage the verified implementation and documentation changes, and create an authorized local Git commit.
+
+### Implementation Details
+
+1. **Reconciliation across 7 Authorized Files:**
+   - `backend/.env.example`: Added `CF_ORIGIN_SECRET=` template variable with multi-secret rotation documentation, fail-closed production rules, and updated `ALLOWED_HOSTS`/`CORS_ALLOWED_ORIGINS` example comments.
+   - `app/.env.example`: Configured `VITE_API_BASE_URL=https://api.adnanabdullahi.com` example for production with local proxy fallback notes.
+   - `docs/CONTACT-BACKEND-SPECIFICATION.md`: Updated Section 2 architecture diagram to reflect TiDB Cloud Serverless TLS, Cloudflare edge proxying with `X-Origin-Secret` injection, and Resend HTTPS API; updated Section 5.3 with HTTP 403 origin secret specification, zero-downtime rotation procedure, and GET/HEAD health exemption; updated Section 5.5 CORS configuration; marked open questions 8.3.1 (Resend) and 8.3.6 (Cloudflare Pages + Render) as resolved.
+   - `docs/DEPLOYMENT.md`: Updated baseline commit to `7b6cdd7`, documented `resolveApiUrl()`, updated test baseline to 125 backend tests, added D09-11 (origin protection) and D09-12 (API subdomain) findings, updated Render environment matrix, documented Cloudflare DNS/Transform Rule setup, and updated unverified boundaries.
+   - `docs/STAGE-09-EVALUATION.md`: Updated baseline, recorded Stage 3.5A–3.5G completion in Section 4.3, and updated Section 7 progress checklist.
+   - `journal/P1-STAGE09-EVALUATION.md`: Appended Sessions 13 through 17 recording technical decisions, audit findings, corrections, and reconciliation.
+   - `docs/PROJECT-01.md`: Updated Current Position and Current Status to record completion of Stages 3.5A–3.5G and 125 backend / 163 frontend test baselines.
+2. **Quality & Verification Checks:**
+   - `git diff --check`: 0 formatting or trailing whitespace issues across all modified files.
+   - `python manage.py check`: 0 issues (0 silenced).
+   - Full test regression: 125 backend tests passing, 163 frontend unit tests passing.
+3. **Controlled Staging & Local Commit:**
+   - Staged all 13 verified files (6 implementation + 7 documentation).
+   - Created local commit: `feat(stage-09): implement deployment architecture and reconcile documentation`.
+   - Preserved strict boundary: Zero remote pushes executed; push reserved for personal project owner review.

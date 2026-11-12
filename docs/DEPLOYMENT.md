@@ -1,12 +1,12 @@
 # Deployment Architecture, Readiness, and Candidate Evaluation Record
 
 **Project:** Project 01 — Professional Engineering Portfolio
-**Stage:** 09 — Evaluation (Stage 3.3 Reconciliation)
+**Stage:** 09 — Evaluation (Stage 3.5 Reconciliation)
 **Status:** Reconciled Architecture Candidate Record; Live Deployment Pending Owner Authorization
 **Initial Audit Date:** 2026-10-27
-**Reconciled Date:** 2026-11-10
+**Reconciled Date:** 2026-11-12
 **Governing Stage Plan:** `docs/STAGE-09-EVALUATION.md`
-**Governing Baseline Commit:** `279d41c75df82d663bc35c4a4a89f6ed34ed2f86`
+**Governing Baseline Commit:** `7b6cdd72c9371f03017b890d7369b5fd9b5940db`
 
 ---
 
@@ -46,11 +46,19 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 - **Technology Stack:** Vue 3 (Composition API), TypeScript 5.x, Vite.
 - **Routing Topography:** Hash-based routing (`createWebHashHistory()`) implemented in `app/src/router/index.ts`. All public routes are hash-anchored (`/#/orientation`, `/#/project-01`, `/#/approach`, `/#/record`, `/#/deep-engineering`, `/#/about`, `/#/contact`).
 - **Static Host Compatibility:** Hash routing guarantees 100% compatibility with static edge hosts like Cloudflare Pages. The web server serves `index.html` on root, and client-side JavaScript handles view resolution without server rewrite rules or `_redirects`.
-- **API Contact Dispatch:** Dispatches `POST` requests to relative endpoint `/api/contact/`.
+- **API Contact Dispatch:** Dispatches `POST` requests to backend origin resolved dynamically via `resolveApiUrl("/api/contact/")` in `app/src/services/api.ts`. In production on Cloudflare Pages, configured via `VITE_API_BASE_URL=https://api.adnanabdullahi.com`; in local development, leaves `VITE_API_BASE_URL` unset to leverage Vite's local dev proxy (`http://127.0.0.1:8000`).
 - **Build Output:** Produced at `app/dist` via root script `npm run build` (`vue-tsc -b && vite build`).
 
 ### 2.2 Backend (`backend/`)
 - **Technology Stack:** Python 3.14, Django 5.2.18 LTS, Django REST Framework 3.15+.
+- **Origin Protection Architecture (`CloudflareOriginSecretMiddleware`):**
+  - Positioned immediately after `CorsMiddleware` in `settings.MIDDLEWARE`.
+  - Enforces shared secret authentication via `X-Origin-Secret` header to block direct ingress targeting Render's underlying `*.onrender.com` host.
+  - Constant-time secret verification via `hmac.compare_digest` across all comma-separated candidate secrets in `CF_ORIGIN_SECRET` without short-circuiting to prevent timing side-channels.
+  - Fail-closed in production (`DEBUG=False`): returns HTTP 403 Forbidden if secret is missing, mismatched, or if `CF_ORIGIN_SECRET` is unset/empty.
+  - Safe development bypass: in `DEBUG=True`, origin-secret verification is bypassed to support direct local API testing.
+  - Liveness probe exemption: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are strictly exempt, allowing unauthenticated hosting liveness checks. Unsupported methods return HTTP 403 without secret, HTTP 405 with secret.
+  - Verified by 30 dedicated unit tests in `backend/tests/test_origin_secret.py` and 9 health tests in `backend/tests/test_health.py`.
 - **Database Driver Architecture (Universal PyMySQL):**
   - Completely pure-Python driver strategy implemented in commit `279d41c`. Native `mysqlclient==2.3.0` was eliminated to prevent Linux C-extension compilation failures (`gcc`, `python3-dev`, `libmysqlclient-dev`).
   - `backend/requirements.txt` declares `pymysql>=1.1.1,<2.0` universally across all platforms.
@@ -87,14 +95,26 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 |                                                             |
 |   +-----------------------------------------------------+   |
 |   |         Cloudflare Pages (Static Frontend)          |   |
+|   |  - Host: https://adnanabdullahi.com                 |   |
 |   |  - Vue 3 + TypeScript + Vite (/app/dist)            |   |
 |   |  - Hash routing (createWebHashHistory)              |   |
-|   |  - Free tier (500 builds/mo, edge CDN)              |   |
+|   |  - Dynamic API resolution: resolveApiUrl()          |   |
 |   +--------------------------+--------------------------+   |
 +------------------------------|------------------------------+
                                |
-                               | HTTPS POST /api/contact/
+                               | HTTPS POST https://api.adnanabdullahi.com/api/contact/
                                | JSON Payload: { name, email, message, website }
+                               v
++-------------------------------------------------------------+
+|               CLOUDFLARE EDGE (DNS & Security)              |
+|                                                             |
+|  - CNAME api.adnanabdullahi.com -> <render>.onrender.com    |
+|  - Cloudflare Proxy: Enabled (Orange Cloud)                 |
+|  - Injects CF-Connecting-IP (canonical visitor client IP)   |
+|  - Transform Rule injects: X-Origin-Secret: <secret>        |
++------------------------------+------------------------------+
+                               |
+                               | Authenticated Proxied Traffic
                                v
 +-------------------------------------------------------------+
 |               RENDER STARTER WEB SERVICE (Backend)          |
@@ -102,10 +122,11 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 |                                                             |
 |   +-----------------------------------------------------+   |
 |   |   Gunicorn (1 worker, 2 threads) + Django 5.2.18    |   |
+|   |  - CloudflareOriginSecretMiddleware (X-Origin-Secret) |   |
 |   |  - Continuous uptime (Zero cold-start delay)        |   |
 |   |  - 512 MB RAM, 0.5 CPU, Ephemeral Linux FS          |   |
-|   |  - Liveness Health Probe: GET /api/health/          |   |
-|   |  - DRF Throttling & Honeypot Validation             |   |
+|   |  - Liveness Health Probe: GET /api/health/ (exempt) |   |
+|   |  - DRF Throttling (CF-Connecting-IP) & Honeypot     |   |
 |   +--------------------------+--------------------------+   |
 |                              |                              |
 |                              | TLS 1.3 (Port 4000)          |
@@ -118,6 +139,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 |   |  - Database: portfolio_db (Migrated in Stage 2.9)   |   |
 |   |  - Tables: django_migrations, contact_message       |   |
 |   |  - 1 Permanent Synthetic Record (Stage 2.10)        |   |
+|   |  - Default 0.0.0.0/0 IP Access (Dynamic Render IP)  |   |
 |   +--------------------------+--------------------------+   |
 |                              |                              |
 |                              | Post-Commit Decoupled HTTPS  |
@@ -180,6 +202,8 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 | **D09-08** | Native `mysqlclient` required C compilation headers on Linux. | Build failures on Render due to missing `libmysqlclient-dev`. | Implemented universal pure-Python PyMySQL across Windows and Linux; removed `mysqlclient` in commit `279d41c`. | **Resolved & Committed** |
 | **D09-09** | Remote database TLS was permissive (fail-open) if CA was missing. | Unencrypted remote connection attempts if misconfigured. | Implemented fail-closed TLS guards in `settings.py`: requires `DB_SSL_CA` file on disk and enforces `DB_SSL_MODE='VERIFY_IDENTITY'`. | **Resolved & Committed** |
 | **D09-10** | Default `REMOTE_ADDR` rate throttling colludes all visitors behind Render's reverse proxy (`10.x.x.x`). | 5 submissions from any visitor exhausts hourly quota application-wide. | Implemented production visitor identity extraction via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified locally by 13 new unit tests. | **Resolved Locally & Verified** |
+| **D09-11** | Direct ingress to `*.onrender.com` bypasses Cloudflare edge security and rate limiting. | Threat actors can flood origin directly or spoof headers. | Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret` via constant-time `hmac.compare_digest`. Supports comma-separated secrets for zero-downtime rotation. Fails closed in production (`DEBUG=False`). Narrow `GET`/`HEAD` exemption on `/api/health/`. Verified by 30 unit tests. | **Resolved Locally & Verified** |
+| **D09-12** | API routing boundary between frontend (`adnanabdullahi.com`) and backend API. | Frontend cannot reach backend or hits incorrect origin. | Dedicated Cloudflare-proxied CNAME subdomain `api.adnanabdullahi.com` pointing to Render, with client requests dispatched via `resolveApiUrl()` and `VITE_API_BASE_URL`. Preserves Vite local proxy when unset. Verified by unit tests. | **Resolved Locally & Verified** |
 
 ---
 
@@ -219,8 +243,9 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 | :--- | :--- | :--- |
 | `DJANGO_SECRET_KEY` | High-entropy random string (>= 50 chars) | Secret |
 | `DJANGO_DEBUG` | `False` | Configuration |
-| `ALLOWED_HOSTS` | Render internal host and custom domain (comma-separated) | Configuration |
-| `CORS_ALLOWED_ORIGINS` | Cloudflare Pages production URL and custom domain | Configuration |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1,api.adnanabdullahi.com,<render-internal-host>` | Configuration |
+| `CORS_ALLOWED_ORIGINS` | `https://adnanabdullahi.com` | Configuration |
+| `CF_ORIGIN_SECRET` | High-entropy shared secret or comma-separated list of secrets (for rotation) matching Cloudflare Transform Rule | Secret |
 | `DB_NAME` | `portfolio_db` | Configuration |
 | `DB_USER` | `portfolio_user` (TiDB runtime username) | Configuration |
 | `DB_PASSWORD` | Runtime database user password | Secret |
@@ -237,12 +262,23 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 #### 5.2.1 Reverse-Proxy, Rate-Limiting, and Cache Architecture
 - **Visitor Identification:** Public requests route through Cloudflare Pages/DNS to Render. Cloudflare injects the trusted `CF-Connecting-IP` header. Django extracts and normalizes this header to enforce the 5 requests/hour quota.
 - **Fail-Closed Security:** In production (`DEBUG=False`), requests missing `CF-Connecting-IP`, containing whitespace-only or multi-valued headers, or presenting malformed addresses return HTTP 400 Bad Request without writing to TiDB or invoking Resend. `REMOTE_ADDR` and `HTTP_X_FORWARDED_FOR` are strictly ignored.
+- **Origin Ingress Protection (`CloudflareOriginSecretMiddleware`):**
+  - Direct requests to `*.onrender.com` that bypass Cloudflare are blocked fail-closed with HTTP 403 Forbidden.
+  - Cloudflare edge injects `X-Origin-Secret` via a Request Header Transform Rule on all proxy routes.
+  - Django middleware validates `X-Origin-Secret` using `hmac.compare_digest` across all comma-separated candidate secrets in `CF_ORIGIN_SECRET` without short-circuiting to prevent timing side-channels.
+  - In production (`DEBUG=False`), if `CF_ORIGIN_SECRET` is unset, whitespace-only, or empty, the middleware fails closed (HTTP 403) on protected endpoints.
+  - Liveness probe exemption: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are strictly exempt, permitting unauthenticated hosting probes. Unsupported methods return HTTP 403 without valid secret, and HTTP 405 with valid secret.
+  - Zero-downtime secret rotation:
+    1. Initial secret: `CF_ORIGIN_SECRET=secret_v1` on Render and Cloudflare.
+    2. Add candidate: Update Render to `CF_ORIGIN_SECRET=secret_v2,secret_v1`.
+    3. Update Cloudflare: Modify Transform Rule header to `secret_v2`.
+    4. Verify traffic: Confirm requests succeed with `secret_v2`.
+    5. Prune old secret: Update Render to `CF_ORIGIN_SECRET=secret_v2`.
 - **Cache & Concurrency Model:** Gunicorn runs with 1 worker and 2 threads (`--workers 1 --threads 2`). Django's default `LocMemCache` uses an internal `threading.Lock()`, safely sharing rate-limit state between threads without external Redis infrastructure.
 - **Known Cache Limitations:**
   - *Worker Restarts:* Because `LocMemCache` resides in process memory, restarting Gunicorn (due to deploys, health recycles, or server restarts) clears accumulated rate-limit counters. For this portfolio, this fail-open-on-restart behavior is acceptable.
   - *Multi-Worker / Multi-Instance Scaling:* If workers are scaled (`--workers > 1`) or multiple Render instances are deployed, in-memory caches will diverge, multiplying the effective limit by the worker/instance count. A centralized cache (such as Redis) would be required only at that future scale.
-- **Unresolved Ingress Trust Boundary:** Direct requests to `*.onrender.com` that bypass Cloudflare can present arbitrary `CF-Connecting-IP` headers. This direct hostname trust risk is an accepted initial limitation; in production, direct access should ideally be restricted via Cloudflare Authenticated Origin Pulls, custom headers, or Cloudflare WAF/proxy rules.
-- **Private Service-to-Service Limitation:** Any non-Cloudflare traffic (internal probes, direct webhooks) hitting `/api/contact/` lacks `CF-Connecting-IP` and will receive HTTP 400. (Health probes at `/api/health/` explicitly bypass throttling and are unaffected).
+- **Private Service-to-Service Limitation:** Any non-Cloudflare traffic (internal probes, direct webhooks) hitting `/api/contact/` lacks `CF-Connecting-IP` and `X-Origin-Secret` and will receive HTTP 403 or HTTP 400. (Health probes at `/api/health/` explicitly bypass both and are unaffected).
 
 ### 5.3 Resend Notification Architecture & Email Acceptance Criteria
 
@@ -252,6 +288,24 @@ To eliminate these failure modes, the project owner authorized evaluating the **
    - Production domain: Sending from a custom domain (e.g., `contact@adnanabdullahi.com`) requires configuring SPF and DKIM DNS records at the domain registrar.
 3. **Reply-To Integrity:** The visitor's submitted email is supplied in the `reply_to` field. The `from` address is never spoofed as the visitor.
 4. **Live Verification Status:** End-to-end email transmission to an external inbox was deliberately not executed during Stage 2.10 to preserve free quota limits. Live notification delivery will be verified during Stage 09.4 post-deployment acceptance testing.
+
+### 5.4 Cloudflare DNS and Transform Rule Configuration Specification
+
+1. **DNS Architecture (Custom Subdomain):**
+   - **Hostname:** `api.adnanabdullahi.com`
+   - **Type:** CNAME
+   - **Target:** `<app-name>.onrender.com` (assigned Render web service domain)
+   - **Proxy Status:** Proxied (Orange Cloud enabled)
+   - **SSL/TLS Mode:** Full (Strict)
+2. **Request Header Transform Rule (Origin Protection):**
+   - **Rule Name:** `Inject-Render-Origin-Secret`
+   - **Scope / Filter:** `(http.host eq "api.adnanabdullahi.com")`
+   - **Action:** Set static request header:
+     - Header Name: `X-Origin-Secret`
+     - Header Value: `<high-entropy-random-secret>` (matching active secret in Render `CF_ORIGIN_SECRET`)
+3. **Frontend Integration:**
+   - Cloudflare Pages custom domain: `https://adnanabdullahi.com`
+   - Build environment variable: `VITE_API_BASE_URL=https://api.adnanabdullahi.com`
 
 ---
 
@@ -265,13 +319,13 @@ To preserve engineering accuracy and avoid false claims of operational readiness
 4. **Live Email Delivery Unverified:** Live delivery of a visitor notification email to the owner's personal inbox via Resend HTTPS API has not yet been tested.
 5. **Cross-Origin DNS and Browser Negotiation Unverified:** Live cross-origin communication between a Cloudflare Pages domain and a Render domain has not yet been tested in a live browser.
 6. **Live Reverse-Proxy Header Propagation Unverified:** Delivery and preservation of `CF-Connecting-IP` across Cloudflare edge to Render Gunicorn backend has been verified via isolated unit tests, but not yet observed on live provisioned infrastructure.
-7. **Direct Render Hostname Restriction Unverified:** Configuration to restrict or block direct access to `*.onrender.com` (bypassing Cloudflare) has not been implemented or verified on Render.
+7. **Live Origin Secret Header Injection Unverified on Host:** While `CloudflareOriginSecretMiddleware` has been fully verified across 30 unit tests in isolation, real-world edge-to-container injection and enforcement of `X-Origin-Secret` by Cloudflare Transform Rule has not yet been observed on provisioned infrastructure.
 
 ---
 
 ## 7. Audit Disposition & Progression
 
-- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, and verified by **93 backend unit tests** (in isolated SQLite test environment) and 160 frontend tests (commit `884904d`).
+- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, origin-protected, and verified by **125 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (288 total tests).
 - **Database State:** `portfolio_db` is migrated (Stage 2.9) and integration-accepted (Stage 2.10) with 1 permanent synthetic record.
 - **Evaluated Architecture:** Cloudflare Pages (Frontend, $0) + Render Starter (Backend, $7/month candidate) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
 - **Next Required Step:** Project owner review and authorization to proceed with Stage 09.4 deployment preparation.

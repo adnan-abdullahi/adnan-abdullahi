@@ -198,14 +198,17 @@ The stage progresses sequentially through:
    - Universal pure-Python PyMySQL implementation across Windows and Linux, eliminating `mysqlclient` (Stage 3.2B).
    - Fail-closed remote database TLS guards enforcing CA certificate existence and `VERIFY_IDENTITY` mode (Stage 3.2D).
    - Consolidated local Git commit `279d41c75df82d663bc35c4a4a89f6ed34ed2f86` created and synchronized to GitHub.
-   - Documentation reconciliation across engineering journal, deployment record, and lifecycle plans (Stage 3.3).
+   - Documentation reconciliation across engineering journal, deployment record, and lifecycle plans (Stage 3.3, commit `884904d`).
+   - Proxy-aware rate-limiting identity correction via `CF-Connecting-IP` implemented, verified by 93 backend tests, and reconciled (Stage 3.4, commit `7b6cdd7`).
+   - Integrated deployment architecture implemented: `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret`, dedicated API subdomain `api.adnanabdullahi.com`, TiDB Cloud Serverless TLS verification, independent audit (Stage 3.5D), and LOW findings corrections (Stage 3.5E).
+   - Documentation reconciliation across all 7 governing documents and environment templates (Stage 3.5G).
 4. Public deployment after explicit owner authorization (09.4 — pending).
 5. Live-system evaluation (09.5 — pending).
 6. Findings, approved remediation, verification, and closure decision (09.6 — pending).
 
 The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record is **`journal/P1-STAGE09-EVALUATION.md`**. The deployment architecture and candidate evaluation record is **`docs/DEPLOYMENT.md`**.
 
-**Current position:** 09.3 deployment preparation, live TiDB schema migration, integration acceptance, universal driver implementation, and documentation reconciliation completed. Codebase is hardened and verified across 80 backend tests and 160 frontend tests (commit `279d41c`). The application is **not** yet deployed or publicly accessible. The next step is project owner review and authorization to proceed with Stage 09.4 deployment preparation.
+**Current position:** 09.3 deployment preparation, live TiDB schema migration, integration acceptance, universal driver implementation, proxy-aware rate limiting, deployment architecture implementation, and documentation reconciliation completed. Codebase is hardened, origin-protected, and verified across 125 backend unit tests and 163 frontend unit tests. The application is **not** yet deployed or publicly accessible. The next step is project owner review and authorization to proceed with Stage 09.4 deployment preparation.
 
 ## Repository Structure
 
@@ -279,7 +282,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 06:** Accepted and Closed — Prototype
 **Stage 07:** Accepted and Closed — Validation
 **Stage 08:** Closed — Engineering Implementation
-**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction verified by 93 backend tests; live deployment preparation pending owner authorization
+**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction (commit `7b6cdd7`); Stage 3.5 integrated deployment architecture (origin secret middleware, API subdomain, TiDB TLS) implemented and verified across 125 backend tests and 163 frontend tests; documentation reconciled; live deployment preparation pending owner authorization
 
 Stage 08 closure is documented in:
 

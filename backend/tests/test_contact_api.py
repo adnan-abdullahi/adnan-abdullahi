@@ -24,7 +24,11 @@ from contact.models import ContactMessage
 from contact.views import RECEIPT_CONFIRMATION_MESSAGE
 
 
-@override_settings(RESEND_API_KEY='simulate', EMAIL_SIMULATION_ALLOWED=True)
+@override_settings(
+    RESEND_API_KEY='simulate',
+    EMAIL_SIMULATION_ALLOWED=True,
+    CF_ORIGIN_SECRET='test-suite-origin-secret'
+)
 class ContactAPITests(APITestCase):
     """
     Test suite for POST /api/contact/ endpoint and downstream notifications.
@@ -34,6 +38,7 @@ class ContactAPITests(APITestCase):
         super().setUp()
         cache.clear()
         self.url = reverse('contact-submit')
+        self.client.defaults['HTTP_X_ORIGIN_SECRET'] = 'test-suite-origin-secret'
         self.client.defaults['HTTP_CF_CONNECTING_IP'] = '203.0.113.195'
         self.valid_payload = {
             "name": "Jane Visitor",
@@ -427,6 +432,7 @@ class ContactAPITests(APITestCase):
     def test_rate_throttling_missing_cf_header_in_production_fails_closed(self):
         """Missing CF-Connecting-IP header fails closed with HTTP 400 Bad Request."""
         client = self.client_class()
+        client.defaults['HTTP_X_ORIGIN_SECRET'] = 'test-suite-origin-secret'
         initial_count = ContactMessage.objects.count()
         response = client.post(self.url, self.valid_payload, format='json')
 
@@ -491,6 +497,7 @@ class ContactAPITests(APITestCase):
     def test_rate_throttling_production_does_not_fallback_to_remote_addr(self):
         """In production (DEBUG=False), absent CF-Connecting-IP never falls back to REMOTE_ADDR."""
         client = self.client_class()
+        client.defaults['HTTP_X_ORIGIN_SECRET'] = 'test-suite-origin-secret'
         initial_count = ContactMessage.objects.count()
         response = client.post(
             self.url,
@@ -506,7 +513,7 @@ class ContactAPITests(APITestCase):
         self.assertIn("Missing required CF-Connecting-IP header.", data["errors"]["network"])
         self.assertEqual(ContactMessage.objects.count(), initial_count)
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True, CF_ORIGIN_SECRET='')
     def test_rate_throttling_local_development_fallback_when_debug_true(self):
         """In local development (DEBUG=True), absent CF header falls back cleanly to REMOTE_ADDR."""
         client = self.client_class()

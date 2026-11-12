@@ -1,10 +1,10 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); Stage 3.4 rate-limiting reverse-proxy identity correction implemented, verified by 93 backend tests, and reconciled; deployment preparation pending owner authorization
+**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); proxy-aware rate-limiting implemented (Stage 3.4C); integrated deployment architecture (origin secret middleware, API subdomain, TiDB TLS) implemented and verified across 125 backend unit tests and 163 frontend tests (Stages 3.5A–3.5G); documentation reconciled; public deployment pending owner authorization
 **Project:** Project 01 — Professional Engineering Portfolio
 **Stage:** 09 of 10
 **Governing project record:** `docs/PROJECT-01.md`
-**Governing Baseline Commit:** `884904d8ada8c35d35bbd2a99033ce40307fc768`
+**Governing Baseline Commit:** `7b6cdd72c9371f03017b890d7369b5fd9b5940db`
 
 ## 1. Purpose
 
@@ -80,11 +80,11 @@ Exit condition: A written audit distinguishes confirmed facts, uncertainties, tr
 
 ### 09.3 — Deployment Preparation
 
-**Status:** Hardening, live database migration, integration acceptance, and universal driver implementation completed; documentation reconciled (2026-11-10).
+**Status:** Hardening, live database migration, integration acceptance, universal driver, proxy-aware rate limiting, and deployment architecture implementation completed; documentation reconciled (2026-11-12).
 
 Implemented, verified, and committed:
 - **Migration Credential Architecture:** Platform-neutral `backend/credential_vault.py` with deterministic precedence (`DB_MIGRATE_*` environment variables -> Windows Credential Manager -> fail closed). Verified by 29 unit tests.
-- **Liveness Health Probe:** Dedicated stateless endpoint `GET /api/health/` returning HTTP 200 in 0 database queries. Verified by 3 unit tests.
+- **Liveness Health Probe:** Dedicated stateless endpoint `GET /api/health/` returning HTTP 200 in 0 database queries. Verified by automated tests.
 - **Contact Notification Dispatcher:** Resend HTTPS API via `urllib.request` in `backend/contact/notifications.py`, bypassing blocked SMTP ports. Post-commit decoupled dispatch ensures message persistence is primary.
 - **Universal PyMySQL Architecture (Stage 3.2B):** Replaced native `mysqlclient` with pure-Python `pymysql>=1.1.1,<2.0` across Windows and Linux, eliminating C-extension compilation dependencies on Render.
 - **Fail-Closed Remote Database TLS (Stage 3.2D):** `backend/config/settings.py` enforces that remote connections require `DB_SSL_CA` pointing to an existing file on disk and enforce `DB_SSL_MODE='VERIFY_IDENTITY'`. Local loopback connections retain clean unencrypted baseline.
@@ -92,10 +92,15 @@ Implemented, verified, and committed:
 - **Integration Acceptance (Stage 2.10):** Dispatched live submission; verified Option A persistence with permanent synthetic record `e767aae8-0cf2-44af-b51c-1c23a07e8642`. Verified honeypot rejection (T-02) and CRLF rejection (T-03).
 - **Render Deployment Readiness Audit (Stage 3.4A):** Analyzed deployment readiness for Render Starter, discovering reverse-proxy IP collusion risks under `REMOTE_ADDR`.
 - **Rate-Limiting Investigation (Stage 3.4B):** Evaluated reverse-proxy visitor identification strategies and approved Cloudflare `CF-Connecting-IP` fail-closed architecture.
-- **Proxy-Aware Rate Limiting Implementation (Stage 3.4C):** Implemented production visitor identity via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback.
-- **Regression Suite:** **93 backend unit tests** (in isolated SQLite test environment) and **160 frontend tests** (253 total) passing cleanly.
-- **Consolidated Git Commit:** Created and pushed commit `279d41c75df82d663bc35c4a4a89f6ed34ed2f86` (`feat(backend): enforce secure cross-platform database connectivity`) and commit `884904d` (`docs(stage-09): reconcile deployment evaluation records`).
-- **Documentation Reconciliation (Stage 3.3 & Stage 3.4C):** Reconciled engineering journal, deployment record, stage evaluation plan, and contact specification.
+- **Proxy-Aware Rate Limiting Implementation (Stage 3.4C):** Implemented production visitor identity via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified by 13 unit tests.
+- **Deployment Boundary Investigation (Stage 3.5A):** Investigated Cloudflare-to-Render origin protection, API subdomain routing, and TiDB network access boundaries.
+- **Architecture Decision Validation (Stage 3.5B):** Project owner approved three integrated deployment decisions: (1) Cloudflare-to-Render origin protection via `X-Origin-Secret` and Django middleware, (2) Dedicated Cloudflare-proxied API subdomain `api.adnanabdullahi.com`, (3) Retaining TiDB Cloud Serverless default network access with strict TLS (`VERIFY_IDENTITY`) and least-privilege runtime credentials (`portfolio_user`).
+- **Integrated Deployment Architecture Implementation (Stage 3.5C):** Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret`, supporting multi-secret rotation, fail-closed in production (`DEBUG=False`), and health check exemption; expanded backend tests to 124 unit tests.
+- **Independent Engineering Audit (Stage 3.5D):** Audited Stage 3.5C implementation; approved with two LOW findings (LOW-01 health exemption method restriction, LOW-02 non-short-circuit secret iteration).
+- **LOW Findings Corrections & Verification (Stage 3.5E):** Restricted health check exemption to GET/HEAD (unsupported methods return HTTP 403 without secret, HTTP 405 with secret); eliminated short-circuiting in secret iteration; verified with 125 backend unit tests, 163 frontend unit tests, and successful frontend build.
+- **Documentation Reconciliation (Stage 3.5F & Stage 3.5G):** Reconciled all 7 governing documents and environment templates.
+- **Regression Suite:** **125 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (288 total) passing cleanly.
+- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7` created and synchronized to GitHub.
 
 Pending authorization & execution:
 - Project owner provisioning of Render Starter Web Service ($7/month).
@@ -199,8 +204,15 @@ In particular:
 - [x] Stage 3.4A Render deployment preparation audit completed.
 - [x] Stage 3.4B read-only rate-limiting and reverse-proxy investigation completed.
 - [x] Stage 3.4C proxy-aware rate-limiting implementation, independent review, and test expansion to 93 backend unit tests completed.
+- [x] Stage 3.5A deployment boundary and infrastructure readiness investigation completed.
+- [x] Stage 3.5B architecture decision validation completed and approved by project owner.
+- [x] Stage 3.5C integrated deployment architecture implemented (origin secret middleware, API subdomain routing, TiDB TLS).
+- [x] Stage 3.5D independent engineering audit completed (verdict: approved with minor findings).
+- [x] Stage 3.5E LOW findings corrected and verified (health method restrictions, non-short-circuit rotation, 125 backend unit tests).
+- [x] Stage 3.5F documentation inspection and reconciliation proposal approved.
+- [x] Stage 3.5G documentation reconciliation implemented and local commit executed.
 - [ ] Project owner authorization and provisioning of Render Starter Web Service.
 - [ ] Production environment variable configuration on hosting providers (09.4).
 - [ ] Public deployment and live verification (09.4 & 09.5).
 
-**Current stage position:** 09.3 / Stage 3.4C — Codebase hardened, database migrated, integration accepted, proxy-aware rate limiting implemented and verified by 93 backend unit tests, and documentation reconciled; deployment preparation pending explicit owner authorization.
+**Current stage position:** 09.3 / Stage 3.5G — Codebase hardened, deployment architecture implemented (origin secret middleware, API subdomain, TiDB TLS), verified by 125 backend tests and 163 frontend tests; documentation reconciled; public deployment pending explicit owner authorization.
