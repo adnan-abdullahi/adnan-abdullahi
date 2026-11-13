@@ -777,5 +777,88 @@ Inspect all governing documentation, submit a formal update proposal (Stage 3.5F
    - Full test regression: 125 backend tests passing, 163 frontend unit tests passing.
 3. **Controlled Staging & Local Commit:**
    - Staged all 13 verified files (6 implementation + 7 documentation).
-   - Created local commit: `feat(stage-09): implement deployment architecture and reconcile documentation`.
+   - Created local commit: `feat(stage-09): implement deployment architecture and reconcile documentation` (`51ff6cc`).
    - Preserved strict boundary: Zero remote pushes executed; push reserved for personal project owner review.
+
+---
+
+## Session 18 — Stage 3.6A: First Render Deployment Attempt, Health-Check DisallowedHost Investigation, and Integration Correction
+
+**Date:** 2026-11-13
+**Position:** Stage 3.6A — Deployment Failure Investigation Record and Health-Check Integration Correction
+**Mode:** Diagnostic Investigation, Corrective Implementation, Local Verification, and Documentation Reconciliation
+
+### 1. Deployment Incident Summary
+
+Following the local commit and owner-initiated push of commit `51ff6cca62b7cd7785db562a89e96723e72a7172` to GitHub, the first live deployment attempt was executed on Render:
+- **Build Pipeline Success:**
+  - Render cloned repository revision `51ff6cc` from branch `main`.
+  - Python 3.14 virtual environment initialized successfully.
+  - Dependencies installed cleanly from `backend/requirements.txt` (pure-Python `pymysql` installed without C-extension compiler requirements).
+  - Build step finished with exit code 0.
+- **Service Startup Success:**
+  - Gunicorn launched `config.wsgi:application` bound to `0.0.0.0:$PORT` with 1 worker and 2 threads.
+  - Worker process booted cleanly.
+- **Health Check Failure & Deployment Timeout:**
+  - Render container orchestration repeatedly dispatched HTTP health check probes to the configured path `/api/health/`.
+  - Each probe received an immediate `HTTP 400 Bad Request` response.
+  - Because health probes never returned HTTP 200, Render marked the instance unhealthy and the deployment timed out.
+
+### 2. Technical Root Cause Investigation
+
+To diagnose the failure without speculating or modifying live infrastructure, an isolated WSGI pipeline reproduction test was executed:
+1. **Initial Hypothesis Disproved:**
+   - The initial hypothesis suggested that DRF rate-limiting rejected the probe due to missing Cloudflare visitor headers (`CF-Connecting-IP`).
+   - Inspection of `HealthCheckView` confirmed that it explicitly declared `throttle_classes = []`. DRF throttling was never invoked.
+2. **Confirmed Root Cause (Django `DisallowedHost`):**
+   - Render's container health checker communicates directly across internal container/overlay networks and does not traverse Cloudflare.
+   - Probes arrive with internal host headers (e.g., `<service-name>.onrender.com`, `10.x.x.x:PORT`, or `0.0.0.0:PORT`).
+   - In commit `51ff6cc`, `CloudflareOriginSecretMiddleware` exempted `/api/health/` by calling `return self.get_response(request)` to delegate handling downstream.
+   - Downstream middleware (`SecurityMiddleware` and `CommonMiddleware`) called `request.get_host()`.
+   - Because `ALLOWED_HOSTS` only permitted `['localhost', '127.0.0.1', 'api.adnanabdullahi.com']`, Django raised `django.core.exceptions.DisallowedHost`.
+   - Django's default exception handler caught `DisallowedHost` and returned an HTML `Bad Request (400)` response before the request ever reached `HealthCheckView` or DRF.
+
+### 3. Corrective Implementation
+
+To make container health checks robust against internal hosting network variations while preserving strict origin protection for public APIs, a five-file corrective integration was implemented:
+
+1. **Direct Middleware Edge Return (`backend/contact/middleware.py`):**
+   - Updated `CloudflareOriginSecretMiddleware` to intercept `GET` and `HEAD` requests to `/api/health` and `/api/health/` and return directly at the middleware boundary:
+     - `GET`: Returns `JsonResponse({'status': 'healthy'}, status=200)`.
+     - `HEAD`: Returns `HttpResponse(b'', content_type='application/json', status=200)`.
+   - This completely bypasses downstream `SecurityMiddleware` and `CommonMiddleware` host header evaluation for liveness checks, eliminating `DisallowedHost` 400 errors regardless of what Host header Render's health checker sends.
+   - Non-exempt methods (`POST`, `PUT`, `DELETE`) on `/api/health` continue to require a valid origin secret (HTTP 403 without secret; HTTP 405 with secret).
+2. **Direct Non-Trailing-Slash Routing (`backend/config/urls.py`):**
+   - Added direct route `path('api/health', HealthCheckView.as_view(), name='health-check-no-slash')` alongside `api/health/` to prevent HTTP 301 redirects if a health probe requests `/api/health` without a trailing slash.
+3. **Explicit HEAD Method Handling (`backend/contact/views.py`):**
+   - Added explicit `head()` method to `HealthCheckView` returning an empty HTTP 200 response with JSON content type.
+4. **Dynamic Host Registration (`backend/config/settings.py`):**
+   - Added dynamic registration of `RENDER_EXTERNAL_HOSTNAME` into `ALLOWED_HOSTS` if populated by Render's runtime environment.
+5. **Test Suite Expansion (`backend/tests/test_health.py`):**
+   - Added 6 new unit tests (15 total in health suite, 131 total backend tests):
+     - `test_health_check_succeeds_in_production_without_cf_connecting_ip`
+     - `test_health_check_head_request_succeeds_with_empty_body`
+     - `test_health_check_without_trailing_slash_succeeds_without_redirect`
+     - `test_health_check_succeeds_with_render_internal_host`
+     - `test_health_check_succeeds_with_ip_and_port_host`
+     - `test_normal_production_contact_without_valid_cf_connecting_ip_remains_rejected_400`
+
+### 4. Security Invariants Preserved
+
+- **Origin Secret Protection:** Direct requests targeting `*.onrender.com` on protected endpoints (e.g. `POST /api/contact/`) remain strictly rejected with HTTP 403 Forbidden.
+- **Client IP Validation:** Production contact requests without valid canonical `CF-Connecting-IP` headers remain strictly rejected with HTTP 400 Bad Request, with zero fallback to `REMOTE_ADDR` or `X-Forwarded-For`.
+- **Zero Query Liveness:** Health probes execute 0 database queries, make zero network calls, require no external secrets, and return instantaneously.
+
+### 5. Verification Evidence
+
+- **Backend Unit Tests:** **131/131 passed** in 2.12s in hermetic SQLite (`:memory:`) isolation.
+- **Frontend Unit Tests:** **163/163 passed** across 10 suites.
+- **Django System Check:** `python manage.py check` reported 0 issues (0 silenced).
+- **Python Compilation:** `python -m compileall backend` compiled cleanly with 0 errors.
+
+### 6. Boundary & Current Status
+
+- Implementation and verification are complete locally.
+- All 5 implementation files and 5 documentation files remain unstaged in the working tree.
+- Zero Git staging, commits, or pushes were executed.
+- Live deployment acceptance remains pending the project owner's review and execution of the second Render deployment attempt.

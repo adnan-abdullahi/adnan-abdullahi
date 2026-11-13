@@ -7,5 +7,6 @@ from contact.views import HealthCheckView
 
 urlpatterns = [
     path('api/health/', HealthCheckView.as_view(), name='health-check'),
+    path('api/health', HealthCheckView.as_view()),
     path('api/contact/', include('contact.urls')),
 ]

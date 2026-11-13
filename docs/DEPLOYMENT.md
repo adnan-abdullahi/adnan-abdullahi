@@ -1,12 +1,12 @@
 # Deployment Architecture, Readiness, and Candidate Evaluation Record
 
 **Project:** Project 01 — Professional Engineering Portfolio
-**Stage:** 09 — Evaluation (Stage 3.5 Reconciliation)
-**Status:** Reconciled Architecture Candidate Record; Live Deployment Pending Owner Authorization
+**Stage:** 09 — Evaluation (Stage 3.6 Reconciliation)
+**Status:** Initial Deployment Attempt Recorded; Health-Check DisallowedHost Corrected Locally; Live Verification Pending Next Deployment
 **Initial Audit Date:** 2026-10-27
-**Reconciled Date:** 2026-11-12
+**Reconciled Date:** 2026-11-13
 **Governing Stage Plan:** `docs/STAGE-09-EVALUATION.md`
-**Governing Baseline Commit:** `7b6cdd72c9371f03017b890d7369b5fd9b5940db`
+**Governing Baseline Commit:** `51ff6cca62b7cd7785db562a89e96723e72a7172`
 
 ---
 
@@ -51,14 +51,20 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 
 ### 2.2 Backend (`backend/`)
 - **Technology Stack:** Python 3.14, Django 5.2.18 LTS, Django REST Framework 3.15+.
-- **Origin Protection Architecture (`CloudflareOriginSecretMiddleware`):**
+- **Origin Protection & Health-Check Integration Architecture (`CloudflareOriginSecretMiddleware`):**
   - Positioned immediately after `CorsMiddleware` in `settings.MIDDLEWARE`.
   - Enforces shared secret authentication via `X-Origin-Secret` header to block direct ingress targeting Render's underlying `*.onrender.com` host.
   - Constant-time secret verification via `hmac.compare_digest` across all comma-separated candidate secrets in `CF_ORIGIN_SECRET` without short-circuiting to prevent timing side-channels.
   - Fail-closed in production (`DEBUG=False`): returns HTTP 403 Forbidden if secret is missing, mismatched, or if `CF_ORIGIN_SECRET` is unset/empty.
   - Safe development bypass: in `DEBUG=True`, origin-secret verification is bypassed to support direct local API testing.
-  - Liveness probe exemption: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are strictly exempt, allowing unauthenticated hosting liveness checks. Unsupported methods return HTTP 403 without secret, HTTP 405 with secret.
-  - Verified by 30 dedicated unit tests in `backend/tests/test_origin_secret.py` and 9 health tests in `backend/tests/test_health.py`.
+  - Platform Liveness Probe Exemption & Direct Middleware Response:
+    - `GET` and `HEAD` requests to `/api/health` and `/api/health/` are intercepted and satisfied directly at the middleware boundary, returning HTTP 200 OK (`{"status": "healthy"}`) for GET and empty-body HTTP 200 for HEAD.
+    - Resolves the Render deployment failure (D09-13): internal Render infrastructure health probes originate inside Render's network, do not traverse Cloudflare, and send internal/container Host headers (e.g. `*.onrender.com`, `10.x.x.x:PORT`, `0.0.0.0:PORT`). Direct middleware return bypasses downstream `SecurityMiddleware`/`CommonMiddleware` `ALLOWED_HOSTS` validation, eliminating `DisallowedHost` HTTP 400 rejections.
+    - Health checks require zero Cloudflare headers (`CF-Connecting-IP`, `X-Origin-Secret`), execute 0 database queries, and make zero external network calls.
+    - Unsupported methods (`POST`, `PUT`, `DELETE`) to the health endpoint require a valid origin secret; without a secret they are rejected with HTTP 403 by this middleware, and with a secret they receive HTTP 405 from downstream DRF handling.
+  - Environment-Aware Host Configuration: `backend/config/settings.py` dynamically appends `RENDER_EXTERNAL_HOSTNAME` to `ALLOWED_HOSTS` if populated by the Render container environment.
+  - Direct URL Routing: `backend/config/urls.py` registers both `/api/health/` and `/api/health` directly to prevent HTTP 301 redirects during health checks.
+  - Verified by 30 dedicated origin-secret unit tests and 15 health-endpoint unit tests (131 backend unit tests total).
 - **Database Driver Architecture (Universal PyMySQL):**
   - Completely pure-Python driver strategy implemented in commit `279d41c`. Native `mysqlclient==2.3.0` was eliminated to prevent Linux C-extension compilation failures (`gcc`, `python3-dev`, `libmysqlclient-dev`).
   - `backend/requirements.txt` declares `pymysql>=1.1.1,<2.0` universally across all platforms.
@@ -204,6 +210,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 | **D09-10** | Default `REMOTE_ADDR` rate throttling colludes all visitors behind Render's reverse proxy (`10.x.x.x`). | 5 submissions from any visitor exhausts hourly quota application-wide. | Implemented production visitor identity extraction via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified locally by 13 new unit tests. | **Resolved Locally & Verified** |
 | **D09-11** | Direct ingress to `*.onrender.com` bypasses Cloudflare edge security and rate limiting. | Threat actors can flood origin directly or spoof headers. | Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret` via constant-time `hmac.compare_digest`. Supports comma-separated secrets for zero-downtime rotation. Fails closed in production (`DEBUG=False`). Narrow `GET`/`HEAD` exemption on `/api/health/`. Verified by 30 unit tests. | **Resolved Locally & Verified** |
 | **D09-12** | API routing boundary between frontend (`adnanabdullahi.com`) and backend API. | Frontend cannot reach backend or hits incorrect origin. | Dedicated Cloudflare-proxied CNAME subdomain `api.adnanabdullahi.com` pointing to Render, with client requests dispatched via `resolveApiUrl()` and `VITE_API_BASE_URL`. Preserves Vite local proxy when unset. Verified by unit tests. | **Resolved Locally & Verified** |
+| **D09-13** | First Render deployment health checks repeatedly returned HTTP 400, timing out deployment. | Web service never enters healthy live state; deployment fails. | Confirmed root cause: Render's internal health check pings the container directly using internal Host headers (`*.onrender.com`, `10.x.x.x`, `0.0.0.0`). The previous middleware exemption passed requests downstream (`self.get_response`), triggering Django `DisallowedHost` (HTTP 400). Corrected by returning `JsonResponse({'status': 'healthy'}, status=200)` for GET and empty-body 200 for HEAD directly from `CloudflareOriginSecretMiddleware`, bypassing `ALLOWED_HOSTS` and reverse-proxy header checks for health probes. Added direct `/api/health` route in `urls.py`, explicit `head()` in `HealthCheckView`, and `RENDER_EXTERNAL_HOSTNAME` in `ALLOWED_HOSTS`. Verified by 6 new unit tests (131 backend tests total). | **Resolved Locally & Verified (Pending Next Deployment)** |
 
 ---
 
@@ -262,12 +269,12 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 #### 5.2.1 Reverse-Proxy, Rate-Limiting, and Cache Architecture
 - **Visitor Identification:** Public requests route through Cloudflare Pages/DNS to Render. Cloudflare injects the trusted `CF-Connecting-IP` header. Django extracts and normalizes this header to enforce the 5 requests/hour quota.
 - **Fail-Closed Security:** In production (`DEBUG=False`), requests missing `CF-Connecting-IP`, containing whitespace-only or multi-valued headers, or presenting malformed addresses return HTTP 400 Bad Request without writing to TiDB or invoking Resend. `REMOTE_ADDR` and `HTTP_X_FORWARDED_FOR` are strictly ignored.
-- **Origin Ingress Protection (`CloudflareOriginSecretMiddleware`):**
+- **Origin Ingress Protection & Health-Check Direct Return (`CloudflareOriginSecretMiddleware`):**
   - Direct requests to `*.onrender.com` that bypass Cloudflare are blocked fail-closed with HTTP 403 Forbidden.
   - Cloudflare edge injects `X-Origin-Secret` via a Request Header Transform Rule on all proxy routes.
   - Django middleware validates `X-Origin-Secret` using `hmac.compare_digest` across all comma-separated candidate secrets in `CF_ORIGIN_SECRET` without short-circuiting to prevent timing side-channels.
   - In production (`DEBUG=False`), if `CF_ORIGIN_SECRET` is unset, whitespace-only, or empty, the middleware fails closed (HTTP 403) on protected endpoints.
-  - Liveness probe exemption: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are strictly exempt, permitting unauthenticated hosting probes. Unsupported methods return HTTP 403 without valid secret, and HTTP 405 with valid secret.
+  - Liveness probe direct return: `GET` and `HEAD` requests to `/api/health` and `/api/health/` return directly at the middleware edge (`JsonResponse({'status': 'healthy'}, status=200)` for GET; empty-body `HttpResponse(b'', content_type='application/json', status=200)` for HEAD). This short-circuits the pipeline before downstream `SecurityMiddleware` or `CommonMiddleware` host header validation, allowing Render's internal hosting probes (which use internal container Host headers like `*.onrender.com`, `10.x.x.x:PORT`, or `0.0.0.0:PORT` and lack Cloudflare headers) to succeed cleanly without triggering `DisallowedHost` (HTTP 400). Unsupported methods on `/api/health` return HTTP 403 without a valid secret and HTTP 405 with a valid secret.
   - Zero-downtime secret rotation:
     1. Initial secret: `CF_ORIGIN_SECRET=secret_v1` on Render and Cloudflare.
     2. Add candidate: Update Render to `CF_ORIGIN_SECRET=secret_v2,secret_v1`.
@@ -278,7 +285,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 - **Known Cache Limitations:**
   - *Worker Restarts:* Because `LocMemCache` resides in process memory, restarting Gunicorn (due to deploys, health recycles, or server restarts) clears accumulated rate-limit counters. For this portfolio, this fail-open-on-restart behavior is acceptable.
   - *Multi-Worker / Multi-Instance Scaling:* If workers are scaled (`--workers > 1`) or multiple Render instances are deployed, in-memory caches will diverge, multiplying the effective limit by the worker/instance count. A centralized cache (such as Redis) would be required only at that future scale.
-- **Private Service-to-Service Limitation:** Any non-Cloudflare traffic (internal probes, direct webhooks) hitting `/api/contact/` lacks `CF-Connecting-IP` and `X-Origin-Secret` and will receive HTTP 403 or HTTP 400. (Health probes at `/api/health/` explicitly bypass both and are unaffected).
+- **Private Service-to-Service Limitation:** Any non-Cloudflare traffic (internal probes, direct webhooks) hitting `/api/contact/` lacks `CF-Connecting-IP` and `X-Origin-Secret` and will receive HTTP 403 or HTTP 400. (Health probes at `/api/health` and `/api/health/` explicitly short-circuit at the middleware edge and are completely unaffected).
 
 ### 5.3 Resend Notification Architecture & Email Acceptance Criteria
 
@@ -313,19 +320,19 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 
 To preserve engineering accuracy and avoid false claims of operational readiness:
 
-1. **No External Hosting Provisioned:** No Render Web Service has been created or provisioned. No Cloudflare Pages project has been configured.
-2. **Live Render-to-TiDB Handshake Unobserved:** While local Windows PyMySQL connectivity to TiDB Cloud over TLS port 4000 was verified in Stages 2.9 and 2.10, connectivity originating from a live Render Linux container to TiDB Cloud has not yet been executed or observed.
+1. **First Render Deployment Attempt Incomplete (Health Check HTTP 400 Timeout):** A Render Web Service was provisioned and triggered for commit `51ff6cc`. Dependency installation, build, and Gunicorn startup succeeded, but Render's internal health checker pinging `/api/health/` repeatedly returned HTTP 400 Bad Request, causing the deployment to time out. The root cause was identified as Django `DisallowedHost` triggered by internal Host headers prior to the Stage 3.6A middleware edge-return correction. Cloudflare Pages has not yet been provisioned. Live deployment remains pending the second deployment attempt with the Stage 3.6A correction.
+2. **Live Render-to-TiDB Handshake in Healthy State Pending Verification:** The first deployment attempt timed out during health checking before serving production contact traffic. Connectivity originating from a live Render Linux container to TiDB Cloud will be verified once container startup reaches a healthy operational state in the next deployment attempt.
 3. **Render CA Bundle Path Unverified on Host:** `/etc/ssl/certs/ca-certificates.crt` is the standard Linux path tested locally via mocking and path normalization; its presence on the specific Render container image must be verified upon container startup.
 4. **Live Email Delivery Unverified:** Live delivery of a visitor notification email to the owner's personal inbox via Resend HTTPS API has not yet been tested.
 5. **Cross-Origin DNS and Browser Negotiation Unverified:** Live cross-origin communication between a Cloudflare Pages domain and a Render domain has not yet been tested in a live browser.
 6. **Live Reverse-Proxy Header Propagation Unverified:** Delivery and preservation of `CF-Connecting-IP` across Cloudflare edge to Render Gunicorn backend has been verified via isolated unit tests, but not yet observed on live provisioned infrastructure.
-7. **Live Origin Secret Header Injection Unverified on Host:** While `CloudflareOriginSecretMiddleware` has been fully verified across 30 unit tests in isolation, real-world edge-to-container injection and enforcement of `X-Origin-Secret` by Cloudflare Transform Rule has not yet been observed on provisioned infrastructure.
+7. **Live Origin Secret Header Injection Unverified on Host:** While `CloudflareOriginSecretMiddleware` has been fully verified across 36 unit tests in isolation, real-world edge-to-container injection and enforcement of `X-Origin-Secret` by Cloudflare Transform Rule has not yet been observed on provisioned infrastructure.
 
 ---
 
 ## 7. Audit Disposition & Progression
 
-- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, origin-protected, and verified by **125 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (288 total tests).
+- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, origin-protected, health-check corrected, and verified by **131 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (294 total tests).
 - **Database State:** `portfolio_db` is migrated (Stage 2.9) and integration-accepted (Stage 2.10) with 1 permanent synthetic record.
 - **Evaluated Architecture:** Cloudflare Pages (Frontend, $0) + Render Starter (Backend, $7/month candidate) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
-- **Next Required Step:** Project owner review and authorization to proceed with Stage 09.4 deployment preparation.
+- **Next Required Step:** Commit and push the Stage 3.6A health-check integration correction and execute the second Render deployment attempt.

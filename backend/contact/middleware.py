@@ -10,7 +10,7 @@ Supports safe zero-downtime secret rotation via comma-separated candidate secret
 import hmac
 import logging
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +33,13 @@ class CloudflareOriginSecretMiddleware:
       - If CF_ORIGIN_SECRET is unset, empty, or whitespace-only, requests are permitted
         to proceed for local developer ergonomics and offline testing.
       - If CF_ORIGIN_SECRET is configured, verification is strictly enforced.
-    - Health Check Exemption (LOW-01):
-      - Narrowly exempts GET and HEAD requests to /api/health and /api/health/ to allow
-        Render's internal liveness probe to verify process responsiveness without
-        requiring Cloudflare credentials.
+    - Health Check Exemption:
+      - Intercepts GET and HEAD requests to /api/health and /api/health/ directly at
+        the middleware boundary, immediately returning HTTP 200 OK without requiring
+        Cloudflare headers (CF-Connecting-IP, X-Origin-Secret) or Host header matching
+        against ALLOWED_HOSTS. This allows Render's internal platform health checks
+        (which originate internally and send container/infrastructure Host headers)
+        to succeed reliably.
       - Unsupported methods (POST, PUT, PATCH, DELETE) to the health endpoint require
         a valid origin secret; without a secret they are rejected with HTTP 403 by this
         middleware, and with a secret they receive HTTP 405 from downstream DRF handling.
@@ -54,9 +57,13 @@ class CloudflareOriginSecretMiddleware:
 
     def __call__(self, request):
         # 1. Narrow health check exemption for hosting platform liveness probe (GET and HEAD only)
+        # Directly returns HTTP 200 to allow Render's internal infrastructure health checks to succeed
+        # without requiring Cloudflare headers (CF-Connecting-IP, X-Origin-Secret) or Host matching ALLOWED_HOSTS.
         path = (request.path_info or request.path or '').rstrip('/')
         if path == '/api/health' and request.method in ('GET', 'HEAD'):
-            return self.get_response(request)
+            if request.method == 'HEAD':
+                return HttpResponse(b'', content_type='application/json', status=200)
+            return JsonResponse({'status': 'healthy'}, status=200)
 
         # 2. Retrieve expected secret candidate(s) from Django settings
         raw_expected = getattr(settings, 'CF_ORIGIN_SECRET', '')

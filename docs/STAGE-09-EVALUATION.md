@@ -1,10 +1,10 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); proxy-aware rate-limiting implemented (Stage 3.4C); integrated deployment architecture (origin secret middleware, API subdomain, TiDB TLS) implemented and verified across 125 backend unit tests and 163 frontend tests (Stages 3.5A–3.5G); documentation reconciled; public deployment pending owner authorization
+**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); proxy-aware rate-limiting implemented (Stage 3.4C); integrated deployment architecture implemented and verified (Stages 3.5A–3.5G); first Render deployment attempted on commit 51ff6cc (timed out on health check HTTP 400); Stage 3.6A health-check integration correction implemented and verified locally across 131 backend unit tests and 163 frontend tests; second deployment attempt pending owner execution
 **Project:** Project 01 — Professional Engineering Portfolio
 **Stage:** 09 of 10
 **Governing project record:** `docs/PROJECT-01.md`
-**Governing Baseline Commit:** `7b6cdd72c9371f03017b890d7369b5fd9b5940db`
+**Governing Baseline Commit:** `51ff6cca62b7cd7785db562a89e96723e72a7172`
 
 ## 1. Purpose
 
@@ -80,7 +80,7 @@ Exit condition: A written audit distinguishes confirmed facts, uncertainties, tr
 
 ### 09.3 — Deployment Preparation
 
-**Status:** Hardening, live database migration, integration acceptance, universal driver, proxy-aware rate limiting, and deployment architecture implementation completed; documentation reconciled (2026-11-12).
+**Status:** Hardening, live database migration, integration acceptance, universal driver, proxy-aware rate limiting, deployment architecture implementation, first deployment failure investigation, and health-check integration correction completed; documentation reconciled (2026-11-13).
 
 Implemented, verified, and committed:
 - **Migration Credential Architecture:** Platform-neutral `backend/credential_vault.py` with deterministic precedence (`DB_MIGRATE_*` environment variables -> Windows Credential Manager -> fail closed). Verified by 29 unit tests.
@@ -98,21 +98,28 @@ Implemented, verified, and committed:
 - **Integrated Deployment Architecture Implementation (Stage 3.5C):** Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret`, supporting multi-secret rotation, fail-closed in production (`DEBUG=False`), and health check exemption; expanded backend tests to 124 unit tests.
 - **Independent Engineering Audit (Stage 3.5D):** Audited Stage 3.5C implementation; approved with two LOW findings (LOW-01 health exemption method restriction, LOW-02 non-short-circuit secret iteration).
 - **LOW Findings Corrections & Verification (Stage 3.5E):** Restricted health check exemption to GET/HEAD (unsupported methods return HTTP 403 without secret, HTTP 405 with secret); eliminated short-circuiting in secret iteration; verified with 125 backend unit tests, 163 frontend unit tests, and successful frontend build.
-- **Documentation Reconciliation (Stage 3.5F & Stage 3.5G):** Reconciled all 7 governing documents and environment templates.
-- **Regression Suite:** **125 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (288 total) passing cleanly.
-- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7` created and synchronized to GitHub.
+- **Documentation Reconciliation (Stage 3.5F & Stage 3.5G):** Reconciled all 7 governing documents and environment templates (commit `51ff6cc`).
+- **First Render Deployment Attempt & Failure Investigation (Stage 3.6A):** First deployment of commit `51ff6cc` to Render Starter provisioned, installed dependencies, built, and launched Gunicorn successfully; however, Render's internal health check pinging `/api/health/` repeatedly failed with HTTP 400 Bad Request, timing out the deployment. Diagnostic investigation and isolated WSGI pipeline reproduction proved that internal Render health checks do not traverse Cloudflare, presenting internal container Host headers (`*.onrender.com`, `10.x.x.x:PORT`, `0.0.0.0:PORT`) that caused Django's `SecurityMiddleware` and `CommonMiddleware` to raise `django.core.exceptions.DisallowedHost` (HTTP 400) downstream of `CloudflareOriginSecretMiddleware`.
+- **Health-Check Integration Correction (Stage 3.6A):**
+  - Updated `CloudflareOriginSecretMiddleware` to intercept `GET` and `HEAD` on `/api/health` and `/api/health/` and return directly at the middleware edge (`JsonResponse({'status': 'healthy'}, status=200)` or `HttpResponse(b'', content_type='application/json', status=200)`), short-circuiting before downstream `ALLOWED_HOSTS` checks.
+  - Added direct route for `/api/health` in `backend/config/urls.py` to prevent HTTP 301 redirects during health checks.
+  - Added explicit `head()` method to `HealthCheckView` in `backend/contact/views.py`.
+  - Appended `RENDER_EXTERNAL_HOSTNAME` dynamically to `ALLOWED_HOSTS` in `backend/config/settings.py`.
+  - Expanded test coverage in `backend/tests/test_health.py` with 6 new tests covering all failure modes.
+- **Regression Suite:** **131 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (294 total) passing cleanly.
+- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7`, `51ff6cc` created and synchronized to GitHub.
 
 Pending authorization & execution:
-- Project owner provisioning of Render Starter Web Service ($7/month).
-- Out-of-band environment variable configuration on Render dashboard.
+- Commit and push of Stage 3.6A health-check integration correction.
+- Triggering second Render deployment attempt and verifying live health check HTTP 200.
 
 Exit condition: Approved changes are implemented, tested, and reconciled; no secrets are committed; the local development workflow remains functional. **Satisfied:** Codebase is hardened and reconciled; deployment execution awaits owner authorization.
 
 ### 09.4 — Public Deployment
 
-**Status:** Pending explicit authorization.
+**Status:** In Progress (First Render deployment attempt executed; second deployment attempt pending with health check correction).
 
-Activities will include provisioning the evaluated Render Starter Web Service, configuring Cloudflare Pages for static frontend hosting, establishing environment variables, and connecting the public frontend to the backend API.
+Activities include provisioning the evaluated Render Starter Web Service, configuring Cloudflare Pages for static frontend hosting, establishing environment variables, connecting the public frontend to the backend API, and verifying live container health.
 
 Exit condition: Public URLs and the exact deployed source revision are recorded, basic health checks succeed, and costs align with owner decisions.
 
@@ -210,9 +217,13 @@ In particular:
 - [x] Stage 3.5D independent engineering audit completed (verdict: approved with minor findings).
 - [x] Stage 3.5E LOW findings corrected and verified (health method restrictions, non-short-circuit rotation, 125 backend unit tests).
 - [x] Stage 3.5F documentation inspection and reconciliation proposal approved.
-- [x] Stage 3.5G documentation reconciliation implemented and local commit executed.
-- [ ] Project owner authorization and provisioning of Render Starter Web Service.
-- [ ] Production environment variable configuration on hosting providers (09.4).
-- [ ] Public deployment and live verification (09.4 & 09.5).
+- [x] Stage 3.5G documentation reconciliation implemented and local commit executed (`51ff6cc`).
+- [x] First Render deployment attempt executed on commit `51ff6cc` (build and startup succeeded; deployment timed out due to internal health check HTTP 400).
+- [x] Stage 3.6A deployment failure investigation completed (isolated WSGI trace proved Django `DisallowedHost` rejections on internal Render health-check Host headers).
+- [x] Stage 3.6A health-check integration correction implemented and verified (middleware direct return, dual URL routes, HEAD method, dynamic `RENDER_EXTERNAL_HOSTNAME`, 131 backend tests).
+- [x] Stage 3.6A documentation reconciliation completed.
+- [ ] Second Render deployment attempt execution and live health-check verification (09.4).
+- [ ] Cloudflare Pages frontend deployment and cross-origin API integration (09.4).
+- [ ] Post-deployment live-system acceptance testing (09.5).
 
-**Current stage position:** 09.3 / Stage 3.5G — Codebase hardened, deployment architecture implemented (origin secret middleware, API subdomain, TiDB TLS), verified by 125 backend tests and 163 frontend tests; documentation reconciled; public deployment pending explicit owner authorization.
+**Current stage position:** 09.4 / Stage 3.6A — Health check integration correction implemented and verified across 131 backend tests and 163 frontend tests; documentation reconciled; second Render deployment attempt pending owner execution.

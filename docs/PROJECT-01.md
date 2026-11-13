@@ -201,14 +201,17 @@ The stage progresses sequentially through:
    - Documentation reconciliation across engineering journal, deployment record, and lifecycle plans (Stage 3.3, commit `884904d`).
    - Proxy-aware rate-limiting identity correction via `CF-Connecting-IP` implemented, verified by 93 backend tests, and reconciled (Stage 3.4, commit `7b6cdd7`).
    - Integrated deployment architecture implemented: `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret`, dedicated API subdomain `api.adnanabdullahi.com`, TiDB Cloud Serverless TLS verification, independent audit (Stage 3.5D), and LOW findings corrections (Stage 3.5E).
-   - Documentation reconciliation across all 7 governing documents and environment templates (Stage 3.5G).
-4. Public deployment after explicit owner authorization (09.4 — pending).
+   - Documentation reconciliation across all 7 governing documents and environment templates (Stage 3.5G, commit `51ff6cca62b7cd7785db562a89e96723e72a7172`).
+   - First Render deployment attempt executed on commit `51ff6cc` (build and startup succeeded; deployment timed out due to internal health check HTTP 400).
+   - Diagnostic investigation and isolated WSGI trace proved Render health probes send internal container Host headers (`*.onrender.com`, `10.x.x.x:PORT`, `0.0.0.0:PORT`) that caused Django `DisallowedHost` (HTTP 400) downstream.
+   - Stage 3.6A health-check integration correction implemented: `CloudflareOriginSecretMiddleware` returns direct `JsonResponse` (GET) and empty-body 200 (HEAD) on `/api/health` and `/api/health/` bypassing downstream host validation; `/api/health` dual routing added; explicit `head()` method added; `RENDER_EXTERNAL_HOSTNAME` dynamically registered in `ALLOWED_HOSTS`; test suite expanded with 6 tests to 131 backend tests.
+4. Public deployment after explicit owner authorization (09.4 — first attempt executed; second attempt pending).
 5. Live-system evaluation (09.5 — pending).
 6. Findings, approved remediation, verification, and closure decision (09.6 — pending).
 
 The governing Stage 09 plan is **`docs/STAGE-09-EVALUATION.md`**. The chronological engineering record is **`journal/P1-STAGE09-EVALUATION.md`**. The deployment architecture and candidate evaluation record is **`docs/DEPLOYMENT.md`**.
 
-**Current position:** 09.3 deployment preparation, live TiDB schema migration, integration acceptance, universal driver implementation, proxy-aware rate limiting, deployment architecture implementation, and documentation reconciliation completed. Codebase is hardened, origin-protected, and verified across 125 backend unit tests and 163 frontend unit tests. The application is **not** yet deployed or publicly accessible. The next step is project owner review and authorization to proceed with Stage 09.4 deployment preparation.
+**Current position:** 09.3 deployment preparation completed; first Render deployment attempt executed resulting in health-check HTTP 400 timeout; Stage 3.6A root cause investigated and integration correction implemented and verified across 131 backend unit tests and 163 frontend unit tests; documentation reconciled. Live deployment verification remains pending the second Render deployment attempt.
 
 ## Repository Structure
 
@@ -282,7 +285,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 06:** Accepted and Closed — Prototype
 **Stage 07:** Accepted and Closed — Validation
 **Stage 08:** Closed — Engineering Implementation
-**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction (commit `7b6cdd7`); Stage 3.5 integrated deployment architecture (origin secret middleware, API subdomain, TiDB TLS) implemented and verified across 125 backend tests and 163 frontend tests; documentation reconciled; live deployment preparation pending owner authorization
+**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction (commit `7b6cdd7`); Stage 3.5 integrated deployment architecture (commit `51ff6cc`); first Render deployment attempt executed; Stage 3.6A health-check integration correction implemented and verified across 131 backend tests and 163 frontend tests; documentation reconciled; second Render deployment attempt pending owner execution
 
 Stage 08 closure is documented in:
 
@@ -297,5 +300,5 @@ Stage 09's governing plan, chronological journal, and deployment-readiness recor
 - `journal/P1-STAGE09-EVALUATION.md`
 - `docs/DEPLOYMENT.md`
 
-The next step is project owner review and authorization to proceed with Stage 09.4 deployment preparation. No external hosting service has been provisioned and no public deployment has been performed. Stage 09 remains subject to observation → investigation → proposal → human decision → authorization → execution → verification controls.
+The next step is project owner review and execution of the second Render deployment attempt to verify live health checks. Stage 09 remains subject to observation → investigation → proposal → human decision → authorization → execution → verification controls.
 

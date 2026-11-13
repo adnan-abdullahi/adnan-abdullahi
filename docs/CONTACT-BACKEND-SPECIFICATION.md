@@ -3,7 +3,7 @@
 **Project:** Professional Engineering Portfolio (Project 01)  
 **Document ID:** `DOCS-CONTACT-BACKEND-SPEC`  
 **Location:** `docs/CONTACT-BACKEND-SPECIFICATION.md`  
-**Status:** Architecture Specification (Reconciled Deployment Revision — Stages 3.5C/3.5E/3.5G)
+**Status:** Architecture Specification (Reconciled Deployment Revision — Stage 3.6 Health-Check Integration Correction)
 **Operating Boundary:** Specification only. No application code, database migrations, or infrastructure mutations are authorized by this document.
 
 ---
@@ -491,7 +491,7 @@ For messages that enter the `failed` state (or remain in an interrupted `pending
   - Compares incoming `HTTP_X_ORIGIN_SECRET` against configured candidate secrets in `CF_ORIGIN_SECRET` using `hmac.compare_digest` across all candidates without short-circuiting to eliminate timing side-channels.
   - Fails closed: In production (`DEBUG=False`), if `CF_ORIGIN_SECRET` is unset, whitespace-only, or empty, all incoming requests to protected endpoints return HTTP 403 Forbidden.
   - Development bypass: In local development (`DEBUG=True`), origin-secret verification is completely bypassed to support direct local API testing.
-  - Health check exemption: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are strictly exempt from origin secret requirements, permitting external liveness probes.
+  - Health check direct middleware return: `GET` and `HEAD` requests to `/api/health` and `/api/health/` are intercepted and satisfied directly at the middleware edge (`JsonResponse({'status': 'healthy'}, status=200)` for GET; empty-body `HttpResponse(b'', content_type='application/json', status=200)` for HEAD). This short-circuits processing prior to Django's `SecurityMiddleware` and `CommonMiddleware`, allowing internal hosting probes (e.g. Render infrastructure health checks sending internal Host headers such as `*.onrender.com`, `10.x.x.x:PORT`, or `0.0.0.0:PORT` and lacking Cloudflare headers) to succeed without triggering `DisallowedHost` (HTTP 400).
   - Health check method restriction: Unsupported HTTP methods (e.g. `POST`, `PUT`, `DELETE`) on `/api/health` return HTTP `403 Forbidden` if unauthenticated (no valid secret), and HTTP `405 Method Not Allowed` if authenticated with a valid origin secret.
 
 ##### Zero-Downtime Secret Rotation Procedure
@@ -541,7 +541,7 @@ When rotating the shared origin secret between Cloudflare and Render:
 - **Visitor Identification Contract**:
   - **Production (`DEBUG=False`)**: Visitor identity is extracted exclusively from Cloudflare's `CF-Connecting-IP` header, validated, and normalized using Python's standard `ipaddress` module to canonical lowercase representation (e.g. uncompressed `2001:0db8:...:0001` and compressed `2001:db8::1` share the identical throttle counter). `REMOTE_ADDR` and `HTTP_X_FORWARDED_FOR` are strictly ignored.
   - **Local Development (`DEBUG=True`)**: Falls back cleanly to `REMOTE_ADDR` (defaulting to `127.0.0.1`), without inspecting forwarded headers.
-  - **Liveness Health Endpoint Exemption**: `GET /api/health/` explicitly sets `throttle_classes = []` and is completely exempt from rate limiting and visitor IP requirements.
+  - **Liveness Health Endpoint Exemption**: `GET` and `HEAD` requests to `/api/health` and `/api/health/` short-circuit at the middleware edge with zero rate limiting, zero IP checks, and zero database queries; in addition, the underlying `HealthCheckView` explicitly sets `throttle_classes = []`.
 
 ---
 
