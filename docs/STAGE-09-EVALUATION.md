@@ -1,10 +1,10 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); proxy-aware rate-limiting implemented (Stage 3.4C); integrated deployment architecture implemented and verified (Stages 3.5A–3.5G); first Render deployment attempted on commit 51ff6cc (timed out on health check HTTP 400); Stage 3.6A health-check integration correction implemented and verified locally across 131 backend unit tests and 163 frontend tests; second deployment attempt pending owner execution
+**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); proxy-aware rate-limiting implemented (Stage 3.4C); integrated deployment architecture implemented and verified (Stages 3.5A–3.5G); second Render deployment executed on commit 1aff35b (health checks succeeded, HTTP 200 confirmed, origin protection confirmed); Stage 3.6B investigation identified DRF BrowsableAPIRenderer HTML template lookup and unhandled exception logging gap; Stage 3.6C JSONRenderer restriction and production console logging implemented and verified locally across 136 backend unit tests and 163 frontend tests; third Render deployment attempt pending owner execution
 **Project:** Project 01 — Professional Engineering Portfolio
 **Stage:** 09 of 10
 **Governing project record:** `docs/PROJECT-01.md`
-**Governing Baseline Commit:** `51ff6cca62b7cd7785db562a89e96723e72a7172`
+**Governing Baseline Commit:** `1aff35becb354c6b3bbe9736b60e9ff7e574da12` (`1aff35b`)
 
 ## 1. Purpose
 
@@ -106,18 +106,33 @@ Implemented, verified, and committed:
   - Added explicit `head()` method to `HealthCheckView` in `backend/contact/views.py`.
   - Appended `RENDER_EXTERNAL_HOSTNAME` dynamically to `ALLOWED_HOSTS` in `backend/config/settings.py`.
   - Expanded test coverage in `backend/tests/test_health.py` with 6 new tests covering all failure modes.
-- **Regression Suite:** **131 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (294 total) passing cleanly.
-- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7`, `51ff6cc` created and synchronized to GitHub.
+- **Stage 3.6A Local Commit and Push:** Created consolidated commit `1aff35b` (`fix(stage-09): resolve render health-check host rejection and reconcile documentation`) and synchronized to GitHub `main`.
+- **Second Render Deployment Attempt & Live Health Verification:**
+  - Render deployment of commit `1aff35b` succeeded: dependency installation, build, and Gunicorn startup finished cleanly.
+  - Render's internal health check succeeded, confirming the Stage 3.6A middleware edge-return correction resolved the `DisallowedHost` failure.
+  - Public probe to `https://api.adnanabdullahi.com/api/health/` returned HTTP 200 OK (`{"status": "healthy"}`).
+  - Origin secret enforcement verified live: direct ingress to `https://<render-host>.onrender.com/api/contact/` returned HTTP 403 Forbidden ("Missing or empty origin secret"), confirming that `CloudflareOriginSecretMiddleware` is actively intercepting and rejecting unauthenticated traffic.
+  - Cloudflare Transform Rule verified: proxied traffic passed through Cloudflare with injected `X-Origin-Secret` reached the Django application layer.
+- **Stage 3.6B Investigation (Contact API Rendering & Production Logging):**
+  - Project owner observed that browser access (`Accept: text/html`) to proxied `GET /api/contact/` returned HTTP 500 Internal Server Error, and Render container logs contained no Python error traceback.
+  - Investigation proved that DRF content negotiation selected `BrowsableAPIRenderer` because `DEFAULT_RENDERER_CLASSES` was unset; in this headless API lacking `TEMPLATES`, `BrowsableAPIRenderer` raised `TemplateDoesNotExist: rest_framework/api.html`.
+  - Concurrently, Django's default `DEBUG=False` logging routes `django.request` 500 errors only to `mail_admins` (which drops them when `ADMINS` is empty), explaining the absence of tracebacks in container logs.
+- **Stage 3.6C Implementation & Regression Expansion:**
+  - Configured `DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']` in `backend/config/settings.py`, guaranteeing all responses render strictly as JSON and `GET /api/contact/` returns HTTP 405 Method Not Allowed without template lookups.
+  - Configured `LOGGING` dictionary with `StreamHandler` (`console`) directing `django.request` ERROR logs to stdout/stderr with `propagate: False`.
+  - Added 5 regression tests in `backend/tests/test_contact_api.py` covering HTML Accept headers, JSON Accept headers, and logging configuration.
+- **Regression Suite:** **136 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (299 total) passing cleanly.
+- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7`, `51ff6cc`, `1aff35b` created and synchronized to GitHub.
 
 Pending authorization & execution:
-- Commit and push of Stage 3.6A health-check integration correction.
-- Triggering second Render deployment attempt and verifying live health check HTTP 200.
+- Commit and push of Stage 3.6C JSONRenderer and production console logging correction.
+- Triggering third Render deployment attempt and verifying live contact endpoint behavior.
 
 Exit condition: Approved changes are implemented, tested, and reconciled; no secrets are committed; the local development workflow remains functional. **Satisfied:** Codebase is hardened and reconciled; deployment execution awaits owner authorization.
 
 ### 09.4 — Public Deployment
 
-**Status:** In Progress (First Render deployment attempt executed; second deployment attempt pending with health check correction).
+**Status:** In Progress (Second Render deployment attempt succeeded with commit `1aff35b`; third deployment attempt pending with Stage 3.6C JSONRenderer and console logging corrections).
 
 Activities include provisioning the evaluated Render Starter Web Service, configuring Cloudflare Pages for static frontend hosting, establishing environment variables, connecting the public frontend to the backend API, and verifying live container health.
 
@@ -221,9 +236,13 @@ In particular:
 - [x] First Render deployment attempt executed on commit `51ff6cc` (build and startup succeeded; deployment timed out due to internal health check HTTP 400).
 - [x] Stage 3.6A deployment failure investigation completed (isolated WSGI trace proved Django `DisallowedHost` rejections on internal Render health-check Host headers).
 - [x] Stage 3.6A health-check integration correction implemented and verified (middleware direct return, dual URL routes, HEAD method, dynamic `RENDER_EXTERNAL_HOSTNAME`, 131 backend tests).
-- [x] Stage 3.6A documentation reconciliation completed.
-- [ ] Second Render deployment attempt execution and live health-check verification (09.4).
+- [x] Stage 3.6A documentation reconciliation completed and commit `1aff35b` synchronized to GitHub.
+- [x] Second Render deployment attempt executed on commit `1aff35b` (build and startup succeeded; internal health checks succeeded; `https://api.adnanabdullahi.com/api/health/` returned HTTP 200; origin protection verified returning HTTP 403 on direct Render hits).
+- [x] Stage 3.6B contact API and production logging investigation completed (identified DRF BrowsableAPIRenderer `TemplateDoesNotExist` failure and missing console error logging).
+- [x] Stage 3.6C contact API JSON rendering and production console logging correction implemented and verified (136 backend unit tests, 163 frontend unit tests).
+- [x] Stage 3.6C documentation reconciliation completed.
+- [ ] Third Render deployment attempt execution and live contact verification (09.4).
 - [ ] Cloudflare Pages frontend deployment and cross-origin API integration (09.4).
 - [ ] Post-deployment live-system acceptance testing (09.5).
 
-**Current stage position:** 09.4 / Stage 3.6A — Health check integration correction implemented and verified across 131 backend tests and 163 frontend tests; documentation reconciled; second Render deployment attempt pending owner execution.
+**Current stage position:** 09.4 / Stage 3.6C — Contact API JSON rendering and production console logging implemented and verified across 136 backend tests and 163 frontend tests; documentation reconciled; third Render deployment attempt pending owner execution.

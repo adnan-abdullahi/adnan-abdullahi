@@ -285,7 +285,7 @@ The repository should preserve sufficient history to understand how the project 
 **Stage 06:** Accepted and Closed — Prototype
 **Stage 07:** Accepted and Closed — Validation
 **Stage 08:** Closed — Engineering Implementation
-**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction (commit `7b6cdd7`); Stage 3.5 integrated deployment architecture (commit `51ff6cc`); first Render deployment attempt executed; Stage 3.6A health-check integration correction implemented and verified across 131 backend tests and 163 frontend tests; documentation reconciled; second Render deployment attempt pending owner execution
+**Stage 09:** Active — 09.1 baseline recorded; 09.2 audit completed; 09.3 deployment hardening, live TiDB migration (Stage 2.9), integration acceptance (Stage 2.10), universal PyMySQL and fail-closed TLS (Stages 3.2B/3.2D, commit `279d41c`); Stage 3.3 documentation reconciliation (commit `884904d`); Stage 3.4 proxy-aware rate-limiting identity correction (commit `7b6cdd7`); Stage 3.5 integrated deployment architecture (commit `51ff6cc`); Stage 3.6A health-check integration correction implemented, committed (commit `1aff35b`), and deployed to Render; second Render deployment verified health check HTTP 200 and origin secret protection HTTP 403; Stage 3.6B investigation identified DRF BrowsableAPIRenderer HTML template lookup and production logging gap; Stage 3.6C JSONRenderer restriction and production console logging implemented and verified locally across 136 backend tests and 163 frontend tests; documentation reconciled; third Render deployment attempt pending owner execution
 
 Stage 08 closure is documented in:
 
@@ -300,5 +300,5 @@ Stage 09's governing plan, chronological journal, and deployment-readiness recor
 - `journal/P1-STAGE09-EVALUATION.md`
 - `docs/DEPLOYMENT.md`
 
-The next step is project owner review and execution of the second Render deployment attempt to verify live health checks. Stage 09 remains subject to observation → investigation → proposal → human decision → authorization → execution → verification controls.
+The next step is project owner review and execution of the third Render deployment attempt to verify live contact endpoint behavior with JSON-only rendering and production console logging. Stage 09 remains subject to observation → investigation → proposal → human decision → authorization → execution → verification controls.
 

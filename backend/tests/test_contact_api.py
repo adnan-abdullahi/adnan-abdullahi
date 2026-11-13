@@ -7,6 +7,7 @@ Conforms to docs/CONTACT-BACKEND-SPECIFICATION.md and Stage 09.3-F.
 """
 import io
 import json
+import logging
 import urllib.error
 import urllib.request
 import uuid
@@ -15,7 +16,7 @@ from unittest.mock import MagicMock, patch
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -925,3 +926,63 @@ class ContactAPITests(APITestCase):
 
         msg.refresh_from_db()
         self.assertEqual(msg.delivery_status, ContactMessage.STATUS_PENDING)
+
+    # -------------------------------------------------------------------------
+    # 9. HTTP Method & Content Negotiation Tests (Stage 3.6C)
+    # -------------------------------------------------------------------------
+
+    def test_get_method_with_html_accept_header_returns_405_json_without_template_error(self):
+        """
+        GET /api/contact/ with browser Accept header (text/html) returns HTTP 405 Method Not Allowed
+        rendered as JSON, without triggering TemplateDoesNotExist for rest_framework/api.html.
+        """
+        response = self.client.get(
+            self.url,
+            HTTP_ACCEPT='text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        )
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertIn('application/json', response.headers.get('Content-Type', ''))
+        self.assertEqual(response.json(), {"detail": 'Method "GET" not allowed.'})
+
+    def test_get_method_with_json_accept_header_returns_405_json(self):
+        """GET /api/contact/ with application/json returns HTTP 405 Method Not Allowed."""
+        response = self.client.get(self.url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertIn('application/json', response.headers.get('Content-Type', ''))
+        self.assertEqual(response.json(), {"detail": 'Method "GET" not allowed.'})
+
+
+class ProductionLoggingConfigurationTests(SimpleTestCase):
+    """
+    Regression tests for Django production console logging configuration (Stage 3.6C).
+    Verifies handlers, level, and non-duplicate propagation for django.request.
+    """
+
+    def test_logging_configuration_structure(self):
+        """LOGGING setting must configure console StreamHandler and django.request logger."""
+        from django.conf import settings
+        logging_conf = getattr(settings, 'LOGGING', {})
+        self.assertEqual(logging_conf.get('version'), 1)
+        self.assertFalse(logging_conf.get('disable_existing_loggers', True))
+
+        handlers = logging_conf.get('handlers', {})
+        self.assertIn('console', handlers)
+        self.assertEqual(handlers['console']['class'], 'logging.StreamHandler')
+
+        loggers = logging_conf.get('loggers', {})
+        self.assertIn('django.request', loggers)
+        self.assertEqual(loggers['django.request']['level'], 'ERROR')
+        self.assertIn('console', loggers['django.request']['handlers'])
+        self.assertFalse(loggers['django.request'].get('propagate', True))
+
+    def test_django_request_logger_does_not_duplicate_to_root(self):
+        """django.request logger has propagate=False to prevent duplicate console emissions."""
+        req_logger = logging.getLogger('django.request')
+        self.assertFalse(req_logger.propagate)
+
+    def test_django_request_error_logging_output(self):
+        """django.request logger logs ERROR records to the configured console handler."""
+        req_logger = logging.getLogger('django.request')
+        with self.assertLogs('django.request', level='ERROR') as cm:
+            req_logger.error("Synthetic non-sensitive server error for test.")
+        self.assertTrue(any("Synthetic non-sensitive server error for test." in record for record in cm.output))

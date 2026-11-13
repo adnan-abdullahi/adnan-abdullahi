@@ -220,11 +220,14 @@ else:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# REST Framework Configuration (Stateless API)
+# REST Framework Configuration (Stateless Headless API)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [],
     'UNAUTHENTICATED_USER': None,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
     'EXCEPTION_HANDLER': 'contact.exceptions.contact_exception_handler',
     'DEFAULT_THROTTLE_CLASSES': [
         'contact.throttling.ContactAnonRateThrottle',
@@ -232,6 +235,34 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'contact_anon': '5/hour',
         'anon': '5/hour',
+    },
+}
+
+# Production Console Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
 

@@ -1,12 +1,12 @@
 # Deployment Architecture, Readiness, and Candidate Evaluation Record
 
 **Project:** Project 01 — Professional Engineering Portfolio
-**Stage:** 09 — Evaluation (Stage 3.6 Reconciliation)
-**Status:** Initial Deployment Attempt Recorded; Health-Check DisallowedHost Corrected Locally; Live Verification Pending Next Deployment
+**Stage:** 09 — Evaluation (Stage 3.6C Reconciliation)
+**Status:** Render Health-Check Resolved & Deployed (1aff35b); Contact API JSON Rendering & Production Console Logging Implemented; Third Deployment Attempt Pending Owner Execution
 **Initial Audit Date:** 2026-10-27
 **Reconciled Date:** 2026-11-13
 **Governing Stage Plan:** `docs/STAGE-09-EVALUATION.md`
-**Governing Baseline Commit:** `51ff6cca62b7cd7785db562a89e96723e72a7172`
+**Governing Baseline Commit:** `1aff35becb354c6b3bbe9736b60e9ff7e574da12` (`1aff35b`)
 
 ---
 
@@ -64,7 +64,15 @@ To eliminate these failure modes, the project owner authorized evaluating the **
     - Unsupported methods (`POST`, `PUT`, `DELETE`) to the health endpoint require a valid origin secret; without a secret they are rejected with HTTP 403 by this middleware, and with a secret they receive HTTP 405 from downstream DRF handling.
   - Environment-Aware Host Configuration: `backend/config/settings.py` dynamically appends `RENDER_EXTERNAL_HOSTNAME` to `ALLOWED_HOSTS` if populated by the Render container environment.
   - Direct URL Routing: `backend/config/urls.py` registers both `/api/health/` and `/api/health` directly to prevent HTTP 301 redirects during health checks.
-  - Verified by 30 dedicated origin-secret unit tests and 15 health-endpoint unit tests (131 backend unit tests total).
+  - Verified by 30 dedicated origin-secret unit tests and 15 health-endpoint unit tests.
+- **Headless JSON Rendering Architecture (`backend/config/settings.py`):**
+  - Configures `REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = ['rest_framework.renderers.JSONRenderer']`.
+  - Permanently eliminates Django REST Framework's default content negotiation fallback to `BrowsableAPIRenderer`. When incoming requests (such as direct browser navigation or debugging probes) present `Accept: text/html`, DRF strictly renders standard JSON responses (e.g. `{"detail": "Method \"GET\" not allowed."}` with HTTP 405 Method Not Allowed on `GET /api/contact/`).
+  - Resolves incident D09-14: without `DEFAULT_RENDERER_CLASSES`, `BrowsableAPIRenderer` attempted to load `rest_framework/api.html`, which failed in this headless Django service because `TEMPLATES` is empty, raising `TemplateDoesNotExist: rest_framework/api.html` and causing an unhandled HTTP 500 error.
+- **Production Console Error Logging (`backend/config/settings.py`):**
+  - Configures standard `LOGGING` dictionary with `logging.StreamHandler` (`console`) emitting timestamps, log levels, logger names, and formatted messages to stdout/stderr.
+  - Attaches `console` handler to `root` logger at `INFO` and `django.request` logger at `ERROR` with `propagate: False`.
+  - Resolves incident D09-14 logging gap: under `DEBUG=False`, Django's default logging routes unhandled 500 exceptions exclusively to `mail_admins` (which silently discards them when `ADMINS` is empty). This explicit configuration guarantees that unhandled server exceptions and full Python tracebacks are immediately visible in Render runtime container logs.
 - **Database Driver Architecture (Universal PyMySQL):**
   - Completely pure-Python driver strategy implemented in commit `279d41c`. Native `mysqlclient==2.3.0` was eliminated to prevent Linux C-extension compilation failures (`gcc`, `python3-dev`, `libmysqlclient-dev`).
   - `backend/requirements.txt` declares `pymysql>=1.1.1,<2.0` universally across all platforms.
@@ -210,7 +218,8 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 | **D09-10** | Default `REMOTE_ADDR` rate throttling colludes all visitors behind Render's reverse proxy (`10.x.x.x`). | 5 submissions from any visitor exhausts hourly quota application-wide. | Implemented production visitor identity extraction via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified locally by 13 new unit tests. | **Resolved Locally & Verified** |
 | **D09-11** | Direct ingress to `*.onrender.com` bypasses Cloudflare edge security and rate limiting. | Threat actors can flood origin directly or spoof headers. | Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret` via constant-time `hmac.compare_digest`. Supports comma-separated secrets for zero-downtime rotation. Fails closed in production (`DEBUG=False`). Narrow `GET`/`HEAD` exemption on `/api/health/`. Verified by 30 unit tests. | **Resolved Locally & Verified** |
 | **D09-12** | API routing boundary between frontend (`adnanabdullahi.com`) and backend API. | Frontend cannot reach backend or hits incorrect origin. | Dedicated Cloudflare-proxied CNAME subdomain `api.adnanabdullahi.com` pointing to Render, with client requests dispatched via `resolveApiUrl()` and `VITE_API_BASE_URL`. Preserves Vite local proxy when unset. Verified by unit tests. | **Resolved Locally & Verified** |
-| **D09-13** | First Render deployment health checks repeatedly returned HTTP 400, timing out deployment. | Web service never enters healthy live state; deployment fails. | Confirmed root cause: Render's internal health check pings the container directly using internal Host headers (`*.onrender.com`, `10.x.x.x`, `0.0.0.0`). The previous middleware exemption passed requests downstream (`self.get_response`), triggering Django `DisallowedHost` (HTTP 400). Corrected by returning `JsonResponse({'status': 'healthy'}, status=200)` for GET and empty-body 200 for HEAD directly from `CloudflareOriginSecretMiddleware`, bypassing `ALLOWED_HOSTS` and reverse-proxy header checks for health probes. Added direct `/api/health` route in `urls.py`, explicit `head()` in `HealthCheckView`, and `RENDER_EXTERNAL_HOSTNAME` in `ALLOWED_HOSTS`. Verified by 6 new unit tests (131 backend tests total). | **Resolved Locally & Verified (Pending Next Deployment)** |
+| **D09-13** | First Render deployment health checks repeatedly returned HTTP 400, timing out deployment. | Web service never enters healthy live state; deployment fails. | Confirmed root cause: Render's internal health check pings the container directly using internal Host headers (`*.onrender.com`, `10.x.x.x`, `0.0.0.0`). The previous middleware exemption passed requests downstream (`self.get_response`), triggering Django `DisallowedHost` (HTTP 400). Corrected by returning `JsonResponse({'status': 'healthy'}, status=200)` for GET and empty-body 200 for HEAD directly from `CloudflareOriginSecretMiddleware`, bypassing `ALLOWED_HOSTS` and reverse-proxy header checks for health probes. Added direct `/api/health` route in `urls.py`, explicit `head()` in `HealthCheckView`, and `RENDER_EXTERNAL_HOSTNAME` in `ALLOWED_HOSTS`. Verified by 6 new unit tests; committed (`1aff35b`), deployed to Render, and verified live returning HTTP 200 on `https://api.adnanabdullahi.com/api/health/`. | **Resolved, Committed (1aff35b) & Deployed** |
+| **D09-14** | Direct browser access (`Accept: text/html`) to proxied `GET /api/contact/` returned HTTP 500 with no traceback in Render container logs. | Headless API without `TEMPLATES` raises `TemplateDoesNotExist: rest_framework/api.html` when DRF defaults to `BrowsableAPIRenderer` on HTML Accept headers; default production logging silences 500 errors when `ADMINS` is empty. | Configured `DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']` in `REST_FRAMEWORK` to enforce headless JSON responses across all request types (ensuring `GET /api/contact/` returns clean HTTP 405 JSON without template lookups); configured `LOGGING` dictionary with `StreamHandler` console handler for `django.request` ERROR records. Verified by 5 new unit tests (136 backend unit tests total). | **Resolved Locally & Verified (Pending Next Deployment)** |
 
 ---
 
@@ -320,19 +329,19 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 
 To preserve engineering accuracy and avoid false claims of operational readiness:
 
-1. **First Render Deployment Attempt Incomplete (Health Check HTTP 400 Timeout):** A Render Web Service was provisioned and triggered for commit `51ff6cc`. Dependency installation, build, and Gunicorn startup succeeded, but Render's internal health checker pinging `/api/health/` repeatedly returned HTTP 400 Bad Request, causing the deployment to time out. The root cause was identified as Django `DisallowedHost` triggered by internal Host headers prior to the Stage 3.6A middleware edge-return correction. Cloudflare Pages has not yet been provisioned. Live deployment remains pending the second deployment attempt with the Stage 3.6A correction.
-2. **Live Render-to-TiDB Handshake in Healthy State Pending Verification:** The first deployment attempt timed out during health checking before serving production contact traffic. Connectivity originating from a live Render Linux container to TiDB Cloud will be verified once container startup reaches a healthy operational state in the next deployment attempt.
-3. **Render CA Bundle Path Unverified on Host:** `/etc/ssl/certs/ca-certificates.crt` is the standard Linux path tested locally via mocking and path normalization; its presence on the specific Render container image must be verified upon container startup.
+1. **Render Deployment Status (Second Deployment Successful; Third Deployment Pending):** The second Render deployment attempt (commit `1aff35b`) succeeded: dependency installation, build, and Gunicorn startup finished cleanly; Render's internal health check succeeded; and `https://api.adnanabdullahi.com/api/health/` returned HTTP 200. Direct ingress to `https://<render-host>.onrender.com/api/contact/` returned HTTP 403 Forbidden ("Missing or empty origin secret"), verifying that `CloudflareOriginSecretMiddleware` is actively running and protecting the origin. A browser inspection of proxied `GET /api/contact/` revealed an unhandled `TemplateDoesNotExist` error (D09-14), which has been resolved locally in Stage 3.6C. Cloudflare Pages has not yet been provisioned. Live deployment remains pending the third deployment attempt with the Stage 3.6C correction.
+2. **Live Render-to-TiDB Handshake on Contact Submission Pending Verification:** While container health checks pass, no live contact form submission has yet been dispatched from the production frontend to verify runtime write connectivity from the live Render Linux container to TiDB Cloud.
+3. **Render CA Bundle Path Unverified on Host:** `/etc/ssl/certs/ca-certificates.crt` is the standard Linux path tested locally via mocking and path normalization; its presence on the specific Render container image will be exercised upon the first live database write.
 4. **Live Email Delivery Unverified:** Live delivery of a visitor notification email to the owner's personal inbox via Resend HTTPS API has not yet been tested.
 5. **Cross-Origin DNS and Browser Negotiation Unverified:** Live cross-origin communication between a Cloudflare Pages domain and a Render domain has not yet been tested in a live browser.
-6. **Live Reverse-Proxy Header Propagation Unverified:** Delivery and preservation of `CF-Connecting-IP` across Cloudflare edge to Render Gunicorn backend has been verified via isolated unit tests, but not yet observed on live provisioned infrastructure.
-7. **Live Origin Secret Header Injection Unverified on Host:** While `CloudflareOriginSecretMiddleware` has been fully verified across 36 unit tests in isolation, real-world edge-to-container injection and enforcement of `X-Origin-Secret` by Cloudflare Transform Rule has not yet been observed on provisioned infrastructure.
+6. **Live Reverse-Proxy Header Propagation Unverified:** Delivery and preservation of `CF-Connecting-IP` across Cloudflare edge to Render Gunicorn backend has been verified via isolated unit tests, but not yet observed during a real contact submission on provisioned infrastructure.
+7. **Live Origin Secret Header Injection Confirmed on Host:** Real-world origin protection was confirmed during the second deployment: direct hits without `X-Origin-Secret` received HTTP 403 Forbidden, and proxied requests traversing Cloudflare reached the application view layer. Live contact submission end-to-end verification remains pending deployment of commit Stage 3.6C.
 
 ---
 
 ## 7. Audit Disposition & Progression
 
-- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, origin-protected, health-check corrected, and verified by **131 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (294 total tests).
+- **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, origin-protected, health-check verified, DRF JSON-rendered, and verified by **136 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (**299 total tests**).
 - **Database State:** `portfolio_db` is migrated (Stage 2.9) and integration-accepted (Stage 2.10) with 1 permanent synthetic record.
 - **Evaluated Architecture:** Cloudflare Pages (Frontend, $0) + Render Starter (Backend, $7/month candidate) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
-- **Next Required Step:** Commit and push the Stage 3.6A health-check integration correction and execute the second Render deployment attempt.
+- **Next Required Step:** Commit and push the Stage 3.6C JSONRenderer and production console logging correction and execute the third Render deployment attempt.

@@ -859,6 +859,77 @@ To make container health checks robust against internal hosting network variatio
 ### 6. Boundary & Current Status
 
 - Implementation and verification are complete locally.
-- All 5 implementation files and 5 documentation files remain unstaged in the working tree.
-- Zero Git staging, commits, or pushes were executed.
-- Live deployment acceptance remains pending the project owner's review and execution of the second Render deployment attempt.
+- All 5 implementation files and 5 documentation files were staged and committed in `1aff35b` following owner authorization, and pushed to GitHub.
+- Live deployment executed on Render, leading into Session 19.
+
+---
+
+## Session 19 — Stage 3.6C: Contact API JSON-Only Rendering and Production Console Logging Correction
+
+**Date:** 2026-11-13
+**Position:** Stage 3.6C — Contact API JSON Rendering and Production Logging Correction
+**Mode:** Authorized Corrective Implementation, Regression Testing, Local Verification, and Documentation Reconciliation
+
+### 1. Incident & Investigation Summary (Stage 3.6B)
+
+Following the push of commit `1aff35becb354c6b3bbe9736b60e9ff7e574da12` (`1aff35b`) to GitHub, the second live Render deployment attempt succeeded:
+- **Build & Health Probes Succeeded:**
+  - Dependencies installed cleanly and Gunicorn started.
+  - Internal Render health check probes succeeded, confirming the Stage 3.6A middleware edge-return correction resolved the `DisallowedHost` failure.
+  - Public probe to `https://api.adnanabdullahi.com/api/health/` returned HTTP 200 OK (`{"status": "healthy"}`).
+- **Origin Secret Protection Verified Live:**
+  - Direct ingress targeting `https://<render-host>.onrender.com/api/contact/` returned `HTTP 403 Forbidden` (`{"detail": "Forbidden: invalid origin secret."}`), confirming that `CloudflareOriginSecretMiddleware` actively defends Render's underlying host.
+  - Traffic routed via the Cloudflare proxy (`api.adnanabdullahi.com`) with injected `X-Origin-Secret` passed origin protection and reached the Django application layer.
+- **Observed Incident:**
+  - When the project owner tested `https://api.adnanabdullahi.com/api/contact/` in a web browser using a `GET` request, the server returned `HTTP 500 Internal Server Error` instead of the expected `HTTP 405 Method Not Allowed`.
+  - Render runtime container logs contained no error log or Python traceback corresponding to the 500 error.
+
+### 2. Technical Root Cause
+
+1. **Django REST Framework BrowsableAPIRenderer `TemplateDoesNotExist`:**
+   - Web browsers send `Accept: text/html,application/xhtml+xml,application/xml;q=0.9,...`.
+   - In Django REST Framework, when `DEFAULT_RENDERER_CLASSES` is not explicitly declared in settings, DRF defaults to `('rest_framework.renderers.JSONRenderer', 'rest_framework.renderers.BrowsableAPIRenderer')`.
+   - Content negotiation matched `text/html` to `BrowsableAPIRenderer`.
+   - During response rendering, `BrowsableAPIRenderer.render()` attempted to load the browsable API template `rest_framework/api.html`.
+   - Because `backend/config/settings.py` is configured as a headless API service without `TEMPLATES`, Django raised `django.template.exceptions.TemplateDoesNotExist: rest_framework/api.html`.
+   - Django WSGI caught the unhandled template exception and returned `HTTP 500 Internal Server Error`, completely masking the intended `HTTP 405 Method Not Allowed`.
+2. **Missing Production Error Logging (`mail_admins` default):**
+   - In production (`DEBUG=False`), Django's default logging configuration assigns the `mail_admins` handler to `django.request`.
+   - Because `ADMINS` is empty in `settings.py`, all unhandled 500 exceptions on `django.request` were silently dropped, leaving zero tracebacks in stderr/stdout or Render container logs.
+
+### 3. Corrective Implementation
+
+Under explicit owner authorization, two targeted corrections were implemented in `backend/config/settings.py`:
+
+1. **Restricted DRF Renderer Classes (`REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES']`):**
+   - Added `'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer']` inside `REST_FRAMEWORK`.
+   - Guarantees that DRF performs content negotiation exclusively against `JSONRenderer`. All responses—including client errors, method not allowed responses (`{"detail": "Method \"GET\" not allowed."}`), and exception payloads—are rendered as strict JSON, permanently eliminating `TemplateDoesNotExist`.
+2. **Production Console Logging (`LOGGING`):**
+   - Configured `LOGGING` dictionary with `logging.StreamHandler` (`console`) emitting timestamps, log levels, logger names, and formatted messages.
+   - Assigned `console` handler to `root` logger at level `INFO` and `django.request` logger at level `ERROR` with `propagate: False`.
+   - Guarantees that unhandled 500 exceptions on `django.request` emit standard Python tracebacks to stderr, visible in Render container logs.
+
+### 4. Regression Test Suite Expansion (`backend/tests/test_contact_api.py`)
+
+Added 5 new unit tests (expanding the backend test suite from 131 to 136 tests):
+- `test_get_method_with_html_accept_header_returns_405_json_without_template_error`: Dispatches `GET /api/contact/` with `HTTP_ACCEPT='text/html,application/xhtml+xml,...'`, asserting HTTP 405 status, `application/json` content type, and body `{"detail": "Method \"GET\" not allowed."}` without raising `TemplateDoesNotExist`.
+- `test_get_method_with_json_accept_header_returns_405_json`: Asserts HTTP 405 JSON on `Accept: application/json`.
+- `test_logging_configuration_structure`: Verifies `LOGGING` version, handlers, root level, and `django.request` level and handlers.
+- `test_django_request_logger_does_not_duplicate_to_root`: Asserts `django.request.propagate` is `False`.
+- `test_django_request_error_logging_output`: Uses `assertLogs('django.request', level='ERROR')` to verify that unhandled request errors emit to the configured console handler.
+
+### 5. Verification Evidence
+
+- **Backend Unit Tests:** **136/136 passed** in 1.463s in hermetic SQLite (`:memory:`) isolation with 0 failures, 0 errors.
+- **Frontend Unit Tests:** **163/163 passed** across 10 suites in 82.80s.
+- **Django System Check:** `python manage.py check` reported 0 issues (0 silenced).
+- **Python Compilation:** `python -m compileall backend/config backend/contact backend/tests` completed with 0 errors.
+- **Git Diff Safety Check:** `git diff --check` confirmed zero trailing whitespace or formatting warnings.
+
+### 6. Boundary Preserved & Operational Status
+
+- Implementation, regression testing, and documentation reconciliation are complete.
+- All modified files remain unstaged in the local working tree.
+- Zero Git staging (`git add`), zero commits (`git commit`), and zero pushes (`git push`) were executed.
+- No live changes were made to Render, Cloudflare, TiDB, or Resend.
+- The working tree is clean and prepared for project owner review prior to authorized staging and deployment attempt 3.

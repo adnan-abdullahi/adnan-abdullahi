@@ -3,7 +3,7 @@
 **Project:** Professional Engineering Portfolio (Project 01)  
 **Document ID:** `DOCS-CONTACT-BACKEND-SPEC`  
 **Location:** `docs/CONTACT-BACKEND-SPECIFICATION.md`  
-**Status:** Architecture Specification (Reconciled Deployment Revision — Stage 3.6 Health-Check Integration Correction)
+**Status:** Architecture Specification (Reconciled Deployment Revision — Stage 3.6C JSON Rendering & Production Logging Correction)
 **Operating Boundary:** Specification only. No application code, database migrations, or infrastructure mutations are authorized by this document.
 
 ---
@@ -569,6 +569,19 @@ When rotating the shared origin secret between Cloudflare and Render:
 
 ---
 
+### 5.6 Headless JSON Rendering & Production Error Logging
+
+- **Headless JSON-Only Content Negotiation (`REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES']`)**:
+  - The API service operates strictly in headless JSON mode. `DEFAULT_RENDERER_CLASSES` is explicitly restricted to `['rest_framework.renderers.JSONRenderer']`.
+  - Django REST Framework defaults to including `rest_framework.renderers.BrowsableAPIRenderer`. When incoming requests (such as standard browser navigation or debugging clients) include `Accept: text/html`, DRF attempts to render the HTML browsable API interface by loading `rest_framework/api.html`. Because this application does not define `TEMPLATES` in `settings.py`, this default behavior caused unhandled `django.template.exceptions.TemplateDoesNotExist` exceptions (HTTP 500) on endpoints that should cleanly return HTTP 405 Method Not Allowed (e.g. `GET /api/contact/`).
+  - Restricting renderer classes to `JSONRenderer` guarantees that all responses, including method-not-allowed errors (`{"detail": "Method \"GET\" not allowed."}`) and exception responses, are rendered exclusively as `application/json` without invoking the template engine.
+- **Production Console Logging (`LOGGING`)**:
+  - Configures standard `LOGGING` dictionary with `logging.StreamHandler` (`console`) emitting timestamps, log levels, logger names, and formatted messages to stdout/stderr.
+  - Attaches `console` handler to `root` logger at `INFO` and `django.request` logger at `ERROR` with `propagate: False`.
+  - In production (`DEBUG=False`), Django's default logging configuration routes `django.request` unhandled exceptions exclusively to `mail_admins`. Because `ADMINS` is empty, unhandled 500 error tracebacks were previously dropped and never emitted to the container log stream. Directing `django.request` to `StreamHandler` guarantees that future server errors and full Python tracebacks are immediately visible in Render runtime container logs.
+
+---
+
 ## 6. Proposed Data Model: `ContactMessage`
 
 The database schema represents the minimum record necessary for message fidelity, delivery tracking, and follow-up without hoarding unnecessary personal data.
@@ -645,8 +658,15 @@ Before approving deployment, the backend must satisfy a dedicated test suite in 
    - `test_retry_respects_max_total_attempts_ceiling`: Asserts that records reaching `MAX_TOTAL_ATTEMPTS = 4` (1 initial + 3 retries) are not repeatedly dispatched, demonstrating bounded best-effort delivery.
 4. **Duplicate Suppression Tests**:
    - `test_duplicate_suppression_heuristic`: Verifies that identical submissions within the 60-second heuristic window do not duplicate database rows, and asserts the documented trade-off.
-5. **Portfolio Regression Verification**:
-   - Verify that all existing Vue unit tests (`tests/unit/`) and Playwright E2E tests (`tests/e2e/`) continue to pass completely untouched.
+5. **Headless Content Negotiation & Production Logging Configuration Tests**:
+   - `test_get_method_with_html_accept_header_returns_405_json_without_template_error`: Proves `GET /api/contact/` with `Accept: text/html` returns HTTP 405 Method Not Allowed as `application/json` without triggering `TemplateDoesNotExist`.
+   - `test_get_method_with_json_accept_header_returns_405_json`: Proves `GET /api/contact/` with `Accept: application/json` returns HTTP 405 JSON.
+   - `test_logging_configuration_structure`: Validates `LOGGING` dictionary version, handlers, root logger, and `django.request` logger.
+   - `test_django_request_logger_does_not_duplicate_to_root`: Verifies `propagate: False` on `django.request`.
+   - `test_django_request_error_logging_output`: Uses `assertLogs` to confirm ERROR-level messages on `django.request` are captured by the console handler.
+6. **Portfolio Regression Verification**:
+   - Verify that all **136 backend unit tests** pass in SQLite (`:memory:`) isolation.
+   - Verify that all existing Vue unit tests (`tests/unit/`, 163 tests) and Playwright E2E tests (`tests/e2e/`) continue to pass completely untouched.
 
 ---
 
