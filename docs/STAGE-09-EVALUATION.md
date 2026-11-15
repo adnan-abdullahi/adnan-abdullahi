@@ -1,10 +1,11 @@
 # Stage 09 — Evaluation
 
-**Status:** Active — Database migration completed (Stage 2.9); integration accepted (Stage 2.10); universal PyMySQL and fail-closed TLS hardened (Stages 3.1–3.2D); proxy-aware rate-limiting implemented (Stage 3.4C); integrated deployment architecture implemented and verified (Stages 3.5A–3.5G); second Render deployment executed on commit 1aff35b (health checks succeeded, HTTP 200 confirmed, origin protection confirmed); Stage 3.6B investigation identified DRF BrowsableAPIRenderer HTML template lookup and unhandled exception logging gap; Stage 3.6C JSONRenderer restriction and production console logging implemented and verified locally across 136 backend unit tests and 163 frontend tests; third Render deployment attempt pending owner execution
+**Status:** Complete, Accepted and Closed (Authorized by Project Owner 2026-11-15)
+**Next Active Stage:** Stage 10 — Reflection and Growth
 **Project:** Project 01 — Professional Engineering Portfolio
 **Stage:** 09 of 10
 **Governing project record:** `docs/PROJECT-01.md`
-**Governing Baseline Commit:** `1aff35becb354c6b3bbe9736b60e9ff7e574da12` (`1aff35b`)
+**Governing Baseline Commit:** `3b8e2e65e84c35b4c77f07cf0450b0c26e418b31` (`3b8e2e6`)
 
 ## 1. Purpose
 
@@ -121,53 +122,52 @@ Implemented, verified, and committed:
   - Configured `DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']` in `backend/config/settings.py`, guaranteeing all responses render strictly as JSON and `GET /api/contact/` returns HTTP 405 Method Not Allowed without template lookups.
   - Configured `LOGGING` dictionary with `StreamHandler` (`console`) directing `django.request` ERROR logs to stdout/stderr with `propagate: False`.
   - Added 5 regression tests in `backend/tests/test_contact_api.py` covering HTML Accept headers, JSON Accept headers, and logging configuration.
-- **Regression Suite:** **136 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (299 total) passing cleanly.
-- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7`, `51ff6cc`, `1aff35b` created and synchronized to GitHub.
+- **Regression Suite:** **136 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (**299 total tests**) passing cleanly.
+- **Stage 3.6D Independent Audit & Stage 3.6E Commit:** Stage 3.6D audit confirmed exact compliance; Stage 3.6E created consolidated commit `3b8e2e6` (`fix(stage-09): enforce drf json rendering and configure production console logging`) pushed to GitHub `main`.
+- **Consolidated Git Commits:** Commits `279d41c`, `884904d`, `7b6cdd7`, `51ff6cc`, `1aff35b`, and `3b8e2e6` created and synchronized to GitHub.
 
-Pending authorization & execution:
-- Commit and push of Stage 3.6C JSONRenderer and production console logging correction.
-- Triggering third Render deployment attempt and verifying live contact endpoint behavior.
-
-Exit condition: Approved changes are implemented, tested, and reconciled; no secrets are committed; the local development workflow remains functional. **Satisfied:** Codebase is hardened and reconciled; deployment execution awaits owner authorization.
+Exit condition: Approved changes are implemented, tested, and reconciled; no secrets are committed; the local development workflow remains functional. **Satisfied:** Codebase is hardened, tested, and deployed at baseline commit `3b8e2e6`.
 
 ### 09.4 — Public Deployment
 
-**Status:** In Progress (Second Render deployment attempt succeeded with commit `1aff35b`; third deployment attempt pending with Stage 3.6C JSONRenderer and console logging corrections).
+**Status:** Completed & Verified (2026-11-14).
 
-Activities include provisioning the evaluated Render Starter Web Service, configuring Cloudflare Pages for static frontend hosting, establishing environment variables, connecting the public frontend to the backend API, and verifying live container health.
+Activities completed:
+- **Frontend Deployment:** Deployed Vue 3 + TypeScript application (`app/dist`) to Cloudflare Worker service `adnan-abdullahi` on `https://adnanabdullahi.com`. Configured Wrangler compatibility date at deployment time (`wrangler.toml` is not tracked in the Git repository). Client-side hash routing verified.
+- **Backend Deployment:** Provisioned Render Starter Web Service `adnan-abdullahi-api` ($7/month) on `https://api.adnanabdullahi.com` running commit `3b8e2e6`. Health probe `/api/health/` verified returning HTTP 200 OK.
+- **Database Connection:** TiDB Cloud Serverless (`portfolio_db`) connected securely over TLS (`VERIFY_IDENTITY`) with CA bundle `/etc/ssl/certs/ca-certificates.crt`. Least-privilege runtime credentials (`portfolio_user`) configured.
+- **Notification Integration:** Outbound Resend HTTPS API configured and verified with portfolio owner inbox.
+- **Origin Security Enforcement:** Cloudflare Transform Rule injects `X-Origin-Secret`; direct hits to `*.onrender.com` verified returning HTTP 403 Forbidden.
 
-Exit condition: Public URLs and the exact deployed source revision are recorded, basic health checks succeed, and costs align with owner decisions.
+Exit condition: Public URLs and the exact deployed source revision are recorded, basic health checks succeed, and costs align with owner decisions. **Satisfied.**
 
 ### 09.5 — Live-System Evaluation
 
-**Status:** Pending successful deployment.
+**Status:** Completed & Accepted by Project Owner (2026-11-15).
 
-Evaluation areas:
-- Public route loading, direct navigation, refresh and hash routing.
-- Primary and secondary navigation, including mobile navigation.
-- Responsive layouts and visual fidelity.
-- Accessibility, including manual assistive-technology review where available.
-- Contact form validation, API integration, success/error states, and live Resend email delivery.
-- Production configuration, exposed-secret checks, allowed hosts, CORS, throttling, and error handling.
-- Production build, browser compatibility, performance, and uptime behavior.
-- Database persistence and documented limitations.
-- Correspondence between evaluated deployed revision and recorded source revision.
+Evaluation results across 8 core dimensions:
+1. **Public Route Loading & Hash Routing:** Verified all routes (`/#/orientation`, `/#/project-01`, `/#/approach`, `/#/record`, `/#/deep-engineering`, `/#/about`, `/#/contact`) load and refresh cleanly without 404s or edge rewrite rules.
+2. **Navigation & Mobile Interactions:** Primary navbar, view switching, smooth anchor scrolling, and mobile drawer/hamburger interactions behave correctly across viewports.
+3. **Responsive Layouts & Visual Styling:** Verified design fidelity and typographic scale across mobile, tablet, and desktop breakpoints.
+4. **Accessibility Baseline:** Zero automated regressions; keyboard navigation, tab orders, focus rings, and screen-reader ARIA landmarks preserved.
+5. **Contact Form End-to-End Submission:** Dispatched authorized production test (`d82896fc-6fed-4369-bcb1-fbb7a5678ff3`). Option A persistence confirmed in TiDB (`status='sent'`, 1 attempt); API returned HTTP 201 Created; Resend HTTP 200 delivery confirmed in owner's Gmail inbox.
+6. **Security & Origin Protection:** Direct origin hits blocked (HTTP 403); `X-Origin-Secret` validation operational; `CF-Connecting-IP` extracted; fail-closed remote TLS enforced; DRF JSON-only rendering verified (HTTP 405 JSON on GET probe, zero template errors).
+7. **Performance & Availability:** 24/7 continuous uptime on Render Starter ($7/month) with zero cold-start delay on first-time contact submission.
+8. **Database Persistence Integrity:** Exactly 2 records in `contact_message` table (Stage 2.10 synthetic baseline `e767aae8...` + Stage 3.8 production test `d82896fc...`).
 
-Exit condition: Results distinguish pass, fail, partial, not tested, and not applicable; each material finding links to evidence.
+Exit condition: Results distinguish pass, fail, partial, not tested, and not applicable; each material finding links to evidence. **Satisfied.**
 
 ### 09.6 — Findings, Remediation and Closure
 
-**Status:** Pending.
+**Status:** Completed & Accepted (2026-11-15).
 
-Activities:
-- Classify findings by severity and consequence.
-- Propose responses before changing the product.
-- Obtain explicit authorization for material changes.
-- Verify approved fixes and rerun affected checks.
-- Record residual risks, free-tier constraints, and unresolved issues.
-- Present the evidence for a human decision on Stage 09 closure.
+Formal Human Evaluation Acceptance and Stage Closure:
+- **Project Owner Formal Declaration:** On November 15, 2026, the project owner reviewed all deployment and verification evidence across Cloudflare, Render, TiDB Cloud, and Resend, and formally declared:
+  > **Stage 09 — Evaluation: COMPLETE, ACCEPTED AND CLOSED.**
+- **Criterion 13 Satisfied:** Formal human evaluation acceptance and sign-off executed by the project owner.
+- **Formal Opening of Stage 10:** The project owner formally opened **Stage 10 — Reflection and Growth**.
 
-Exit condition: The record supports a clear closure decision or explicitly states why the stage remains open.
+Exit condition: The record supports a clear closure decision or explicitly states why the stage remains open. **Satisfied.**
 
 ## 5. Evaluation Acceptance Criteria
 
@@ -241,8 +241,11 @@ In particular:
 - [x] Stage 3.6B contact API and production logging investigation completed (identified DRF BrowsableAPIRenderer `TemplateDoesNotExist` failure and missing console error logging).
 - [x] Stage 3.6C contact API JSON rendering and production console logging correction implemented and verified (136 backend unit tests, 163 frontend unit tests).
 - [x] Stage 3.6C documentation reconciliation completed.
-- [ ] Third Render deployment attempt execution and live contact verification (09.4).
-- [ ] Cloudflare Pages frontend deployment and cross-origin API integration (09.4).
-- [ ] Post-deployment live-system acceptance testing (09.5).
+- [x] Stage 3.6D final implementation and documentation audit completed.
+- [x] Stage 3.6E authorized staging and commit executed (`3b8e2e6`).
+- [x] Third Render deployment attempt execution and live contact verification (09.4).
+- [x] Cloudflare Worker frontend deployment and cross-origin API integration (09.4).
+- [x] Post-deployment live-system acceptance testing (09.5).
+- [x] Stage 09 formal evaluation acceptance and closure; Stage 10 — Reflection and Growth opened (09.6).
 
-**Current stage position:** 09.4 / Stage 3.6C — Contact API JSON rendering and production console logging implemented and verified across 136 backend tests and 163 frontend tests; documentation reconciled; third Render deployment attempt pending owner execution.
+**Current stage position:** Stage 09 Closed (2026-11-15) -> Stage 10 — Reflection and Growth active.

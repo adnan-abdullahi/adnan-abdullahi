@@ -1,12 +1,12 @@
 # Deployment Architecture, Readiness, and Candidate Evaluation Record
 
 **Project:** Project 01 — Professional Engineering Portfolio
-**Stage:** 09 — Evaluation (Stage 3.6C Reconciliation)
-**Status:** Render Health-Check Resolved & Deployed (1aff35b); Contact API JSON Rendering & Production Console Logging Implemented; Third Deployment Attempt Pending Owner Execution
+**Stage:** 09 — Evaluation (Closed & Accepted) / 10 — Reflection and Growth
+**Status:** Production Deployed, Verified, and Accepted; Cloudflare Worker Service, Render Starter, TiDB Serverless, and Resend HTTPS API Operational; Stage 09 Formally Closed (2026-11-15)
 **Initial Audit Date:** 2026-10-27
-**Reconciled Date:** 2026-11-13
+**Reconciled Date:** 2026-11-15
 **Governing Stage Plan:** `docs/STAGE-09-EVALUATION.md`
-**Governing Baseline Commit:** `1aff35becb354c6b3bbe9736b60e9ff7e574da12` (`1aff35b`)
+**Governing Baseline Commit:** `3b8e2e65e84c35b4c77f07cf0450b0c26e418b31` (`3b8e2e6`)
 
 ---
 
@@ -31,12 +31,12 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 - Custom domain support and automated managed TLS.
 
 **Current Cost Boundary:**
-- **Frontend:** Cloudflare Pages (Free, $0/month).
-- **Backend:** Render Starter Web Service ($7/month evaluated candidate; awaiting owner provisioning).
-- **Database:** TiDB Cloud Serverless (Existing cluster, $0/month within free tier quota).
+- **Frontend:** Cloudflare Worker service `adnan-abdullahi` (Free tier, $0/month).
+- **Backend:** Render Starter Web Service `adnan-abdullahi-api` ($7/month live provisioned service).
+- **Database:** TiDB Cloud Serverless (`portfolio_db`, $0/month within free tier quota).
 - **Email:** Resend HTTPS API (Free tier, 3,000 emails/month, 100 emails/day, $0/month).
 
-*Operating Rule:* Render Starter is an evaluated candidate, **not** an already provisioned or deployed service. No external hosting account has been configured, and no live deployment has been executed.
+*Operating Rule:* Production infrastructure is fully provisioned, deployed, and operational. Future configuration changes are governed by the project change control process (observation → investigation → proposal → human decision → authorization → execution → verification).
 
 ---
 
@@ -108,7 +108,8 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 |                      VISITOR BROWSER                        |
 |                                                             |
 |   +-----------------------------------------------------+   |
-|   |         Cloudflare Pages (Static Frontend)          |   |
+|   |         Cloudflare Worker Service (Frontend)        |   |
+|   |  - Service: adnan-abdullahi                         |   |
 |   |  - Host: https://adnanabdullahi.com                 |   |
 |   |  - Vue 3 + TypeScript + Vite (/app/dist)            |   |
 |   |  - Hash routing (createWebHashHistory)              |   |
@@ -132,7 +133,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
                                v
 +-------------------------------------------------------------+
 |               RENDER STARTER WEB SERVICE (Backend)          |
-|              (Evaluated Candidate — $7/month)               |
+|              (Service: adnan-abdullahi-api — $7/month)      |
 |                                                             |
 |   +-----------------------------------------------------+   |
 |   |   Gunicorn (1 worker, 2 threads) + Django 5.2.18    |   |
@@ -152,7 +153,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 |   |  - Endpoint: gateway01.eu-central-1...:4000         |   |
 |   |  - Database: portfolio_db (Migrated in Stage 2.9)   |   |
 |   |  - Tables: django_migrations, contact_message       |   |
-|   |  - 1 Permanent Synthetic Record (Stage 2.10)        |   |
+|   |  - 2 Verified Records (Stage 2.10 & Stage 3.8)      |   |
 |   |  - Default 0.0.0.0/0 IP Access (Dynamic Render IP)  |   |
 |   +--------------------------+--------------------------+   |
 |                              |                              |
@@ -167,37 +168,42 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 +-------------------------------------------------------------+
 ```
 
-### 3.1 Frontend — Cloudflare Pages (Evaluated Candidate)
-- **Candidate Status:** Recommended static frontend host; build and preview pending owner account authorization.
+### 3.1 Frontend — Cloudflare Worker Service (`adnan-abdullahi`)
+- **Deployment Status:** **DEPLOYED, VERIFIED & ACCEPTED**.
+- **Public Domain:** `https://adnanabdullahi.com`
+- **Underlying Service:** Cloudflare Worker service `adnan-abdullahi` serving the static build output (`app/dist`).
 - **Build Configuration:**
-  - Build Command: `npm run build`
+  - Build Command: `npm run build` (`vue-tsc -b && vite build`)
   - Build Output Directory: `app/dist`
-  - Root Directory: Repository root (npm workspace root).
-- **Limits:** 500 builds/month, 1 concurrent build, unlimited bandwidth.
-- **Routing:** Supported natively via `createWebHashHistory()`.
+  - Root Directory: Repository root.
+- **Routing Topography:** Natively supported via hash-based routing (`createWebHashHistory()`). Edge worker serves static assets directly; client-side router handles in-app view transitions without server rewrite rules.
+- **Deployment Mechanics:** Deployed via Cloudflare Wrangler with compatibility date configured during deployment. (`wrangler.toml` is not tracked in the Git repository).
 
-### 3.2 Backend — Render Starter Web Service (Evaluated Candidate)
-- **Candidate Status:** Evaluated candidate; awaiting owner provisioning decision.
-- **Compute Sizing:** 512 MB RAM, 0.5 shared CPU.
+### 3.2 Backend — Render Starter Web Service (`adnan-abdullahi-api`)
+- **Deployment Status:** **DEPLOYED, VERIFIED & ACCEPTED** (Commit `3b8e2e6`).
+- **Public API Domain:** `https://api.adnanabdullahi.com`
+- **Render Service Name:** `adnan-abdullahi-api`
+- **Compute Sizing:** Starter tier (512 MB dedicated RAM, 0.5 shared CPU, $7/month).
 - **Process Model:** 1 Gunicorn worker with 2 threads (`--timeout 60`).
-- **Filesystem:** Ephemeral. Application is strictly stateless; zero persistent data written to local disk.
-- **Health Checks:** Probes `/api/health/`.
+- **Continuous Availability:** Never spins down; zero cold-start delay on visitor submissions.
+- **Filesystem:** Ephemeral Linux filesystem. Application is strictly stateless; zero persistent data written to local disk.
+- **Health Checks:** Probes `/api/health/` returning HTTP 200 OK directly at the middleware edge.
 - **Superseded Option:** Render Free Web Service ($0) was superseded due to 15-minute spin-down, 50–60 second cold starts, and 750-hour monthly account limit.
 - **Rejected Option:** Render Free PostgreSQL was rejected because instances expire and delete data after 30 days.
 
 ### 3.3 Database — TiDB Cloud Serverless (Existing Verified Cluster)
-- **Status:** **MIGRATED & INTEGRATION ACCEPTED**.
+- **Status:** **MIGRATED, VERIFIED & OPERATIONAL**.
 - **Cluster Endpoint:** `gateway01.eu-central-1.prod.aws.tidbcloud.com:4000` (AWS Frankfurt).
 - **Database:** `portfolio_db`.
 - **Migration History (Stage 2.9 — 2026-11-08):**
   - Initial migration `contact.0001_initial` applied successfully via out-of-band `portfolio_migrator` execution.
   - Tables present: `django_migrations` and `contact_message`.
-  - Columns: 11 total (`id`, `name`, `email`, `subject`, `message`, `delivery_status`, `delivery_attempts`, `last_delivery_error`, `content_hash`, `created_at`, `updated_at`).
-  - Indexes: 4 secondary B-Tree indexes on `created_at`, `email`, `delivery_status`, `content_hash`.
-- **Live Integration State (Stage 2.10 — 2026-11-09):**
-  - Synthetic test submission verified live Option A persistence: record `e767aae8-0cf2-44af-b51c-1c23a07e8642` (content hash `e27514b6...`) is permanently retained as engineering verification evidence.
-  - Total database row count: strictly **1**.
-  - Controlled abuse tests (T-01 baseline, T-02 honeypot HTTP 400 rejection, T-03 CRLF HTTP 400 rejection) confirmed zero extraneous writes.
+  - Columns: strictly 11 total (`id`, `name`, `email`, `message`, `delivery_status`, `delivery_attempts`, `last_attempt_at`, `delivery_error`, `content_hash`, `created_at`, `updated_at`).
+  - Indexes: 4 secondary B-Tree indexes (`contact_msg_created_idx` on `created_at`, `contact_msg_status_idx` on `delivery_status`, `contact_msg_hash_created_idx` on `content_hash, created_at`, `contact_msg_email_idx` on `email`).
+- **Live Integration & Production State (Stages 2.10 & 3.8):**
+  - Record 1: Synthetic test submission `e767aae8-0cf2-44af-b51c-1c23a07e8642` (Stage 2.10 baseline verification).
+  - Record 2: Production test submission `d82896fc-6fed-4369-bcb1-fbb7a5678ff3` (Stage 3.8 production deployment verification; status `sent`, 1 attempt).
+  - Total database row count: strictly **2**.
 - **CHECK Constraint Notice:** TiDB Cloud Serverless runs with `tidb_enable_check_constraint = OFF`. DDL `CHECK` constraints are parsed but unenforced by the engine. Data integrity for `delivery_status` is enforced at the Django application model layer (`ContactMessage.clean()` and `save()`).
 
 ---
@@ -206,20 +212,20 @@ To eliminate these failure modes, the project owner authorized evaluating the **
 
 | ID | Finding | Initial Risk / Impact (2026-10-27) | Resolved Implementation & Status (2026-11-10) | Current Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **D09-01** | Production frontend cannot rely on Vite's localhost proxy. | Contact submissions fail or target wrong origin. | Hash routing deployed; production API base URL / CORS origins to be configured at deployment. | **Ready for Configuration** |
+| **D09-01** | Production frontend cannot rely on Vite's localhost proxy. | Contact submissions fail or target wrong origin. | Hash routing deployed; production API base URL / CORS origins configured and operational on Cloudflare Worker service and Render. | **Resolved & Deployed** |
 | **D09-02** | Migration credentials depended on Windows Credential Manager. | Linux deployment would crash on import. | Implemented platform-neutral `credential_vault.py` with environment variable precedence (`DB_MIGRATE_*`), Windows fallback, and fail-closed resolution. Verified by 29 tests. | **Resolved Locally & Verified** |
 | **D09-03** | No dedicated health-check route existed. | Hosting probes would hit contact endpoint or fail. | Implemented `GET /api/health/` returning HTTP 200 in 0 DB queries. Verified by automated tests. | **Resolved Locally & Verified** |
 | **D09-04** | Email defaulted to console backend; Render blocks SMTP. | Outbound notifications fail on serverless/container hosts. | Implemented Resend HTTPS API dispatcher (`backend/contact/notifications.py`) using `urllib.request`. Decoupled from persistence. | **Resolved Locally & Verified** |
-| **D09-05** | CORS and allowed hosts defaulted to localhost. | Production cross-origin requests rejected. | Environment-configurable via `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` in `settings.py`. | **Ready for Configuration** |
-| **D09-06** | Free Render web service suffers 15-minute spin-down and cold starts. | 50–60s latency, request timeouts, poor UX. | Evaluated Render Starter Web Service ($7/mo) in Stage 3.2A. Continuous 24/7 uptime eliminates cold starts. | **Evaluated Candidate** |
-| **D09-07** | Free database quotas and migration compatibility unverified. | Incompatible protocol strings or unmigrated schema. | Django LTS 5.2.18 aligned; TiDB migration executed in Stage 2.9; integration accepted in Stage 2.10. | **Migrated & Verified** |
+| **D09-05** | CORS and allowed hosts defaulted to localhost. | Production cross-origin requests rejected. | Environment-configured via `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` in `settings.py`; verified live in production. | **Resolved & Deployed** |
+| **D09-06** | Free Render web service suffers 15-minute spin-down and cold starts. | 50–60s latency, request timeouts, poor UX. | Provisioned Render Starter Web Service ($7/mo) in Stage 3.8. Continuous 24/7 uptime eliminates cold starts. | **Resolved & Deployed** |
+| **D09-07** | Free database quotas and migration compatibility unverified. | Incompatible protocol strings or unmigrated schema. | Django LTS 5.2.18 aligned; TiDB migration executed in Stage 2.9; integration accepted in Stage 2.10; production verified in Stage 3.8. | **Migrated & Verified** |
 | **D09-08** | Native `mysqlclient` required C compilation headers on Linux. | Build failures on Render due to missing `libmysqlclient-dev`. | Implemented universal pure-Python PyMySQL across Windows and Linux; removed `mysqlclient` in commit `279d41c`. | **Resolved & Committed** |
 | **D09-09** | Remote database TLS was permissive (fail-open) if CA was missing. | Unencrypted remote connection attempts if misconfigured. | Implemented fail-closed TLS guards in `settings.py`: requires `DB_SSL_CA` file on disk and enforces `DB_SSL_MODE='VERIFY_IDENTITY'`. | **Resolved & Committed** |
-| **D09-10** | Default `REMOTE_ADDR` rate throttling colludes all visitors behind Render's reverse proxy (`10.x.x.x`). | 5 submissions from any visitor exhausts hourly quota application-wide. | Implemented production visitor identity extraction via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified locally by 13 new unit tests. | **Resolved Locally & Verified** |
-| **D09-11** | Direct ingress to `*.onrender.com` bypasses Cloudflare edge security and rate limiting. | Threat actors can flood origin directly or spoof headers. | Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret` via constant-time `hmac.compare_digest`. Supports comma-separated secrets for zero-downtime rotation. Fails closed in production (`DEBUG=False`). Narrow `GET`/`HEAD` exemption on `/api/health/`. Verified by 30 unit tests. | **Resolved Locally & Verified** |
-| **D09-12** | API routing boundary between frontend (`adnanabdullahi.com`) and backend API. | Frontend cannot reach backend or hits incorrect origin. | Dedicated Cloudflare-proxied CNAME subdomain `api.adnanabdullahi.com` pointing to Render, with client requests dispatched via `resolveApiUrl()` and `VITE_API_BASE_URL`. Preserves Vite local proxy when unset. Verified by unit tests. | **Resolved Locally & Verified** |
-| **D09-13** | First Render deployment health checks repeatedly returned HTTP 400, timing out deployment. | Web service never enters healthy live state; deployment fails. | Confirmed root cause: Render's internal health check pings the container directly using internal Host headers (`*.onrender.com`, `10.x.x.x`, `0.0.0.0`). The previous middleware exemption passed requests downstream (`self.get_response`), triggering Django `DisallowedHost` (HTTP 400). Corrected by returning `JsonResponse({'status': 'healthy'}, status=200)` for GET and empty-body 200 for HEAD directly from `CloudflareOriginSecretMiddleware`, bypassing `ALLOWED_HOSTS` and reverse-proxy header checks for health probes. Added direct `/api/health` route in `urls.py`, explicit `head()` in `HealthCheckView`, and `RENDER_EXTERNAL_HOSTNAME` in `ALLOWED_HOSTS`. Verified by 6 new unit tests; committed (`1aff35b`), deployed to Render, and verified live returning HTTP 200 on `https://api.adnanabdullahi.com/api/health/`. | **Resolved, Committed (1aff35b) & Deployed** |
-| **D09-14** | Direct browser access (`Accept: text/html`) to proxied `GET /api/contact/` returned HTTP 500 with no traceback in Render container logs. | Headless API without `TEMPLATES` raises `TemplateDoesNotExist: rest_framework/api.html` when DRF defaults to `BrowsableAPIRenderer` on HTML Accept headers; default production logging silences 500 errors when `ADMINS` is empty. | Configured `DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']` in `REST_FRAMEWORK` to enforce headless JSON responses across all request types (ensuring `GET /api/contact/` returns clean HTTP 405 JSON without template lookups); configured `LOGGING` dictionary with `StreamHandler` console handler for `django.request` ERROR records. Verified by 5 new unit tests (136 backend unit tests total). | **Resolved Locally & Verified (Pending Next Deployment)** |
+| **D09-10** | Default `REMOTE_ADDR` rate throttling colludes all visitors behind Render's reverse proxy (`10.x.x.x`). | 5 submissions from any visitor exhausts hourly quota application-wide. | Implemented production visitor identity extraction via `CF-Connecting-IP` with fail-closed HTTP 400 validation, canonical IPv4/IPv6 normalization, and `DEBUG=True` fallback. Verified live in production. | **Resolved & Deployed** |
+| **D09-11** | Direct ingress to `*.onrender.com` bypasses Cloudflare edge security and rate limiting. | Threat actors can flood origin directly or spoof headers. | Implemented `CloudflareOriginSecretMiddleware` verifying `X-Origin-Secret` via constant-time `hmac.compare_digest`. Supports comma-separated secrets for zero-downtime rotation. Fails closed in production (`DEBUG=False`). Narrow `GET`/`HEAD` exemption on `/api/health/`. Verified live returning HTTP 403 on direct hits. | **Resolved & Deployed** |
+| **D09-12** | API routing boundary between frontend (`adnanabdullahi.com`) and backend API. | Frontend cannot reach backend or hits incorrect origin. | Dedicated Cloudflare-proxied CNAME subdomain `api.adnanabdullahi.com` pointing to Render, with client requests dispatched via `resolveApiUrl()` and `VITE_API_BASE_URL`. Verified live in production. | **Resolved & Deployed** |
+| **D09-13** | First Render deployment health checks repeatedly returned HTTP 400, timing out deployment. | Web service never enters healthy live state; deployment fails. | Confirmed root cause: Render's internal health check pings the container directly using internal Host headers (`*.onrender.com`, `10.x.x.x`, `0.0.0.0`). The previous middleware exemption passed requests downstream (`self.get_response`), triggering Django `DisallowedHost` (HTTP 400). Corrected by returning `JsonResponse({'status': 'healthy'}, status=200)` for GET and empty-body 200 for HEAD directly from `CloudflareOriginSecretMiddleware`, bypassing `ALLOWED_HOSTS` and reverse-proxy header checks for health probes. Added direct `/api/health` route in `urls.py`, explicit `head()` in `HealthCheckView`, and `RENDER_EXTERNAL_HOSTNAME` in `ALLOWED_HOSTS`. Verified by 6 new unit tests; committed (`1aff35b`), deployed to Render, and verified live returning HTTP 200 on `https://api.adnanabdullahi.com/api/health/`. | **Resolved, Committed & Deployed** |
+| **D09-14** | Direct browser access (`Accept: text/html`) to proxied `GET /api/contact/` returned HTTP 500 with no traceback in Render container logs. | Headless API without `TEMPLATES` raises `TemplateDoesNotExist: rest_framework/api.html` when DRF defaults to `BrowsableAPIRenderer` on HTML Accept headers; default production logging silences 500 errors when `ADMINS` is empty. | Configured `DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']` in `REST_FRAMEWORK` to enforce headless JSON responses across all request types (ensuring `GET /api/contact/` returns clean HTTP 405 JSON without template lookups); configured `LOGGING` dictionary with `StreamHandler` console handler for `django.request` ERROR records. Verified by 5 new unit tests (136 backend unit tests total), committed (`3b8e2e6`), and deployed to production. | **Resolved, Committed (3b8e2e6) & Deployed** |
 
 ---
 
@@ -303,7 +309,7 @@ To eliminate these failure modes, the project owner authorized evaluating the **
    - Testing sender identity: `onboarding@resend.dev` delivers notifications strictly to the email registered with the Resend account.
    - Production domain: Sending from a custom domain (e.g., `contact@adnanabdullahi.com`) requires configuring SPF and DKIM DNS records at the domain registrar.
 3. **Reply-To Integrity:** The visitor's submitted email is supplied in the `reply_to` field. The `from` address is never spoofed as the visitor.
-4. **Live Verification Status:** End-to-end email transmission to an external inbox was deliberately not executed during Stage 2.10 to preserve free quota limits. Live notification delivery will be verified during Stage 09.4 post-deployment acceptance testing.
+4. **Live Verification Status:** End-to-end email transmission to the portfolio owner's Gmail inbox via Resend HTTPS API was executed and verified live during Stage 3.8 production acceptance testing (HTTP 200 from Resend, delivery confirmed in inbox).
 
 ### 5.4 Cloudflare DNS and Transform Rule Configuration Specification
 
@@ -320,28 +326,35 @@ To eliminate these failure modes, the project owner authorized evaluating the **
      - Header Name: `X-Origin-Secret`
      - Header Value: `<high-entropy-random-secret>` (matching active secret in Render `CF_ORIGIN_SECRET`)
 3. **Frontend Integration:**
-   - Cloudflare Pages custom domain: `https://adnanabdullahi.com`
+   - Frontend domain: `https://adnanabdullahi.com` (Cloudflare Worker service `adnan-abdullahi`)
    - Build environment variable: `VITE_API_BASE_URL=https://api.adnanabdullahi.com`
 
 ---
 
-## 6. Explicitly Unverified Deployment Details (What Has NOT Been Done)
+## 6. Operational Status and Production Boundaries
 
-To preserve engineering accuracy and avoid false claims of operational readiness:
+### 6.1 Verified Live Capabilities
+The following capabilities have been verified live on deployed production infrastructure:
+1. **Frontend Reachability:** Cloudflare Worker service `adnan-abdullahi` serves the Vue 3 application at `https://adnanabdullahi.com` with client-side hash routing (`/#/orientation`, `/#/contact`, etc.).
+2. **Backend API Reachability:** Render Starter Web Service `adnan-abdullahi-api` serves `https://api.adnanabdullahi.com` with automated TLS and origin secret enforcement.
+3. **Health Check Probing:** Internal Render liveness probes and public probes to `https://api.adnanabdullahi.com/api/health/` return HTTP 200 OK.
+4. **Origin Secret Defense:** Direct ingress to Render's underlying host (`*.onrender.com`) without `X-Origin-Secret` returns HTTP 403 Forbidden.
+5. **Headless JSON Enforcement:** DRF content negotiation strictly returns JSON responses (`JSONRenderer`), resolving incident D09-14.
+6. **Production Console Logging:** Unhandled exceptions and error logs emit directly to container stdout/stderr.
+7. **Database Persistence:** Option A database-first persistence verified in TiDB Cloud Serverless (`portfolio_db.contact_message`) with 2 total rows.
+8. **Outbound Notifications:** Resend HTTPS API dispatch delivers contact notifications to owner inbox with visitor Reply-To.
 
-1. **Render Deployment Status (Second Deployment Successful; Third Deployment Pending):** The second Render deployment attempt (commit `1aff35b`) succeeded: dependency installation, build, and Gunicorn startup finished cleanly; Render's internal health check succeeded; and `https://api.adnanabdullahi.com/api/health/` returned HTTP 200. Direct ingress to `https://<render-host>.onrender.com/api/contact/` returned HTTP 403 Forbidden ("Missing or empty origin secret"), verifying that `CloudflareOriginSecretMiddleware` is actively running and protecting the origin. A browser inspection of proxied `GET /api/contact/` revealed an unhandled `TemplateDoesNotExist` error (D09-14), which has been resolved locally in Stage 3.6C. Cloudflare Pages has not yet been provisioned. Live deployment remains pending the third deployment attempt with the Stage 3.6C correction.
-2. **Live Render-to-TiDB Handshake on Contact Submission Pending Verification:** While container health checks pass, no live contact form submission has yet been dispatched from the production frontend to verify runtime write connectivity from the live Render Linux container to TiDB Cloud.
-3. **Render CA Bundle Path Unverified on Host:** `/etc/ssl/certs/ca-certificates.crt` is the standard Linux path tested locally via mocking and path normalization; its presence on the specific Render container image will be exercised upon the first live database write.
-4. **Live Email Delivery Unverified:** Live delivery of a visitor notification email to the owner's personal inbox via Resend HTTPS API has not yet been tested.
-5. **Cross-Origin DNS and Browser Negotiation Unverified:** Live cross-origin communication between a Cloudflare Pages domain and a Render domain has not yet been tested in a live browser.
-6. **Live Reverse-Proxy Header Propagation Unverified:** Delivery and preservation of `CF-Connecting-IP` across Cloudflare edge to Render Gunicorn backend has been verified via isolated unit tests, but not yet observed during a real contact submission on provisioned infrastructure.
-7. **Live Origin Secret Header Injection Confirmed on Host:** Real-world origin protection was confirmed during the second deployment: direct hits without `X-Origin-Secret` received HTTP 403 Forbidden, and proxied requests traversing Cloudflare reached the application view layer. Live contact submission end-to-end verification remains pending deployment of commit Stage 3.6C.
+### 6.2 Explicit Operational Boundaries and Known Architectural Characteristics
+1. **TiDB Cloud Data Explorer Column Display Limitation:** The TiDB Cloud web console Data Explorer UI truncates or limits horizontal table display to fewer visible columns in its graphical browser; SQL queries (`SELECT *` or `DESCRIBE contact_message`) and Django ORM introspection confirm that all 11 columns are fully defined, populated, and operational.
+2. **Untracked Cloudflare Wrangler File:** Deployment of the frontend to Cloudflare Worker service `adnan-abdullahi` was performed using the Wrangler CLI with automated compatibility date handling. `wrangler.toml` is not tracked in the Git repository.
+3. **Render Container Host Environment:** The database CA certificate bundle is configured to `/etc/ssl/certs/ca-certificates.crt`. Remote TLS verification succeeds (`VERIFY_IDENTITY`); however, Render Starter containers do not provide direct SSH or shell access, so operating system packages and filesystem layouts are not directly inspectable via terminal.
+4. **Cache & Rate-Limiting Model:** Visitor rate limiting (5 requests/hour via `CF-Connecting-IP`) and duplicate suppression (60-second SHA-256 window) use Django's in-memory cache (`LocMemCache`). Container restarts reset these counters, which is an accepted characteristic for this low-volume engineering portfolio.
 
 ---
 
 ## 7. Audit Disposition & Progression
 
 - **Baseline Code State:** Codebase is hardened, fail-closed, pure-Python, proxy-aware, origin-protected, health-check verified, DRF JSON-rendered, and verified by **136 backend unit tests** (in isolated SQLite test environment) and **163 frontend unit tests** (**299 total tests**).
-- **Database State:** `portfolio_db` is migrated (Stage 2.9) and integration-accepted (Stage 2.10) with 1 permanent synthetic record.
-- **Evaluated Architecture:** Cloudflare Pages (Frontend, $0) + Render Starter (Backend, $7/month candidate) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
-- **Next Required Step:** Commit and push the Stage 3.6C JSONRenderer and production console logging correction and execute the third Render deployment attempt.
+- **Database State:** `portfolio_db` is migrated (Stage 2.9) and operational on TiDB Cloud Serverless with **2 verified records** (Stage 2.10 synthetic baseline and Stage 3.8 production test).
+- **Production Architecture:** Cloudflare Worker service `adnan-abdullahi` (Frontend, $0) + Render Starter `adnan-abdullahi-api` (Backend, $7/month) + TiDB Cloud Serverless (Database, $0 quota) + Resend (Notifications, $0 quota).
+- **Stage Progression:** **Stage 09 — Evaluation is formally complete, accepted, and closed (2026-11-15).** The project has formally transitioned to **Stage 10 — Reflection and Growth**.
